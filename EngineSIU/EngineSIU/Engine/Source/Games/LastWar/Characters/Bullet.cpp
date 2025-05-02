@@ -6,7 +6,7 @@
 #include "Games/LastWar/Characters/EnemyCharacter.h"
 #include "Components/Shapes/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 ABullet::ABullet()
 {
     CollisionCapsule = AddComponent<UCapsuleComponent>("CollisionCapsule");

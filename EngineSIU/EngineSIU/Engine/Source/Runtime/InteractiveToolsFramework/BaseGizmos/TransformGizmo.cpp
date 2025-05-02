@@ -6,7 +6,7 @@
 #include "GizmoRectangleComponent.h"
 #include "Engine/EditorEngine.h"
 #include "World/World.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 
 ATransformGizmo::ATransformGizmo()
 {

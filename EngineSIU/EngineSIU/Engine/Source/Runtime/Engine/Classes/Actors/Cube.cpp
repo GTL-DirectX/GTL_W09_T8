@@ -6,7 +6,7 @@
 #include "Components/Shapes/CapsuleComponent.h"
 #include "Components/Shapes/SphereComponent.h"
 
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 
 ACube::ACube()
 {

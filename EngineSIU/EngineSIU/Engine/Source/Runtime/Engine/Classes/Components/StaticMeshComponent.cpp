@@ -1,6 +1,6 @@
 #include "Components/StaticMeshComponent.h"
 
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Launch/EngineLoop.h"
 #include "UObject/Casts.h"
 #include "UObject/ObjectFactory.h"

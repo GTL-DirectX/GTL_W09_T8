@@ -1,5 +1,5 @@
 #include "StaticMesh.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "UObject/Casts.h"
 #include "UObject/ObjectFactory.h"
 

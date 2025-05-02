@@ -13,7 +13,7 @@
 #include "Camera/CameraComponent.h"
 
 #include "Engine/EditorEngine.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Engine/AssetManager.h"
 
 #include "UnrealEd/ImGuiWidget.h"

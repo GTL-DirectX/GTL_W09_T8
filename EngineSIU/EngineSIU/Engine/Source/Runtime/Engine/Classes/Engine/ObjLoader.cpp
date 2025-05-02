@@ -1,4 +1,4 @@
-#include "FLoaderOBJ.h"
+#include "ObjLoader.h"
 
 #include "UObject/ObjectFactory.h"
 #include "Rendering/Material/Material.h"

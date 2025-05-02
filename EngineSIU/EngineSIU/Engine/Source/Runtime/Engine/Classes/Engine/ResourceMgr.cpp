@@ -6,7 +6,7 @@
 #include "Components/SkySphereComponent.h"
 #include "D3D11RHI/GraphicDevice.h"
 #include "DirectXTK/Include/DDSTextureLoader.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 
 
 void FResourceMgr::Initialize(FRenderer* renderer, FGraphicsDevice* device)

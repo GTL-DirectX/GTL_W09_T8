@@ -21,7 +21,7 @@
 #include "Engine/Classes/Components/Light/SpotLightComponent.h"
 #include "Engine/Classes/Components/Light/PointLightComponent.h"
 #include "Engine/Classes/Components/HeightFogComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 
 void FEditorRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager)
 {

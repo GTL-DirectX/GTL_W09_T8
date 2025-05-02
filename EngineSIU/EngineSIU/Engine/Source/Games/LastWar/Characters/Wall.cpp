@@ -4,7 +4,7 @@
 #include "PlayerCharacter.h"
 #include "Audio/AudioManager.h"
 #include "Components/StaticMeshComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Components/LuaScriptComponent.h"
 #include "Components/TextComponent.h"
 #include "Components/Shapes/BoxComponent.h"

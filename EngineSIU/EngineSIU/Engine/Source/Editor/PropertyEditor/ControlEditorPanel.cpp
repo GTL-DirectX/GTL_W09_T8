@@ -10,7 +10,7 @@
 #include "Components/ParticleSubUVComponent.h"
 #include "Components/TextComponent.h"
 
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "LevelEditor/SLevelEditor.h"
 #include "UnrealEd/EditorViewportClient.h"
 #include "tinyfiledialogs/tinyfiledialogs.h"

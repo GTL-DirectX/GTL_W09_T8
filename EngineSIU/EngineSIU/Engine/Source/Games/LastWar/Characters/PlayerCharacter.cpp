@@ -1,7 +1,7 @@
 #include "PlayerCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Delegates/DelegateCombination.h"
 #include "EnemyCharacter.h"
 #include "Wall.h"

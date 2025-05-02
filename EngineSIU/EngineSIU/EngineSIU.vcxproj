@@ -260,7 +260,7 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\CurveManager.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\EditorEngine.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\Engine.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\FObjLoader.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\ObjLoader.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\ResourceMgr.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\StaticMeshActor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Actor.cpp" />
@@ -538,7 +538,7 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\EditorEngine.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Engine.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\EngineTypes.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\FObjLoader.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\ObjLoader.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Lua\LuaUtils\LuaBindUtils.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Lua\LuaUtils\LuaTypeMacros.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\ResourceMgr.h" />

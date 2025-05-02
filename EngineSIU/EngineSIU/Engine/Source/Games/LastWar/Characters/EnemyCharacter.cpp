@@ -2,7 +2,7 @@
 
 #include "Bullet.h"
 #include "Components/StaticMeshComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Components/LuaScriptComponent.h"
 #include "Engine/Lua/LuaUtils/LuaTypeMacros.h"
 
