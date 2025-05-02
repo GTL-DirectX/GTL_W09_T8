@@ -38,7 +38,7 @@ public:
     virtual void Render(const std::shared_ptr<FViewportClient>& Viewport) override;    
     virtual void ClearRenderArr() override;
 
-    void RenderPrimitive(OBJ::FStaticMeshRenderData* render_data, const TArray<FStaticMaterial*> array, TArray<UMaterial*> materials, int getselected_sub_mesh_index);
+    void RenderPrimitive(FStaticMeshRenderData* render_data, const TArray<FStaticMaterial*> array, TArray<UMaterial*> materials, int getselected_sub_mesh_index);
     virtual void RenderAllStaticMeshes();
     void RenderAllStaticMeshesForCSM(FCascadeConstantBuffer FCasCadeData);
     void BindResourcesForSampling();

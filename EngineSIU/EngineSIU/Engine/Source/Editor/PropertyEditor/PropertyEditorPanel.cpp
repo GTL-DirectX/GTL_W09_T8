@@ -425,7 +425,7 @@ void PropertyEditorPanel::RenderForStaticMesh(UStaticMeshComponent* StaticMeshCo
                     if (ImGui::Selectable(GetData(Asset.Value.AssetName.ToString()), false))
                     {
                         FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
-                        UStaticMesh* StaticMesh = FManagerOBJ::GetStaticMesh(MeshName.ToWideString());
+                        UStaticMesh* StaticMesh = FObjManager::GetStaticMesh(MeshName.ToWideString());
                         if (StaticMesh)
                         {
                             StaticMeshComp->SetStaticMesh(StaticMesh);
@@ -884,16 +884,16 @@ void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
     ImGui::SetNextItemWidth(160);
     // 메테리얼 이름 목록을 const char* 배열로 변환
     std::vector<const char*> materialChars;
-    for (const auto& material : FManagerOBJ::GetMaterials()) {
+    for (const auto& material : FObjManager::GetMaterials()) {
         materialChars.push_back(*material.Value->GetMaterialInfo().MaterialName);
     }
 
     //// 드롭다운 표시 (currentMaterialIndex가 범위를 벗어나지 않도록 확인)
-    //if (currentMaterialIndex >= FManagerOBJ::GetMaterialNum())
+    //if (currentMaterialIndex >= FObjManager::GetMaterialNum())
     //    currentMaterialIndex = 0;
 
-    if (ImGui::Combo("##MaterialDropdown", &CurMaterialIndex, materialChars.data(), FManagerOBJ::GetMaterialNum())) {
-        UMaterial* material = FManagerOBJ::GetMaterial(materialChars[CurMaterialIndex]);
+    if (ImGui::Combo("##MaterialDropdown", &CurMaterialIndex, materialChars.data(), FObjManager::GetMaterialNum())) {
+        UMaterial* material = FObjManager::GetMaterial(materialChars[CurMaterialIndex]);
         SelectedStaticMeshComp->SetMaterial(SelectedMaterialIndex, material);
     }
 
@@ -990,7 +990,7 @@ void PropertyEditorPanel::RenderCreateMaterialView()
 
     ImGui::NewLine();
     if (ImGui::Button("Create Material")) {
-        FManagerOBJ::CreateMaterial(tempMaterialInfo);
+        FObjManager::CreateMaterial(tempMaterialInfo);
     }
 
     ImGui::NewLine();

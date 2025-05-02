@@ -114,27 +114,23 @@ struct FObjMaterialInfo
     FWString AlphaTexturePath;
 };
 
-// Cooked Data
-namespace OBJ
+struct FStaticMeshRenderData
 {
-    struct FStaticMeshRenderData
-    {
-        FWString ObjectName;
-        FString DisplayName;
+    FWString ObjectName;
+    FString DisplayName;
 
-        TArray<FStaticMeshVertex> Vertices;
-        TArray<UINT> Indices;
+    TArray<FStaticMeshVertex> Vertices;
+    TArray<UINT> Indices;
 
-        ID3D11Buffer* VertexBuffer;
-        ID3D11Buffer* IndexBuffer;
+    ID3D11Buffer* VertexBuffer;
+    ID3D11Buffer* IndexBuffer;
 
-        TArray<FObjMaterialInfo> Materials;
-        TArray<FMaterialSubset> MaterialSubsets;
+    TArray<FObjMaterialInfo> Materials;
+    TArray<FMaterialSubset> MaterialSubsets;
 
-        FVector BoundingBoxMin;
-        FVector BoundingBoxMax;
-    };
-}
+    FVector BoundingBoxMin;
+    FVector BoundingBoxMax;
+};
 
 struct FVertexTexture
 {

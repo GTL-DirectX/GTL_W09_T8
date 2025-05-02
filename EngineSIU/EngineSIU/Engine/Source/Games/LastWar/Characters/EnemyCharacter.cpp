@@ -12,7 +12,7 @@
 
 AEnemyCharacter::AEnemyCharacter()
 {
-    BodyMesh->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Contents/Enemy/enemy.obj"));
+    BodyMesh->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Enemy/enemy.obj"));
 
     // Initialize properties or components here
     SetActorLocation(FVector(20.0f, 0.0f, 0.0f));

@@ -56,7 +56,7 @@ void UStaticMeshComponent::SetProperties(const TMap<FString, FString>& InPropert
         {
             // 경로 문자열로 UStaticMesh 에셋 로드 시도
            
-            if (UStaticMesh* MeshToSet = FManagerOBJ::CreateStaticMesh(*TempStr))
+            if (UStaticMesh* MeshToSet = FObjManager::CreateStaticMesh(*TempStr))
             {
                 SetStaticMesh(MeshToSet); // 성공 시 메시 설정
                 UE_LOG(LogLevel::Display, TEXT("Set StaticMesh '%s' for %s"), **TempStr, *GetName());
@@ -155,7 +155,7 @@ int UStaticMeshComponent::CheckRayIntersection(const FVector& InRayOrigin, const
 
     int IntersectionNum = 0;
 
-    OBJ::FStaticMeshRenderData* RenderData = StaticMesh->GetRenderData();
+    FStaticMeshRenderData* RenderData = StaticMesh->GetRenderData();
     const TArray<FStaticMeshVertex>& Vertices = RenderData->Vertices;
     const int32 VertexNum = Vertices.Num();
     if (VertexNum == 0)

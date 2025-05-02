@@ -256,7 +256,7 @@ void FStaticMeshRenderPass::UpdateLitUnlitConstant(int32 isLit) const
     BufferManager->UpdateConstantBuffer(TEXT("FLitUnlitConstants"), Data);
 }
 
-void FStaticMeshRenderPass::RenderPrimitive(OBJ::FStaticMeshRenderData* RenderData, TArray<FStaticMaterial*> Materials, TArray<UMaterial*> OverrideMaterials, int SelectedSubMeshIndex) const
+void FStaticMeshRenderPass::RenderPrimitive(FStaticMeshRenderData* RenderData, TArray<FStaticMaterial*> Materials, TArray<UMaterial*> OverrideMaterials, int SelectedSubMeshIndex) const
 {
     UINT Stride = sizeof(FStaticMeshVertex);
     UINT Offset = 0;
@@ -323,7 +323,7 @@ void FStaticMeshRenderPass::RenderAllStaticMeshes(const std::shared_ptr<FViewpor
             continue;
         }
 
-        OBJ::FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
+        FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
         if (RenderData == nullptr)
         {
             continue;
@@ -409,7 +409,7 @@ void FStaticMeshRenderPass::RenderAllStaticMeshesForPointLight(const std::shared
     {
         if (!Comp || !Comp->GetStaticMesh()) { continue; }
 
-        OBJ::FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
+        FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
         if (RenderData == nullptr) { continue; }
 
         UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);

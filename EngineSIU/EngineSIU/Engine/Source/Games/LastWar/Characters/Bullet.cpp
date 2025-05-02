@@ -13,7 +13,7 @@ ABullet::ABullet()
     RootComponent = CollisionCapsule;
     BodyMesh = AddComponent<UStaticMeshComponent>("BodyMesh");
     BodyMesh->SetupAttachment(RootComponent);
-    BodyMesh->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Contents/Sphere.obj"));
+    BodyMesh->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Sphere.obj"));
     BodyMesh->SetWorldScale3D(FVector(0.2, 0.2, 0.2));
 }
 
