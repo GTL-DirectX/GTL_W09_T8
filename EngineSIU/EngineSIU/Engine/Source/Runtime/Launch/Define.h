@@ -465,3 +465,18 @@ struct FFadeConstants
     float FadeAlpha = 1.0f;
     FVector padding1;
 };
+
+#pragma region SkeletalMesh
+struct FSkeletalMeshVectex
+{
+    FVector position;
+    int boneIndices[4];
+    float boneWeights[4];
+};
+struct FBone
+{
+    FMatrix skinningMatrix;
+};
+
+
+#pragma endregion
