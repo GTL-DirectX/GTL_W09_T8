@@ -7,5 +7,8 @@ class USkinnedAsset : public UObject
 {
     DECLARE_CLASS(USkinnedAsset, UObject)
 
+public:
+    USkinnedAsset() = default;
+
 };
 

@@ -8,6 +8,9 @@ class USkeletalMesh : public USkinnedAsset
 {   
     DECLARE_CLASS(USkeletalMesh, USkinnedAsset)
 
+public:
+    USkeletalMesh() = default;
+
 private:
     FSkeletalMeshRenderData* RenderData = nullptr;
 
