@@ -7,7 +7,7 @@
 
 struct FSkeletalMeshRenderSection
 {
-    // int32 BoneIndex; // 이 섹션에서 사용하는 본 인덱스. -1이면 사용하지 않음.
+    // int32 BoneIndex; // 이 섹션에서 사용하는 본 인덱스. -1이면 사용하지 않음. 필요한가? BaseIndex가 기본이 될지도. 사용한다면 본 계층 구조에서의 인덱스.
 
     uint32 BaseIndex; 
     uint32 NumTriangles;
