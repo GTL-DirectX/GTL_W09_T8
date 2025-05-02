@@ -812,6 +812,10 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Camera\CameraModifier.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Camera\CameraTypes.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\FadeRenderpass.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Actors\CameraActor.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Camera\CameraModifier\CameraShakeModifier.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SpringArmComponent.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\CurveManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1055,6 +1059,11 @@
     <ClInclude Include="Engine\Source\ThirdParty\include\ImGUI\Bezier.h" />
     <ClInclude Include="Engine\Source\ThirdParty\include\ImGUI\Curve.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\FadeRenderpass.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Math\Interpolator.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Actors\CameraActor.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Camera\CameraModifier\CameraShakeModifier.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SpringArmComponent.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\CurveManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\SlateShader.hlsl" />
