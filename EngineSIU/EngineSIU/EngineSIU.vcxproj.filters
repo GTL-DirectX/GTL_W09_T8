@@ -1072,6 +1072,10 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkinnedAsset.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMeshRenderData.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Resource\FBXManager.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Math\Interpolator.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Camera\CameraModifier\CameraShakeModifier.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SpringArmComponent.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\CurveManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\SlateShader.hlsl" />
