@@ -58,7 +58,7 @@ void UStaticMesh::SetData(OBJ::FStaticMeshRenderData* renderData)
 
     for (int materialIndex = 0; materialIndex < staticMeshRenderData->Materials.Num(); materialIndex++) {
         FStaticMaterial* newMaterialSlot = new FStaticMaterial();
-        UMaterial* newMaterial = FManagerOBJ::CreateMaterial(staticMeshRenderData->Materials[materialIndex]);
+        UMaterial* newMaterial = UMaterial::CreateMaterial(staticMeshRenderData->Materials[materialIndex]);
 
         newMaterialSlot->Material = newMaterial;
         newMaterialSlot->MaterialSlotName = staticMeshRenderData->Materials[materialIndex].MaterialName;

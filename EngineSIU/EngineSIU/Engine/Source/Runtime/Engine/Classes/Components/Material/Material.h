@@ -26,6 +26,15 @@ public:
         materialInfo.TransparencyScalar = TransparencyIn;
         materialInfo.bTransparent = (TransparencyIn < 1.0f);
     }
+
+public:
+    static UMaterial* CreateMaterial(FObjMaterialInfo materialInfo);
+    static UMaterial* GetMaterial(FString name);
+    static TMap<FString, UMaterial*>& GetMaterials() { return materialMap; }
+    static int GetMaterialNum() { return materialMap.Num(); }
+
 private:
     FObjMaterialInfo materialInfo;
+
+    inline static TMap<FString, UMaterial*> materialMap;
 };
