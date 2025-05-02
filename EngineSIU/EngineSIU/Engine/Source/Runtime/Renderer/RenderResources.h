@@ -10,6 +10,9 @@
 
 #include "Engine/Classes/Engine/Texture.h"
 
+#include "Rendering/Types/Buffers.h"
+
+
 struct FDebugPrimitiveData
 {
     FVertexInfo VertexInfo;

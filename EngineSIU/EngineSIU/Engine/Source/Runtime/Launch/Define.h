@@ -413,25 +413,6 @@ struct FViewportSize
     FVector2D Padding;
 };
 
-struct FVertexInfo
-{
-    uint32_t NumVertices;
-    uint32_t Stride;
-    ID3D11Buffer* VertexBuffer;
-};
-
-struct FIndexInfo
-{
-    uint32_t NumIndices;
-    ID3D11Buffer* IndexBuffer;
-};
-
-struct FBufferInfo
-{
-    FVertexInfo VertexInfo;
-    FIndexInfo IndexInfo;
-};
-
 struct FScreenConstants
 {
     FVector2D ScreenSize;   // 화면 전체 크기 (w, h)

@@ -23,6 +23,9 @@
 #include "Engine/Classes/Components/HeightFogComponent.h"
 #include "Engine/ObjLoader.h"
 
+#include "Rendering/Types/Buffers.h"
+
+
 void FEditorRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager)
 {
     BufferManager = InBufferManager;

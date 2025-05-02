@@ -553,6 +553,7 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\GameFramework\PlayerInput.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Level.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Math\ShapeInfo.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Types\Buffers.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\UnrealClient.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\UserInterface\Console.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\ViewportClient.h" />
