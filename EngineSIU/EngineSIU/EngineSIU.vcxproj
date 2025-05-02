@@ -242,9 +242,9 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Light\LightComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Light\PointLightComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Light\SpotLightComponent.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Material\Material.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Material\Material.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\MeshComponent.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\StaticMesh.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\StaticMesh.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\ParticleSubUVComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\PrimitiveComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\ProjectileMovementComponent.cpp" />
@@ -324,9 +324,9 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\Lua\LuaScriptManager.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\Lua\LuaTypes\LuaUserTypes.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Camera\PlayerCameraManager.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMesh.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMeshRenderData.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkinnedAsset.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkeletalMesh.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkeletalMeshRenderData.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkinnedAsset.cpp" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmod.dll" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmodL.dll" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmodstudio.dll" />
@@ -518,9 +518,9 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Light\LightComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Light\PointLightComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Light\SpotLightComponent.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Material\Material.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Material\Material.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\MeshComponent.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\StaticMesh.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\StaticMesh.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\ParticleSubUVComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\PrimitiveComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\ProjectileMovementComponent.h" />
@@ -776,9 +776,9 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Lua\LuaScriptManager.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Lua\LuaTypes\LuaUserTypes.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Camera\PlayerCameraManager.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMesh.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMeshRenderData.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkinnedAsset.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkeletalMesh.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkeletalMeshRenderData.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkinnedAsset.h" />
     <None Include="Shaders\EditorShaderConstants.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

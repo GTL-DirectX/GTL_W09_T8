@@ -1,8 +1,8 @@
 #include "FLoaderOBJ.h"
 
 #include "UObject/ObjectFactory.h"
-#include "Components/Material/Material.h"
-#include "Components/Mesh/StaticMesh.h"
+#include "Rendering/Material/Material.h"
+#include "Rendering/Mesh/StaticMesh.h"
 
 #include <fstream>
 #include <sstream>

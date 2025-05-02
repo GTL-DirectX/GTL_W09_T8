@@ -1,7 +1,7 @@
 #pragma once
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
-#include "Components/Material/Material.h"
+#include "Rendering/Material/Material.h"
 #include "Define.h"
 
 class UStaticMesh : public UObject
