@@ -420,32 +420,6 @@ void PropertyEditorPanel::RenderForStaticMesh(UStaticMeshComponent* StaticMeshCo
             ImGui::EndCombo();
         }
 
-        // Begin Test
-
-        ImGui::Separator();
-
-        static bool show_new_window = false;
-
-        if (ImGui::Button("SkeletalMesh Viewer"))
-        {
-            show_new_window = true;
-        }
-
-        if (show_new_window)
-        {
-            ImGui::Begin("SkeletalMesh Viewer", &show_new_window);
-
-            ImGui::Text("SkeletalMesh Viewer");
-            if (ImGui::Button("Close"))
-            {
-                show_new_window = false;
-            }
-
-            ImGui::End();
-        }
-        // End Test
-
-
         ImGui::TreePop();
     }
     ImGui::PopStyleColor();

@@ -17,12 +17,20 @@ class USkeletalMesh : public USkinnedAsset
 
 public:
     USkeletalMesh() = default;
+    virtual ~USkeletalMesh() override;
+
+    virtual UObject* Duplicate(UObject* InOuter) override;
+    FSkeletalMeshRenderData* GetRenderData() const { return SkeletalMeshRenderData; }
+
+    //FWString GetOjbectName() const
+    //{
+    //    return SkeletalMeshRenderData->ObjectName;
+    //}
 
     virtual bool IsSkeletalMesh() const override { return true; } // 이 섹션이 스켈레탈 메쉬인지 확인하는 함수
 
 private:
-    FSkeletalMeshRenderData* RenderData = nullptr;
+    FSkeletalMeshRenderData* SkeletalMeshRenderData = nullptr;
 
 
 };
-

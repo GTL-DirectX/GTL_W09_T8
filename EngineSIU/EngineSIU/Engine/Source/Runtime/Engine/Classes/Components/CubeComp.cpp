@@ -15,8 +15,8 @@ void UCubeComp::InitializeComponent()
 {
     Super::InitializeComponent();
 
-    FManagerOBJ::CreateStaticMesh("Contents/Reference/Reference.obj");
-    SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Reference.obj"));
+    FObjManager::CreateStaticMesh("Contents/Reference/Reference.obj");
+    SetStaticMesh(FObjManager::GetStaticMesh(L"Reference.obj"));
 }
 
 void UCubeComp::TickComponent(float DeltaTime)

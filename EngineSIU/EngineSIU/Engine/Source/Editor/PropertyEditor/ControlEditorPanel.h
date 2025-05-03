@@ -20,6 +20,10 @@ private:
     static void CreateSRTButton(ImVec2 ButtonSize);
     void CreateLightSpawnButton(ImVec2 InButtonSize, ImFont* IconFont);
 
+    // Begin Test
+    static void CreateViewerButton();
+    // End Test
+
 private:
     static uint64 ConvertSelectionToFlags(const bool Selected[]);
     

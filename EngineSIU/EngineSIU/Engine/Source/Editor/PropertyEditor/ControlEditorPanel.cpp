@@ -29,6 +29,8 @@
 #include "Games/LastWar/Core/Spawner.h"
 #include "ImGUI/imgui.h"
 
+#include "Editor/ViewerEditor/ViewerEditor.h"
+
 void ControlEditorPanel::Render()
 {
     /* Pre Setup */
@@ -52,6 +54,8 @@ void ControlEditorPanel::Render()
     CreateFlagButton();
     ImGui::SameLine();
     CreateModifyButton(IconSize, IconFont);
+    ImGui::SameLine();
+    CreateViewerButton();
     ImGui::SameLine();
     CreateLightSpawnButton(IconSize, IconFont);
     ImGui::SameLine();
@@ -403,6 +407,13 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
         }
         ImGui::EndPopup();
     }
+}
+
+void ControlEditorPanel::CreateViewerButton()
+{
+    const std::shared_ptr<FEditorViewportClient> ActiveViewport = GEngineLoop.GetLevelEditor()->GetActiveViewportClient();
+
+    ViewerEditor::CreateViewerWindow();
 }
 
 void ControlEditorPanel::CreateFlagButton()
