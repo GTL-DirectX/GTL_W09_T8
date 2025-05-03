@@ -467,7 +467,7 @@ struct FFadeConstants
 };
 
 #pragma region SkeletalMesh
-struct FSkeletalMeshVectex
+struct FSkeletalMeshVertex
 {
     FVector position;
     int boneIndices[4];
