@@ -36,29 +36,16 @@ void ControlEditorPanel::Render()
     ImFont* IconFont = IO.Fonts->Fonts[FEATHER_FONT];
     constexpr ImVec2 IconSize = ImVec2(32, 32);
 
-    const float PanelWidth = (Width) * 0.8f;
-    constexpr float PanelHeight = 45.0f;
-
-    constexpr float PanelPosX = 1.0f;
-    constexpr float PanelPosY = 1.0f;
-
-    constexpr ImVec2 MinSize(300, 50);
-    constexpr ImVec2 MaxSize(FLT_MAX, 50);
-
-    /* Min, Max Size */
-    ImGui::SetNextWindowSizeConstraints(MinSize, MaxSize);
-
-    /* Panel Position */
-    ImGui::SetNextWindowPos(ImVec2(PanelPosX, PanelPosY), ImGuiCond_Always);
-
-    /* Panel Size */
-    ImGui::SetNextWindowSize(ImVec2(PanelWidth, PanelHeight), ImGuiCond_Always);
-
     /* Panel Flags */
-    constexpr ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
+    ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_None;
 
     /* Render Start */
-    ImGui::Begin("Control Panel", nullptr, PanelFlags);
+    if (!ImGui::Begin("Control Panel", nullptr, PanelFlags))
+    {
+        // Early out if collapsed or not visible
+        ImGui::End();
+        return;
+    }
 
     CreateMenuButton(IconSize, IconFont);
     ImGui::SameLine();
@@ -95,134 +82,134 @@ void ControlEditorPanel::CreateMenuButton(const ImVec2 ButtonSize, ImFont* IconF
 
     if (bOpenMenu)
     {
-        ImGui::SetNextWindowPos(ImVec2(10, 55), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(135, 170), ImGuiCond_Always);
-
-        ImGui::Begin("Menu", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-
-        if (ImGui::MenuItem("New Level"))
+        ImGuiWindowFlags menuFlags = ImGuiWindowFlags_None; 
+        if (ImGui::Begin("Menu", &bOpenMenu, menuFlags))
         {
-            if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
+            if (ImGui::MenuItem("New Level"))
             {
-                EditorEngine->NewLevel();
-            }
-        }
-
-        if (ImGui::MenuItem("Load Level"))
-        {
-            char const* lFilterPatterns[1] = { "*.scene" };
-            const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
-
-            if (FileName == nullptr)
-            {
-                tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
-                ImGui::End();
-                return;
-            }
-            if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
-            {
-                EditorEngine->NewLevel();
-                EditorEngine->LoadLevel(FileName);
-            }
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::MenuItem("Save Level"))
-        {
-            char const* lFilterPatterns[1] = { "*.scene" };
-            const char* FileName = tinyfd_saveFileDialog("Save Scene File", "", 1, lFilterPatterns, "Scene(.scene) file");
-
-            if (FileName == nullptr)
-            {
-                ImGui::End();
-                return;
-            }
-            if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
-            {
-                EditorEngine->SaveLevel(FileName);
-                EditorEngine->NewLevel();
-                EditorEngine->LoadLevel(FileName);
-            }
-
-            tinyfd_messageBox("알림", "저장되었습니다.", "ok", "info", 1);
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::Button("ImGui데모"))
-        {
-            bShowImGuiDemoWindow = !bShowImGuiDemoWindow;
-        }
-
-        if (bShowImGuiDemoWindow)
-        {
-            ImGui::ShowDemoWindow(&bShowImGuiDemoWindow); // 창이 닫힐 때 상태를 업데이트
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::BeginMenu("Import"))
-        {
-            if (ImGui::MenuItem("Wavefront (.obj)"))
-            {
-                char const* lFilterPatterns[1] = { "*.obj" };
-                const char* FileName = tinyfd_openFileDialog("Open OBJ File", "", 1, lFilterPatterns, "Wavefront(.obj) file", 0);
-
-                if (FileName != nullptr)
+                if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
                 {
-                    std::cout << FileName << '\n';
-
-                    if (FManagerOBJ::CreateStaticMesh(FileName) == nullptr)
-                    {
-                        tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
-                    }
+                    EditorEngine->NewLevel();
                 }
             }
 
-            ImGui::EndMenu();
-        }
+            if (ImGui::MenuItem("Load Level"))
+            {
+                char const* lFilterPatterns[1] = { "*.scene" };
+                const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
 
-        ImGui::Separator();
-
-        if (ImGui::MenuItem("Quit"))
-        {
-            ImGui::OpenPopup("프로그램 종료");
-        }
-
-        const ImVec2 Center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(Center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-        if (ImGui::BeginPopupModal("프로그램 종료", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-        {
-            ImGui::Text("정말 프로그램을 종료하시겠습니까?");
+                if (FileName == nullptr)
+                {
+                    tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
+                    ImGui::End();
+                    return;
+                }
+                if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
+                {
+                    EditorEngine->NewLevel();
+                    EditorEngine->LoadLevel(FileName);
+                }
+            }
 
             ImGui::Separator();
 
-            const float ContentWidth = ImGui::GetWindowContentRegionMax().x;
-            /* Move Cursor X Position */
-            ImGui::SetCursorPosX(ContentWidth - (160.f + 10.0f));
-            if (ImGui::Button("OK", ImVec2(80, 0)))
+            if (ImGui::MenuItem("Save Level"))
             {
-                PostQuitMessage(0);
-            }
-            ImGui::SameLine();
-            ImGui::SetItemDefaultFocus();
-            ImGui::PushID("CancelButtonWithQuitWindow");
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ImColor::HSV(0.0f, 1.0f, 1.0f)));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(ImColor::HSV(0.0f, 0.9f, 1.0f)));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(ImColor::HSV(0.0f, 1.0f, 1.0f)));
-            if (ImGui::Button("Cancel", ImVec2(80, 0)))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::PopStyleColor(3);
-            ImGui::PopID();
+                char const* lFilterPatterns[1] = { "*.scene" };
+                const char* FileName = tinyfd_saveFileDialog("Save Scene File", "", 1, lFilterPatterns, "Scene(.scene) file");
 
-            ImGui::EndPopup();
+                if (FileName == nullptr)
+                {
+                    ImGui::End();
+                    return;
+                }
+                if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
+                {
+                    EditorEngine->SaveLevel(FileName);
+                    EditorEngine->NewLevel();
+                    EditorEngine->LoadLevel(FileName);
+                }
+
+                tinyfd_messageBox("알림", "저장되었습니다.", "ok", "info", 1);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::Button("ImGui데모"))
+            {
+                bShowImGuiDemoWindow = !bShowImGuiDemoWindow;
+            }
+
+            if (bShowImGuiDemoWindow)
+            {
+                ImGui::ShowDemoWindow(&bShowImGuiDemoWindow); // 창이 닫힐 때 상태를 업데이트
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::BeginMenu("Import"))
+            {
+                if (ImGui::MenuItem("Wavefront (.obj)"))
+                {
+                    char const* lFilterPatterns[1] = { "*.obj" };
+                    const char* FileName = tinyfd_openFileDialog("Open OBJ File", "", 1, lFilterPatterns, "Wavefront(.obj) file", 0);
+
+                    if (FileName != nullptr)
+                    {
+                        std::cout << FileName << '\n';
+
+                        if (FManagerOBJ::CreateStaticMesh(FileName) == nullptr)
+                        {
+                            tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
+                        }
+                    }
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Quit"))
+            {
+                ImGui::OpenPopup("프로그램 종료");
+            }
+
+            const ImVec2 Center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(Center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+            if (ImGui::BeginPopupModal("프로그램 종료", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("정말 프로그램을 종료하시겠습니까?");
+
+                ImGui::Separator();
+
+                const float ContentWidth = ImGui::GetWindowContentRegionMax().x;
+                /* Move Cursor X Position */
+                ImGui::SetCursorPosX(ContentWidth - (160.f + 10.0f));
+                if (ImGui::Button("OK", ImVec2(80, 0)))
+                {
+                    PostQuitMessage(0);
+                }
+                ImGui::SameLine();
+                ImGui::SetItemDefaultFocus();
+                ImGui::PushID("CancelButtonWithQuitWindow");
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ImColor::HSV(0.0f, 1.0f, 1.0f)));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(ImColor::HSV(0.0f, 0.9f, 1.0f)));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(ImColor::HSV(0.0f, 1.0f, 1.0f)));
+                if (ImGui::Button("Cancel", ImVec2(80, 0)))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::PopStyleColor(3);
+                ImGui::PopID();
+
+                ImGui::EndPopup();
+            }
+
+            ImGui::End();
         }
 
-        ImGui::End();
     }
 }
 
@@ -601,6 +588,7 @@ void ControlEditorPanel::OnResize(const HWND hWnd)
     Height = ClientRect.bottom - ClientRect.top;
 }
 
+// 이게 사라졌음;
 void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFont* IconFont)
 {
     UWorld* World = GEngine->ActiveWorld;

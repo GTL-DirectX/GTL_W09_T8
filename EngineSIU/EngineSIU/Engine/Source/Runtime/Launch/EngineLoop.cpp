@@ -15,6 +15,9 @@
 #include "UnrealEd/EditorConfigManager.h"
 #include "Games/LastWar/UI/LastWarUI.h"
 
+#include "ImGUI/imgui.h"
+#include "ImGUI/imgui_internal.h"   
+
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -168,15 +171,65 @@ void FEngineLoop::Tick()
         AudioManager::Get().Tick();
         GEngine->Tick(DeltaTime);
         LevelEditor->Tick(DeltaTime);
-        Render();
+
+        // Begin Test
+
         UIMgr->BeginFrame();
+        ImGuiID mainDockspaceId = ImGui::DockSpaceOverViewport();
+
+        static bool dockspace_built = false;
+        if (!dockspace_built)
+        {
+            ImGui::DockBuilderRemoveNode(mainDockspaceId);
+            ImGui::DockBuilderAddNode(mainDockspaceId, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(mainDockspaceId, ImGui::GetMainViewport()->WorkSize);
+
+            ImGuiID dock_id_top;
+            ImGuiID dock_id_main;
+            ImGuiID dock_id_right;
+            ImGuiID dock_id_left;
+            ImGuiID dock_id_right_bottom;
+
+            ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Up, 0.08f, &dock_id_top, &dock_id_main); // 8% height for top bar
+
+            ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Right, 0.20f, &dock_id_right, &dock_id_left); // Right panel 20% width
+
+            ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.40f, &dock_id_right_bottom, &dock_id_right); // Bottom-right 40% height
+
+            // Dock windows
+            ImGui::DockBuilderDockWindow("Control Panel", dock_id_top);    
+            ImGui::DockBuilderDockWindow("Outliner", dock_id_right);       
+            ImGui::DockBuilderDockWindow("Properties", dock_id_right_bottom);
+            ImGui::DockBuilderDockWindow("Viewport", dock_id_left);
+            ImGui::DockBuilderDockWindow("Console", dock_id_right_bottom); 
+            ImGui::DockBuilderDockWindow("Engine Profiler", dock_id_right);
+
+            ImGui::DockBuilderFinish(mainDockspaceId);
+            dockspace_built = true;
+        }
+
         UnrealEditor->Render();
         LastWarGameUI->Render();
 
         Console::GetInstance().Draw();
         EngineProfiler.Render(GraphicDevice.DeviceContext, GraphicDevice.ScreenWidth, GraphicDevice.ScreenHeight);
 
+        Render();
+        
+        // End Test
+
         UIMgr->EndFrame();
+
+        GraphicDevice.SwapBuffer();
+
+        // Begin Test
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
+        // End Test
 
         // Pending 처리된 오브젝트 제거
         GUObjectArray.ProcessPendingDestroyObjects();
@@ -191,7 +244,6 @@ void FEngineLoop::Tick()
             LuaScriptManager->HotReloadLuaScript();
         }
 
-        GraphicDevice.SwapBuffer();
         do
         {
             Sleep(0);

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Components/ActorComponent.h"
 #include "UnrealEd/EditorPanel.h"
 
@@ -12,5 +12,5 @@ public:
     virtual void OnResize(HWND hWnd) override;
     
 private:
-    float Width = 0, Height = 0;
+    float Width = 100, Height = 100;
 };

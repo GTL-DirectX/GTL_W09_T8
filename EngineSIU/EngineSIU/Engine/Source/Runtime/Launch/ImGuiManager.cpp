@@ -9,7 +9,21 @@ void UImGuiManager::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO(); 
+
+    // Begin Test
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    // End Test
+
     ImGui_ImplWin32_Init(hWnd);
     ImGui_ImplDX11_Init(device, deviceContext);
     io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\malgun.ttf)", 24.0f, nullptr, io.Fonts->GetGlyphRangesKorean());
