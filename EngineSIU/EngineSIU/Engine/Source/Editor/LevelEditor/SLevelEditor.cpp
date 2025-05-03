@@ -481,6 +481,10 @@ FEditorViewportClient* SLevelEditor::AddWindowViewportClient(FName ViewportName,
 
     std::shared_ptr<FEditorViewportClient> NewViewportClient = std::make_shared<FEditorViewportClient>();
     NewViewportClient->Initialize(EViewScreenLocation::EVL_Window, InRect, PreviewWorld);
+
+    WindowViewportClients.Add(ViewportName, NewViewportClient);
+
+    return NewViewportClient.get();
 }
 
 void SLevelEditor::RemoveWindowViewportClient(FName ViewportName)
