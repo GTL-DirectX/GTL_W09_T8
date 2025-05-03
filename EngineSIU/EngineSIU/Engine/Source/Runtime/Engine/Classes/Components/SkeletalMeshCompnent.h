@@ -5,5 +5,7 @@ class USkeletalMeshCompnent : public USkinnedMeshComponent
 {
     DECLARE_CLASS(USkeletalMeshCompnent, USkinnedMeshComponent)
 public:
-    USkeletalMeshCompnent() = default;
+    USkeletalMeshCompnent();
+
+    FSkeletalMeshRenderData test;
 };

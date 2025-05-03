@@ -60,7 +60,7 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     GraphicDevice.Initialize(AppWnd);
     AudioManager::Get().Initialize();
     FFBXManager::Get().Initialize();
-    FFBXManager::Get().LoadFbx("C:\\Users\\Jungle\\Desktop\\Person.fbx");
+
     if (!GPUTimingManager.Initialize(GraphicDevice.Device, GraphicDevice.DeviceContext))
     {
         UE_LOG(LogLevel::Error, TEXT("Failed to initialize GPU Timing Manager!"));

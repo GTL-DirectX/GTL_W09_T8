@@ -24,7 +24,7 @@ void FFBXManager::Release()
     if (SdkManager) SdkManager->Destroy();
 }
 
-void FFBXManager::LoadFbx(const FString& FbxFilePath)
+void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
 {
     // FBX 파일 열기
     if (!Importer->Initialize(*FbxFilePath, -1, SdkManager->GetIOSettings()))
@@ -54,12 +54,31 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath)
     {
         for (int i = 0; i < root->GetChildCount(); ++i)
         {
-            PrintStaticMeshData(root->GetChild(i));
+            FbxNode* child =root->GetChild(i);
+
+            // PrintStaticMeshData(root->GetChild(i));
+            ExtractSkeletalMeshData(child, OutRenderData);
+            std::cout << GetData(OutRenderData.ObjectName) << std::endl;
+            for (int i=0;i<OutRenderData.Vertices.Num();i++)
+            {
+                std::cout << "Vertex "<< i << " Pos : "<<  OutRenderData.Vertices[i].Position.X << " " << OutRenderData.Vertices[i].Position.Y << " " << OutRenderData.Vertices[i].Position.Z << std::endl;
+                std::cout << "Vertex "<< i << " Normal : " << OutRenderData.Vertices[i].Normal.X << " " << OutRenderData.Vertices[i].Normal.Y << " " << OutRenderData.Vertices[i].Normal.Z << std::endl;
+                std::cout << "Vertex "<< i << " BoneIndex : " <<OutRenderData.Vertices[i].BoneIndices[0] << " " << OutRenderData.Vertices[i].BoneIndices[1] << std::endl;
+                std::cout << "Vertex "<< i << " Weight : " <<OutRenderData.Vertices[i].BoneWeights[0] << " " << OutRenderData.Vertices[i].BoneWeights[1] << std::endl;
+            }
+            for (int i=0;i<OutRenderData.BoneNames.Num();i++)
+            {
+                std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
+            }
+            for (int i=0;i<OutRenderData.ParentBoneIndices.Num();i++)
+            {
+                std::cout << OutRenderData.ParentBoneIndices[i] << std::endl;
+            }
+            break;
         }
+        
     }
 }
-
-
 
 void FFBXManager::PrintStaticMeshData(FbxNode* node)
 {
@@ -169,7 +188,6 @@ void FFBXManager::PrintStaticMeshData(FbxNode* node)
 
 void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
 {
-    // 1) 메시 얻기
     FbxMesh* mesh = node->GetMesh();
     if (!mesh) return;
     
@@ -181,39 +199,43 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     int cpCount = mesh->GetControlPointsCount();
     outData.Vertices.SetNum(cpCount);
     FbxVector4* cps = mesh->GetControlPoints();
-    for(int i=0;i<cpCount;++i)
+    for (int i = 0; i < cpCount; ++i)
     {
         auto& v = outData.Vertices[i];
         v.Position = FVector(cps[i][0], cps[i][1], cps[i][2]);
-        // 초기화
-        for(int j=0;j<MAX_BONES_PER_VERTEX;++j)
+        // 초기화: 본 가중치
+        for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
         {
             v.BoneIndices[j] = 0;
-            v.BoneWeights[j] = 0.f;
+            v.BoneWeights[j] = 0.0f;
         }
     }
     
-    // 4) 인덱스 삼각화(이미 Triangulate 호출됨)
+    // 4) 인덱스 삼각화(이미 Triangulate 호출됨 가정)
     int polyCount = mesh->GetPolygonCount();
     outData.Indices.Empty();
-    outData.Indices.Reserve(polyCount*3);
-    for(int p=0;p<polyCount;++p)
+    outData.Indices.Reserve(polyCount * 3);
+    for (int p = 0; p < polyCount; ++p)
     {
-        for(int k=0;k<3;++k)
+        for (int k = 0; k < 3; ++k)
+        {
             outData.Indices.Add(mesh->GetPolygonVertex(p, k));
+        }
     }
     
     // 5) 본 + 스킨 정보
-    FbxSkin* skin = nullptr;
-    for(int d=0; d<mesh->GetDeformerCount(FbxDeformer::eSkin); ++d)
+    for (int d = 0; d < mesh->GetDeformerCount(FbxDeformer::eSkin); ++d)
     {
-        skin = static_cast<FbxSkin*>(mesh->GetDeformer(d, FbxDeformer::eSkin));
-        for(int c=0; c<skin->GetClusterCount(); ++c)
+        FbxSkin* skin = static_cast<FbxSkin*>(mesh->GetDeformer(d, FbxDeformer::eSkin));
+        for (int c = 0; c < skin->GetClusterCount(); ++c)
         {
             FbxCluster* cluster = skin->GetCluster(c);
             FbxNode* boneNode = cluster->GetLink();
+
+            // 본 이름 추가
             int boneIndex = outData.BoneNames.Add(boneNode->GetName());
-            // 부모 인덱스 (파인드)
+
+            // 부모 본 인덱스 찾기
             FbxNode* parent = boneNode->GetParent();
             int parentIdx = -1;
             if (parent)
@@ -229,25 +251,24 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
                 }
             }
             outData.ParentBoneIndices.Add(parentIdx);
+
             // Reference pose 저장
             FbxAMatrix tm;
             cluster->GetTransformLinkMatrix(tm);
-            
             outData.ReferencePose.Add(ConvertToFMatrix(tm));
-    
-            // CP 가중치 채우기
+
+            // 가중치 채우기
             int count = cluster->GetControlPointIndicesCount();
             const int* cpsIdx = cluster->GetControlPointIndices();
             const double* weights = cluster->GetControlPointWeights();
-            for(int i=0; i<count; ++i)
+            for (int i = 0; i < count; ++i)
             {
                 int cpIndex = cpsIdx[i];
-                float w = (float)weights[i];
+                float w = static_cast<float>(weights[i]);
                 auto& vert = outData.Vertices[cpIndex];
-                // 빈 슬롯에 할당
-                for(int j=0;j<MAX_BONES_PER_VERTEX;++j)
+                for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
                 {
-                    if(vert.BoneWeights[j]==0.f)
+                    if (vert.BoneWeights[j] == 0.0f)
                     {
                         vert.BoneIndices[j] = boneIndex;
                         vert.BoneWeights[j] = w;
@@ -257,15 +278,61 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
             }
         }
     }
+
+    // 6) 재질 & 서브셋 처리 (생략 또는 사용자 구현)
+    //    예: ParseMaterials(mesh, outData.Materials, outData.MaterialSubsets);
     
-    // 6) 재질 & 서브셋 (PrintStaticMeshData 로직 참조)
-    // (생략)
-    
-    // 7) 바운딩 박스
+    // 7) 바운딩 박스 계산
     ComputeBounds(outData.Vertices, outData.BoundingBoxMin, outData.BoundingBoxMax);
-    
-    // 8) GPU 버퍼 생성 (StaticMesh와 동일)
-    CreateBuffers(GEngineLoop.GraphicDevice.Device, outData.Vertices, outData.Indices, outData.VertexBuffer, outData.IndexBuffer);
+
+    // 8) GPU 버퍼 생성: Skeletal -> Static vertex 포맷 변환 후 업로드
+    {
+        TArray<FStaticMeshVertex> StaticVerts;
+        StaticVerts.SetNum(outData.Vertices.Num());
+
+        for (int i = 0; i < outData.Vertices.Num(); ++i)
+        {
+            const FSkeletalMeshVertex& Src = outData.Vertices[i];
+            FStaticMeshVertex& Dst = StaticVerts[i];
+
+            // 위치
+            Dst.X = Src.Position.X;
+            Dst.Y = Src.Position.Y;
+            Dst.Z = Src.Position.Z;
+
+            // 컬러: 기본 흰색
+            Dst.R = 1.0f;
+            Dst.G = 1.0f;
+            Dst.B = 1.0f;
+            Dst.A = 1.0f;
+
+            // 노멀
+            Dst.NormalX = Src.Normal.X;
+            Dst.NormalY = Src.Normal.Y;
+            Dst.NormalZ = Src.Normal.Z;
+
+            // 탄젠트
+            Dst.TangentX = Src.Tangent.X;
+            Dst.TangentY = Src.Tangent.Y;
+            Dst.TangentZ = Src.Tangent.Z;
+
+            // UV
+            Dst.U = Src.UV.X;
+            Dst.V = Src.UV.Y;
+
+            // 재질 인덱스: 필요시 설정
+            Dst.MaterialIndex = 0;
+        }
+
+        // 버퍼 생성 호출 (StaticVerts, Indices 사용)
+        CreateBuffers(
+            GEngineLoop.GraphicDevice.Device,
+            StaticVerts,
+            outData.Indices,
+            outData.VertexBuffer,
+            outData.IndexBuffer
+        );
+    }
 }
 
 FMatrix FFBXManager::ConvertToFMatrix(const FbxAMatrix& in)
@@ -295,13 +362,13 @@ void FFBXManager::ComputeBounds(const TArray<FSkeletalMeshVertex>& Verts, FVecto
     }
 }
 
-void FFBXManager::CreateBuffers(ID3D11Device* Device, const TArray<FSkeletalMeshVertex>& Verts, const TArray<UINT>& Indices, ID3D11Buffer*& OutVB,
+void FFBXManager::CreateBuffers(ID3D11Device* Device, const TArray<FStaticMeshVertex>& Verts, const TArray<UINT>& Indices, ID3D11Buffer*& OutVB,
     ID3D11Buffer*& OutIB)
 {
     // Vertex Buffer
     D3D11_BUFFER_DESC vbDesc = {};
     vbDesc.Usage = D3D11_USAGE_DEFAULT;
-    vbDesc.ByteWidth = sizeof(FSkeletalMeshVertex) * Verts.Num();
+    vbDesc.ByteWidth = sizeof(FStaticMeshVertex) * Verts.Num();
     vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     D3D11_SUBRESOURCE_DATA vbData = {};
     vbData.pSysMem = Verts.GetData();

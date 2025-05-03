@@ -20,7 +20,7 @@ public:
     void Initialize();
 
     // FBX 파일 로드 및 씬 셋업 (파일 경로: const char*)
-    void LoadFbx(const FString& FbxFilePath);
+    void LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData);
     void Release();
     // 씬에서 노드 데이터 출력 (예시)
     void PrintStaticMeshData(FbxNode* node);
@@ -32,7 +32,7 @@ public:
         FVector& OutMax);
     void CreateBuffers(
         ID3D11Device* Device,
-        const TArray<FSkeletalMeshVertex>& Verts,
+        const TArray<FStaticMeshVertex>& Verts,
         const TArray<UINT>& Indices,
         ID3D11Buffer*& OutVB,
         ID3D11Buffer*& OutIB);

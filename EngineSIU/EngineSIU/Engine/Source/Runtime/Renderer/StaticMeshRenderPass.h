@@ -5,6 +5,7 @@
 #include "Define.h"
 #include "Components/Light/PointLightComponent.h"
 
+class USkeletalMeshCompnent;
 class FShadowManager;
 class FDXDShaderManager;
 class UWorld;
@@ -34,6 +35,8 @@ public:
     virtual void PrepareRenderState(const std::shared_ptr<FViewportClient>& Viewport);
 
     virtual void RenderAllStaticMeshes(const std::shared_ptr<FViewportClient>& Viewport);
+    void RenderAllSkeletalMeshes(const std::shared_ptr<FViewportClient>& Viewport);
+
     
     void UpdateObjectConstant(const FMatrix& WorldMatrix, const FVector4& UUIDColor, bool bIsSelected) const;
   
@@ -55,7 +58,9 @@ protected:
 
 
     TArray<UStaticMeshComponent*> StaticMeshComponents;
-
+#pragma region SkeletalMesh
+    TArray<USkeletalMeshCompnent*> SkeletalMeshComponents;
+#pragma endregion
     ID3D11VertexShader* VertexShader;
     ID3D11InputLayout* InputLayout;
     
