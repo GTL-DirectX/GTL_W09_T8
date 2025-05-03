@@ -1,10 +1,18 @@
-﻿#pragma once
-#include "UObject/Object.h"
-#include "UObject/ObjectMacros.h"
+#pragma once
 
-class USkeletalMesh : public UObject
-{
-    DECLARE_CLASS(USkeletalMesh, UObject)
+#include "SkinnedAsset.h"
+
+class FSkeletalMeshRenderData;
+
+class USkeletalMesh : public USkinnedAsset
+{   
+    DECLARE_CLASS(USkeletalMesh, USkinnedAsset)
+
 public:
     USkeletalMesh() = default;
+
+private:
+    FSkeletalMeshRenderData* RenderData = nullptr;
+
+
 };
