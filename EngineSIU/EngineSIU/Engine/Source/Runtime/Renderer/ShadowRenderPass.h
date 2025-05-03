@@ -32,7 +32,7 @@ public:
     void InitializeShadowManager(class FShadowManager* InShadowManager);
     void PrepareRenderState();
     void PrepareCSMRenderState();
-    virtual void PrepareRenderArr() override;
+    virtual void PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport) override;
     void UpdateIsShadowConstant(int32 isShadow) const;
     void Render(ULightComponentBase* Light);
     virtual void Render(const std::shared_ptr<FViewportClient>& Viewport) override;    

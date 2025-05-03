@@ -33,7 +33,7 @@ public:
     virtual ~FUpdateLightBufferPass();
 
     virtual void Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager) override;
-    virtual void PrepareRenderArr() override;
+    virtual void PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport) override;
     virtual void Render(const std::shared_ptr<FViewportClient>& Viewport) override;
     virtual void ClearRenderArr() override;
     void UpdateLightBuffer() const;

@@ -24,7 +24,7 @@ SLevelEditor::SLevelEditor()
 {
 }
 
-void SLevelEditor::Initialize(uint32 InEditorWidth, uint32 InEditorHeight)
+void SLevelEditor::Initialize(uint32 InEditorWidth, uint32 InEditorHeight, UEngine* InEngine)
 {
     ResizeEditor(InEditorWidth, InEditorHeight);
     
@@ -73,7 +73,13 @@ void SLevelEditor::Initialize(uint32 InEditorWidth, uint32 InEditorHeight)
             return;
         }
         ViewportClients[i] = std::make_shared<FEditorViewportClient>();
-        ViewportClients[i]->Initialize(Location, Rect);
+        ViewportClients[i]->Initialize(Location, Rect, InEngine->ActiveWorld);
+    }
+
+    if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(InEngine))
+    {
+        EditorEngine->OnStartPIE.AddDynamic(this, &SLevelEditor::OnWorldChanged);
+        EditorEngine->OnEndPIE.AddDynamic(this, &SLevelEditor::OnWorldChanged);
     }
     
     ActiveViewportClient = ViewportClients[0];
@@ -450,6 +456,8 @@ void SLevelEditor::ResizeViewports()
     {
         ActiveViewportClient->GetViewport()->ResizeViewport(FRect(0.0f, 0.0f, EditorWidth, EditorHeight));
     }
+
+    // NOTE : Window로 띄우는 ImGUI 창의 경우 메인 Window와 별개임
 }
 
 void SLevelEditor::SetEnableMultiViewport(bool bIsEnable)
@@ -461,6 +469,39 @@ void SLevelEditor::SetEnableMultiViewport(bool bIsEnable)
 bool SLevelEditor::IsMultiViewport() const
 {
     return bMultiViewportMode;
+}
+
+FEditorViewportClient* SLevelEditor::AddWindowViewportClient(FName ViewportName, UWorld* PreviewWorld, const FRect& InRect)
+{
+    if (WindowViewportClients.Contains(ViewportName))
+    {
+        UE_LOG(LogLevel::Warning, TEXT("Viewport with name %s already exists."), *ViewportName.ToString());
+        return WindowViewportClients[ViewportName].get();
+    }
+
+    std::shared_ptr<FEditorViewportClient> NewViewportClient = std::make_shared<FEditorViewportClient>();
+    NewViewportClient->Initialize(EViewScreenLocation::EVL_Window, InRect, PreviewWorld);
+}
+
+void SLevelEditor::RemoveWindowViewportClient(FName ViewportName)
+{
+    if (WindowViewportClients.Contains(ViewportName))
+    {
+        WindowViewportClients.Remove(ViewportName);
+    }
+    else
+    {
+        UE_LOG(LogLevel::Warning, TEXT("Viewport with name %s does not exist."), *ViewportName.ToString());
+    }
+}
+
+void SLevelEditor::OnWorldChanged(UWorld* NewWorld)
+{
+    // 모든 뷰포트 클라이언트들의 참조 월드를 변경합니다
+    for (size_t i = 0; i < 4; i++)
+    {
+        ViewportClients[i]->SetWorld(NewWorld);
+    }
 }
 
 void SLevelEditor::LoadConfig()

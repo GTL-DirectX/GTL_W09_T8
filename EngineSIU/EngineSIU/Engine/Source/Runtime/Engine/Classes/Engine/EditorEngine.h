@@ -11,6 +11,9 @@
 class AActor;
 class USceneComponent;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(OnStartPIEDelegate, UWorld*)
+DECLARE_MULTICAST_DELEGATE_OneParam(OnEndPIEDelegate, UWorld*)
+
 class UEditorEngine : public UEngine
 {
     DECLARE_CLASS(UEditorEngine, UEngine)
@@ -63,6 +66,10 @@ public:
     USceneComponent* GetSelectedComponent() const;
 
     void HoverComponent(USceneComponent* InComponent);
+
+public:
+    OnStartPIEDelegate OnStartPIE;
+    OnEndPIEDelegate OnEndPIE;
 
 public:
     UEditorPlayer* GetEditorPlayer() const;

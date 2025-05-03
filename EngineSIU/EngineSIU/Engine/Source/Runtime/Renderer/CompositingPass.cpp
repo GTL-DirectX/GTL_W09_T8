@@ -42,7 +42,7 @@ void FCompositingPass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsD
     ViewModeBuffer = BufferManager->GetConstantBuffer("FViewModeConstants");
 }
 
-void FCompositingPass::PrepareRenderArr()
+void FCompositingPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
 }
 

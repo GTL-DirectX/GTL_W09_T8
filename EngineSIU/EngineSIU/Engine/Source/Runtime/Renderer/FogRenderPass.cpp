@@ -62,11 +62,14 @@ void FFogRenderPass::ReleaseShader()
 {
 }
 
-void FFogRenderPass::PrepareRenderArr()
+void FFogRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
+    if (Viewport == nullptr || Viewport->GetWorld() == nullptr)
+        return;
+
     for (const auto iter : TObjectRange<UHeightFogComponent>())
     {
-        if (iter->GetWorld() == GEngine->ActiveWorld)
+        if (iter->GetWorld() == Viewport->GetWorld())
         {
             FogComponents.Add(iter);
         }

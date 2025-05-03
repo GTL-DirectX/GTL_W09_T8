@@ -12,6 +12,7 @@ enum class EViewScreenLocation : uint8
     EVL_TopRight,
     EVL_BottomLeft,
     EVL_BottomRight,
+    EVL_Window,
     EVL_MAX,
 };
 

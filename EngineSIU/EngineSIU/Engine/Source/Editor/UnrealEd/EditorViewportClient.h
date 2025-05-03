@@ -9,6 +9,7 @@
 
 class ATransformGizmo;
 class USceneComponent;
+class UWorld;
 enum class EViewScreenLocation : uint8;
 
 class FEditorViewportClient : public FViewportClient
@@ -16,7 +17,7 @@ class FEditorViewportClient : public FViewportClient
 public:
     FEditorViewportClient();
     virtual void Tick(float DeltaTime) override;
-    void Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect);
+    void Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld);
 
     void UpdateEditorCameraMovement(float DeltaTime);
     void InputKey(const FKeyEvent& InKeyEvent);
