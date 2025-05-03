@@ -4,7 +4,7 @@
 #include "PlayerCharacter.h"
 #include "Audio/AudioManager.h"
 #include "Components/StaticMeshComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Components/LuaScriptComponent.h"
 #include "Components/TextComponent.h"
 #include "Components/Shapes/BoxComponent.h"
@@ -12,7 +12,7 @@
 
 AWall::AWall()
 {
-    StaticMeshComponent->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Contents/SupplyBox/SupplyBox.obj"));
+    StaticMeshComponent->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/SupplyBox/SupplyBox.obj"));
     StaticMeshComponent->SetRelativeScale3D(FVector(2, 2, 2));
     TextComponent = AddComponent<UTextComponent>("TEXTCOMPONENT_0");
     TextComponent->SetupAttachment(RootComponent);

@@ -211,7 +211,7 @@ void FGizmoRenderPass::RenderGizmoComponent(UGizmoBaseComponent* GizmoComp, cons
         return;
     }
     
-    OBJ::FStaticMeshRenderData* RenderData = GizmoComp->GetStaticMesh()->GetRenderData();
+    FStaticMeshRenderData* RenderData = GizmoComp->GetStaticMesh()->GetRenderData();
     if (!RenderData)
     {
         return;

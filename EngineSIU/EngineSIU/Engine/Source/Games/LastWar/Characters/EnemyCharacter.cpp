@@ -2,7 +2,7 @@
 
 #include "Bullet.h"
 #include "Components/StaticMeshComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Components/LuaScriptComponent.h"
 #include "Engine/Lua/LuaUtils/LuaTypeMacros.h"
 
@@ -12,7 +12,7 @@
 
 AEnemyCharacter::AEnemyCharacter()
 {
-    BodyMesh->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Contents/Enemy/enemy.obj"));
+    BodyMesh->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Enemy/enemy.obj"));
 
     // Initialize properties or components here
     SetActorLocation(FVector(20.0f, 0.0f, 0.0f));

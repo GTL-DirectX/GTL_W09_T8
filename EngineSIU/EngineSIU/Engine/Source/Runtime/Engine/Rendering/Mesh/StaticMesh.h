@@ -1,7 +1,7 @@
 #pragma once
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
-#include "Components/Material/Material.h"
+#include "Rendering/Material/Material.h"
 #include "Define.h"
 
 class UStaticMesh : public UObject
@@ -17,7 +17,7 @@ public:
     const TArray<FStaticMaterial*>& GetMaterials() const { return materials; }
     uint32 GetMaterialIndex(FName MaterialSlotName) const;
     void GetUsedMaterials(TArray<UMaterial*>& Out) const;
-    OBJ::FStaticMeshRenderData* GetRenderData() const { return staticMeshRenderData; }
+    FStaticMeshRenderData* GetRenderData() const { return staticMeshRenderData; }
 
     //ObjectName은 경로까지 포함
     FWString GetOjbectName() const
@@ -25,9 +25,9 @@ public:
         return staticMeshRenderData->ObjectName;
     }
 
-    void SetData(OBJ::FStaticMeshRenderData* renderData);
+    void SetData(FStaticMeshRenderData* renderData);
 
 private:
-    OBJ::FStaticMeshRenderData* staticMeshRenderData = nullptr;
+    FStaticMeshRenderData* staticMeshRenderData = nullptr;
     TArray<FStaticMaterial*> materials;
 };

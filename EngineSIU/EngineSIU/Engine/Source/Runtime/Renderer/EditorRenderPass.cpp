@@ -21,7 +21,10 @@
 #include "Engine/Classes/Components/Light/SpotLightComponent.h"
 #include "Engine/Classes/Components/Light/PointLightComponent.h"
 #include "Engine/Classes/Components/HeightFogComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
+
+#include "Rendering/Types/Buffers.h"
+
 
 void FEditorRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager)
 {
@@ -468,7 +471,7 @@ void FEditorRenderPass::LazyLoad()
     Resources.IconTextures[IconType::AtmosphericFog] = FEngineLoop::ResourceManager.GetTexture(L"Assets/Editor/Icon/AtmosphericFog_64.png");
 
     // Gizmo arrow 로드
-    UStaticMesh* Mesh = FManagerOBJ::GetStaticMesh(L"Assets/GizmoTranslationZ.obj");
+    UStaticMesh* Mesh = FObjManager::GetStaticMesh(L"Assets/GizmoTranslationZ.obj");
     Resources.Primitives.Arrow.VertexInfo.VertexBuffer = Mesh->GetRenderData()->VertexBuffer;
     Resources.Primitives.Arrow.VertexInfo.NumVertices = Mesh->GetRenderData()->Vertices.Num();
     Resources.Primitives.Arrow.VertexInfo.Stride = sizeof(FStaticMeshVertex); // Directional Light의 Arrow에 해당됨

@@ -6,14 +6,14 @@
 #include "Games/LastWar/Characters/EnemyCharacter.h"
 #include "Components/Shapes/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 ABullet::ABullet()
 {
     CollisionCapsule = AddComponent<UCapsuleComponent>("CollisionCapsule");
     RootComponent = CollisionCapsule;
     BodyMesh = AddComponent<UStaticMeshComponent>("BodyMesh");
     BodyMesh->SetupAttachment(RootComponent);
-    BodyMesh->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Contents/Sphere.obj"));
+    BodyMesh->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Sphere.obj"));
     BodyMesh->SetWorldScale3D(FVector(0.2, 0.2, 0.2));
 }
 

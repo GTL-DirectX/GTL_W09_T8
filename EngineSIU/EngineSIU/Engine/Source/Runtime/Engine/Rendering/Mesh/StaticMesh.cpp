@@ -1,5 +1,5 @@
 #include "StaticMesh.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "UObject/Casts.h"
 #include "UObject/ObjectFactory.h"
 
@@ -44,7 +44,7 @@ void UStaticMesh::GetUsedMaterials(TArray<UMaterial*>& Out) const
     }
 }
 
-void UStaticMesh::SetData(OBJ::FStaticMeshRenderData* renderData)
+void UStaticMesh::SetData(FStaticMeshRenderData* renderData)
 {
     staticMeshRenderData = renderData;
 
