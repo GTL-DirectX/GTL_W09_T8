@@ -15,7 +15,7 @@ class FEditorRenderPass : public IRenderPass
 public:
     void Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager) override;
     void Render(const std::shared_ptr<FViewportClient>& Viewport) override;
-    void PrepareRenderArr() override;
+    void PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport) override;
     void ClearRenderArr() override;
 
 private:

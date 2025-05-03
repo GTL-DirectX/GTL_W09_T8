@@ -64,7 +64,7 @@ protected:
     void BeginRender(const std::shared_ptr<FViewportClient>& Viewport);
     void UpdateCommonBuffer(const std::shared_ptr<FViewportClient>& Viewport) const;
     void PrepareRender(FViewportResource* ViewportResource) const;
-    void PrepareRenderPass() const;
+    void PrepareRenderPass(const std::shared_ptr<FViewportClient>& Viewport) const;
     void RenderWorldScene(const std::shared_ptr<FViewportClient>& Viewport) const;
     void RenderPostProcess(const std::shared_ptr<FViewportClient>& Viewport) const;
     void RenderEditorOverlay(const std::shared_ptr<FViewportClient>& Viewport) const;

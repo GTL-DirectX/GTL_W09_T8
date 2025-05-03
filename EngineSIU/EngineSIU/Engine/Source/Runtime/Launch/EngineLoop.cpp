@@ -90,10 +90,11 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     uint32 ClientWidth = 0;
     uint32 ClientHeight = 0;
     GetClientSize(ClientWidth, ClientHeight);
-    LevelEditor->Initialize(ClientWidth, ClientHeight);
 
+    // !TODO : WITH_EDITOR등의 전처리기로 감싸기
     GEngine = FObjectFactory::ConstructObject<UEditorEngine>(nullptr);
     GEngine->Init();
+    LevelEditor->Initialize(ClientWidth, ClientHeight, GEngine);
 
     LastWarGameUI->Initialize();
     UpdateUI();
@@ -128,6 +129,12 @@ void FEngineLoop::Render() const
         Renderer.RenderViewport(ActiveViewportCache);
     }
     
+    auto& WindowViewportClients = LevelEditor->GetWindowViewportClients();
+    for (auto& WindowViewport : WindowViewportClients)
+    {
+        Renderer.Render(WindowViewport.Value);
+        Renderer.RenderViewport(WindowViewport.Value);
+    }
 }
 
 void FEngineLoop::Tick()

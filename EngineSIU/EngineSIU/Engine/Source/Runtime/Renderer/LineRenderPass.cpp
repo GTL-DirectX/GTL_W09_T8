@@ -39,7 +39,7 @@ void FLineRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsDe
     CreateShader();
 }
 
-void FLineRenderPass::PrepareRenderArr()
+void FLineRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
 }
 

@@ -166,11 +166,14 @@ void FStaticMeshRenderPass::InitializeShadowManager(class FShadowManager* InShad
     ShadowManager = InShadowManager;
 }
 
-void FStaticMeshRenderPass::PrepareRenderArr()
+void FStaticMeshRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
+    if (Viewport == nullptr || Viewport->GetWorld() == nullptr)
+        return;
+
     for (const auto iter : TObjectRange<UStaticMeshComponent>())
     {
-        if (!Cast<UGizmoBaseComponent>(iter) && iter->GetWorld() == GEngine->ActiveWorld)
+        if (!Cast<UGizmoBaseComponent>(iter) && iter->GetWorld() == Viewport->GetWorld())
         {
             StaticMeshComponents.Add(iter);
         }

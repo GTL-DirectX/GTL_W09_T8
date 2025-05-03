@@ -391,17 +391,20 @@ void FEditorRenderPass::BindBuffers(const FDebugPrimitiveData& InPrimitiveData) 
     Graphics->DeviceContext->IASetIndexBuffer(InPrimitiveData.IndexInfo.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 }
 
-void FEditorRenderPass::PrepareRenderArr()
+void FEditorRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
     if (GEngine->ActiveWorld->WorldType != EWorldType::Editor)
     {
         return;
     }
+
+    if (Viewport == nullptr || Viewport->GetWorld() == nullptr)
+        return;
     
     // gizmo 제외하고 넣기
     for (const auto* Actor : TObjectRange<AActor>())
     {
-        if (!Actor->IsActorBeingDestroyed() && Actor->GetWorld() != GEngine->ActiveWorld)
+        if (!Actor->IsActorBeingDestroyed() && Actor->GetWorld() != Viewport->GetWorld())
         {
             continue;
         }

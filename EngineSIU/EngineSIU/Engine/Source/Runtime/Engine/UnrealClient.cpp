@@ -357,6 +357,8 @@ void FViewport::ResizeViewport(const FRect& Top, const FRect& Bottom, const FRec
         Rect.Width = Right.Width;
         Rect.Height = Bottom.Height;
         break;
+    case EViewScreenLocation::EVL_Window:
+        // NOTE : 개별 Window로 렌더링되는 뷰포트의 경우, 여기서 사이즈 조절 하지 않는다
     default:
         return;
     }

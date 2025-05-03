@@ -111,7 +111,7 @@ void FGizmoRenderPass::PrepareRenderState() const
     Graphics->DeviceContext->PSSetSamplers(0, 1, &Sampler);
 }
 
-void FGizmoRenderPass::PrepareRenderArr()
+void FGizmoRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
 }
 
