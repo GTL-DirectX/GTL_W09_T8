@@ -64,6 +64,10 @@ public:
     {
         ActiveViewportClient = ViewportClients[Index];
     }
+    const TMap<FName, std::shared_ptr<FEditorViewportClient>>& GetWindowViewportClients() const
+    {
+        return WindowViewportClients;
+    }
 
 public:
     void LoadConfig();

@@ -129,6 +129,12 @@ void FEngineLoop::Render() const
         Renderer.RenderViewport(ActiveViewportCache);
     }
     
+    auto& WindowViewportClients = LevelEditor->GetWindowViewportClients();
+    for (auto& WindowViewport : WindowViewportClients)
+    {
+        Renderer.Render(WindowViewport.Value);
+        Renderer.RenderViewport(WindowViewport.Value);
+    }
 }
 
 void FEngineLoop::Tick()
