@@ -172,10 +172,8 @@ void FEngineLoop::Tick()
         GEngine->Tick(DeltaTime);
         LevelEditor->Tick(DeltaTime);
 
-        // Begin Test
-
         UIMgr->BeginFrame();
-        ImGuiID mainDockspaceId = ImGui::DockSpaceOverViewport();
+        ImGuiID mainDockspaceId = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode); // Passthru 플래그 추가 시도
 
         static bool dockspace_built = false;
         if (!dockspace_built)
@@ -212,25 +210,18 @@ void FEngineLoop::Tick()
         LastWarGameUI->Render();
 
         Console::GetInstance().Draw();
-        EngineProfiler.Render(GraphicDevice.DeviceContext, GraphicDevice.ScreenWidth, GraphicDevice.ScreenHeight);
-
         Render();
-        
-        // End Test
+
+        EngineProfiler.Render(GraphicDevice.DeviceContext, GraphicDevice.ScreenWidth, GraphicDevice.ScreenHeight);
 
         UIMgr->EndFrame();
 
-        GraphicDevice.SwapBuffer();
-
-        // Begin Test
         ImGuiIO& io = ImGui::GetIO();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
-        // End Test
-
         // Pending 처리된 오브젝트 제거
         GUObjectArray.ProcessPendingDestroyObjects();
 
@@ -244,6 +235,7 @@ void FEngineLoop::Tick()
             LuaScriptManager->HotReloadLuaScript();
         }
 
+        GraphicDevice.SwapBuffer();
         do
         {
             Sleep(0);

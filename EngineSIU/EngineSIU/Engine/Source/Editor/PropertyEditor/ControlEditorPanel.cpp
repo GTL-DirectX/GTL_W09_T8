@@ -53,19 +53,23 @@ void ControlEditorPanel::Render()
     ImGui::SameLine();
     CreateModifyButton(IconSize, IconFont);
     ImGui::SameLine();
-    ImGui::SameLine();
     CreateLightSpawnButton(IconSize, IconFont);
     ImGui::SameLine();
     {
         ImGui::PushFont(IconFont);
         CreatePIEButton(IconSize, IconFont);
         ImGui::SameLine();
-        /* Get Window Content Region */
-        const float ContentWidth = ImGui::GetWindowContentRegionMax().x;
-        /* Move Cursor X Position */
-        ImGui::SetCursorPosX(ContentWidth - (IconSize.x * 3.0f + 16.0f));
-        CreateSRTButton(IconSize);
-        ImGui::PopFont();
+        const float srtButtonsTotalWidth = (IconSize.x * 3.0f) + (ImGui::GetStyle().ItemSpacing.x * 2.0f);
+        float availableWidth = ImGui::GetContentRegionAvail().x;
+        float buttonsWidth = (IconSize.x * 5.0f) + (ImGui::GetStyle().ItemSpacing.x * 4.0f);
+        float spaceToLeave = availableWidth - buttonsWidth;
+        if (spaceToLeave > 0.0f) {
+            ImGui::Dummy(ImVec2(spaceToLeave, 0.0f));
+            ImGui::SameLine();
+            CreateSRTButton(IconSize);
+
+            ImGui::PopFont();
+        }
     }
 
     ImGui::End();
@@ -509,12 +513,6 @@ void ControlEditorPanel::CreatePIEButton(const ImVec2 ButtonSize, ImFont* IconFo
     {
         return;
     }
-
-    const ImVec2 WindowSize = ImGui::GetIO().DisplaySize;
-
-    const float CenterX = (WindowSize.x - ButtonSize.x) / 2.5f;
-
-    ImGui::SetCursorScreenPos(ImVec2(CenterX - 40.0f, 10.0f));
     
     if (ImGui::Button("\ue9a8", ButtonSize)) // Play
     {
@@ -522,7 +520,8 @@ void ControlEditorPanel::CreatePIEButton(const ImVec2 ButtonSize, ImFont* IconFo
         Engine->StartPIE();
     }
 
-    ImGui::SetCursorScreenPos(ImVec2(CenterX - 10.0f, 10.0f));
+    ImGui::SameLine();
+
     if (ImGui::Button("\ue9e4", ButtonSize)) // Stop
     {
         UE_LOG(LogLevel::Display, TEXT("Stop Button Clicked"));
@@ -588,15 +587,9 @@ void ControlEditorPanel::OnResize(const HWND hWnd)
     Height = ClientRect.bottom - ClientRect.top;
 }
 
-// 이게 사라졌음;
 void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFont* IconFont)
 {
     UWorld* World = GEngine->ActiveWorld;
-    const ImVec2 WindowSize = ImGui::GetIO().DisplaySize;
-
-    const float CenterX = (WindowSize.x - InButtonSize.x) / 2.5f;
-
-    ImGui::SetCursorScreenPos(ImVec2(CenterX + 40.0f, 10.0f));
     const char* Text = "Light";
     const ImVec2 TextSize = ImGui::CalcTextSize(Text);
     const ImVec2 Padding = ImGui::GetStyle().FramePadding;
@@ -605,6 +598,7 @@ void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFon
         TextSize.y + Padding.y * 2.0f
     );
     ButtonSize.y = InButtonSize.y;
+
     if (ImGui::Button("Light", ButtonSize))
     {
         ImGui::OpenPopup("LightGeneratorControl");
@@ -618,7 +612,7 @@ void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFon
             int Mode;
         };
 
-        static constexpr LightGeneratorMode modes[] = 
+        static constexpr LightGeneratorMode modes[] =
         {
             {.Label = "Generate", .Mode = ELightGridGenerator::Generate },
             {.Label = "Delete", .Mode = ELightGridGenerator::Delete },
@@ -629,17 +623,21 @@ void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFon
         {
             if (ImGui::Selectable(Label))
             {
-                switch (Mode)
+                // 월드 유효성 검사 추가
+                if (World)
                 {
-                case ELightGridGenerator::Generate:
-                    LightGridGenerator.GenerateLight(World);
-                    break;
-                case ELightGridGenerator::Delete:
-                    LightGridGenerator.DeleteLight(World);
-                    break;
-                case ELightGridGenerator::Reset:
-                    LightGridGenerator.Reset(World);
-                    break;
+                    switch (Mode)
+                    {
+                    case ELightGridGenerator::Generate:
+                        LightGridGenerator.GenerateLight(World);
+                        break;
+                    case ELightGridGenerator::Delete:
+                        LightGridGenerator.DeleteLight(World);
+                        break;
+                    case ELightGridGenerator::Reset:
+                        LightGridGenerator.Reset(World);
+                        break;
+                    }
                 }
             }
         }

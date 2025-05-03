@@ -11,7 +11,6 @@ void UImGuiManager::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); 
 
-    // Begin Test
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
@@ -21,8 +20,6 @@ void UImGuiManager::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
         style.WindowRounding = 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
-
-    // End Test
 
     ImGui_ImplWin32_Init(hWnd);
     ImGui_ImplDX11_Init(device, deviceContext);
