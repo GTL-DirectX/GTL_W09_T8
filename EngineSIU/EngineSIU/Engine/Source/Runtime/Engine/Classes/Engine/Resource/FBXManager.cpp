@@ -63,16 +63,25 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
             {
                 std::cout << "Vertex "<< i << " Pos : "<<  OutRenderData.Vertices[i].Position.X << " " << OutRenderData.Vertices[i].Position.Y << " " << OutRenderData.Vertices[i].Position.Z << std::endl;
                 std::cout << "Vertex "<< i << " Normal : " << OutRenderData.Vertices[i].Normal.X << " " << OutRenderData.Vertices[i].Normal.Y << " " << OutRenderData.Vertices[i].Normal.Z << std::endl;
+                std::cout << "Vertex "<< i << " TextureUV : " << OutRenderData.Vertices[i].UV.X << " " << OutRenderData.Vertices[i].UV.Y  << std::endl;
                 std::cout << "Vertex "<< i << " BoneIndex : " <<OutRenderData.Vertices[i].BoneIndices[0] << " " << OutRenderData.Vertices[i].BoneIndices[1] << std::endl;
                 std::cout << "Vertex "<< i << " Weight : " <<OutRenderData.Vertices[i].BoneWeights[0] << " " << OutRenderData.Vertices[i].BoneWeights[1] << std::endl;
             }
-            for (int i=0;i<OutRenderData.BoneNames.Num();i++)
+            // for (int i=0;i<OutRenderData.BoneNames.Num();i++)
+            // {
+            //     std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
+            // }
+            // for (int i=0;i<OutRenderData.ParentBoneIndices.Num();i++)
+            // {
+            //     std::cout << OutRenderData.ParentBoneIndices[i] << std::endl;
+            // }
+            for (int i=0;i<OutRenderData.Materials.Num();i++)
             {
-                std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
-            }
-            for (int i=0;i<OutRenderData.ParentBoneIndices.Num();i++)
-            {
-                std::cout << OutRenderData.ParentBoneIndices[i] << std::endl;
+                std::wcout << OutRenderData.Materials[i].DiffuseTexturePath << std::endl;
+                std::wcout << OutRenderData.Materials[i].SpecularTexturePath << std::endl;
+                std::wcout << OutRenderData.Materials[i].AmbientTexturePath<< std::endl;
+                std::wcout << OutRenderData.Materials[i].BumpTexturePath << std::endl;
+
             }
             break;
         }
@@ -187,13 +196,14 @@ void FFBXManager::PrintStaticMeshData(FbxNode* node)
 
 void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
 {
+    // 1) 메시 얻기
     FbxMesh* mesh = node->GetMesh();
     if (!mesh) return;
-    
-    // 2) 이름
+
+    // 2) 이름 설정
     outData.ObjectName  = node->GetName();
     outData.DisplayName = node->GetName();
-    
+
     // 3) 컨트롤 포인트 버텍스 초기화
     int cpCount = mesh->GetControlPointsCount();
     outData.Vertices.SetNum(cpCount);
@@ -202,27 +212,27 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     {
         auto& v = outData.Vertices[i];
         v.Position = FVector(cps[i][0], cps[i][1], cps[i][2]);
-        // 초기화: 본 가중치
         for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
         {
             v.BoneIndices[j] = 0;
             v.BoneWeights[j] = 0.0f;
         }
     }
-    
-    // 4) 인덱스 삼각화(이미 Triangulate 호출됨 가정)
+
+    // 4) 인덱스 삼각화 및 초기화
     int polyCount = mesh->GetPolygonCount();
-    outData.Indices.Empty();
+    outData.Indices.Reset();
     outData.Indices.Reserve(polyCount * 3);
     for (int p = 0; p < polyCount; ++p)
     {
         for (int k = 0; k < 3; ++k)
         {
-            outData.Indices.Add(mesh->GetPolygonVertex(p, k));
+            int idx = mesh->GetPolygonVertex(p, k);
+            outData.Indices.Add(idx);
         }
     }
-    
-    // 5) 본 + 스킨 정보
+
+    // 5) 본 + 스킨 정보 수집
     for (int d = 0; d < mesh->GetDeformerCount(FbxDeformer::eSkin); ++d)
     {
         FbxSkin* skin = static_cast<FbxSkin*>(mesh->GetDeformer(d, FbxDeformer::eSkin));
@@ -231,10 +241,8 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
             FbxCluster* cluster = skin->GetCluster(c);
             FbxNode* boneNode = cluster->GetLink();
 
-            // 본 이름 추가
             int boneIndex = outData.BoneNames.Add(boneNode->GetName());
 
-            // 부모 본 인덱스 찾기
             FbxNode* parent = boneNode->GetParent();
             int parentIdx = -1;
             if (parent)
@@ -251,20 +259,17 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
             }
             outData.ParentBoneIndices.Add(parentIdx);
 
-            // Reference pose 저장
             FbxAMatrix tm;
             cluster->GetTransformLinkMatrix(tm);
             outData.ReferencePose.Add(ConvertToFMatrix(tm));
 
-            // 가중치 채우기
             int count = cluster->GetControlPointIndicesCount();
             const int* cpsIdx = cluster->GetControlPointIndices();
             const double* weights = cluster->GetControlPointWeights();
             for (int i = 0; i < count; ++i)
             {
-                int cpIndex = cpsIdx[i];
+                auto& vert = outData.Vertices[cpsIdx[i]];
                 float w = static_cast<float>(weights[i]);
-                auto& vert = outData.Vertices[cpIndex];
                 for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
                 {
                     if (vert.BoneWeights[j] == 0.0f)
@@ -278,61 +283,128 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
         }
     }
 
-    // 6) 재질 & 서브셋 처리 (생략 또는 사용자 구현)
-    //    예: ParseMaterials(mesh, outData.Materials, outData.MaterialSubsets);
-    
+    // 6) 재질 & 서브셋 처리
+    {
+        // 재질 리셋
+        outData.Materials.Reset();
+        outData.MaterialSubsets.Reset();
+
+        FbxNode* fbxNode = mesh->GetNode();
+        int materialCount = fbxNode->GetMaterialCount();
+
+        // 머티리얼 정보 수집
+        for (int m = 0; m < materialCount; ++m)
+        {
+            FObjMaterialInfo matInfo;
+            FbxSurfaceMaterial* fbxMat = fbxNode->GetMaterial(m);
+            matInfo.MaterialName = fbxMat->GetName();
+
+            auto ReadColor = [&](const char* propName, FVector& outVec)
+            {
+                FbxProperty prop = fbxMat->FindProperty(propName);
+                if (prop.IsValid())
+                {
+                    FbxDouble3 val = prop.Get<FbxDouble3>();
+                    outVec = FVector((float)val[0], (float)val[1], (float)val[2]);
+                }
+            };
+            ReadColor(FbxSurfaceMaterial::sDiffuse,  matInfo.Diffuse);
+            ReadColor(FbxSurfaceMaterial::sSpecular, matInfo.Specular);
+            ReadColor(FbxSurfaceMaterial::sAmbient,  matInfo.Ambient);
+            ReadColor(FbxSurfaceMaterial::sEmissive, matInfo.Emissive);
+
+            matInfo.SpecularScalar     = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sShininess).Get<double>());
+            matInfo.DensityScalar      = static_cast<float>(fbxMat->FindProperty("Ni").Get<double>());
+            matInfo.TransparencyScalar = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sTransparencyFactor).Get<double>());
+            matInfo.bTransparent       = (matInfo.TransparencyScalar > 0.0f);
+
+            auto LoadTex = [&](const char* propName, FString& outName, FWString& outPath, uint32 flag)
+            {
+                FbxProperty prop = fbxMat->FindProperty(propName);
+                if (!prop.IsValid()) return;
+                int count = prop.GetSrcObjectCount<FbxFileTexture>();
+                if (count <= 0) return;
+                FbxFileTexture* tex = prop.GetSrcObject<FbxFileTexture>(0);
+                outName = tex->GetName();
+                std::string fp(tex->GetFileName());
+                outPath = std::wstring(fp.begin(), fp.end());
+                matInfo.TextureFlag |= flag;
+            };
+            LoadTex(FbxSurfaceMaterial::sDiffuse,  matInfo.DiffuseTextureName,  matInfo.DiffuseTexturePath,  1);
+            LoadTex(FbxSurfaceMaterial::sAmbient,  matInfo.AmbientTextureName,  matInfo.AmbientTexturePath,  2);
+            LoadTex(FbxSurfaceMaterial::sSpecular, matInfo.SpecularTextureName, matInfo.SpecularTexturePath, 4);
+            LoadTex("NormalMap",                   matInfo.BumpTextureName,     matInfo.BumpTexturePath,     8);
+            LoadTex(FbxSurfaceMaterial::sTransparencyFactor, matInfo.AlphaTextureName, matInfo.AlphaTexturePath, 16);
+
+            outData.Materials.Add(matInfo);
+        }
+
+        // 서브셋 맵 생성
+        TMap<int, FMaterialSubset> subsetMap;
+        FbxLayerElementMaterial* elemMat = mesh->GetElementMaterial();
+        if (elemMat)
+        {
+            const auto& indexArray = elemMat->GetIndexArray();
+            for (int p = 0; p < polyCount; ++p)
+            {
+                int matIndex = indexArray.GetAt(p);
+                if (matIndex < 0 || matIndex >= outData.Materials.Num())
+                    matIndex = 0;
+
+                auto& sub = subsetMap.FindOrAdd(matIndex);
+                if (sub.IndexCount == 0)
+                {
+                    sub.IndexStart    = p * 3;
+                    sub.MaterialIndex = matIndex;
+                    sub.MaterialName  = outData.Materials[matIndex].MaterialName;
+                }
+                sub.IndexCount += 3;
+            }
+        }
+        else if (outData.Materials.Num() > 0)
+        {
+            // 단일 머티리얼
+            FMaterialSubset sub;
+            sub.IndexStart    = 0;
+            sub.IndexCount    = polyCount * 3;
+            sub.MaterialIndex = 0;
+            sub.MaterialName  = outData.Materials[0].MaterialName;
+            subsetMap.Add(0, sub);
+        }
+
+        for (auto& kv : subsetMap)
+        {
+            outData.MaterialSubsets.Add(kv.Value);
+        }
+    }
+
     // 7) 바운딩 박스 계산
     ComputeBounds(outData.Vertices, outData.BoundingBoxMin, outData.BoundingBoxMax);
 
-    // 8) GPU 버퍼 생성: Skeletal -> Static vertex 포맷 변환 후 업로드
+    // 8) GPU 버퍼 생성
+    TArray<FStaticMeshVertex> StaticVerts;
+    StaticVerts.SetNum(outData.Vertices.Num());
+    for (int i = 0; i < outData.Vertices.Num(); ++i)
     {
-        TArray<FStaticMeshVertex> StaticVerts;
-        StaticVerts.SetNum(outData.Vertices.Num());
-
-        for (int i = 0; i < outData.Vertices.Num(); ++i)
-        {
-            const FSkeletalMeshVertex& Src = outData.Vertices[i];
-            FStaticMeshVertex& Dst = StaticVerts[i];
-
-            // 위치
-            Dst.X = Src.Position.X;
-            Dst.Y = Src.Position.Y;
-            Dst.Z = Src.Position.Z;
-
-            // 컬러: 기본 흰색
-            Dst.R = 1.0f;
-            Dst.G = 1.0f;
-            Dst.B = 1.0f;
-            Dst.A = 1.0f;
-
-            // 노멀
-            Dst.NormalX = Src.Normal.X;
-            Dst.NormalY = Src.Normal.Y;
-            Dst.NormalZ = Src.Normal.Z;
-
-            // 탄젠트
-            Dst.TangentX = Src.Tangent.X;
-            Dst.TangentY = Src.Tangent.Y;
-            Dst.TangentZ = Src.Tangent.Z;
-
-            // UV
-            Dst.U = Src.UV.X;
-            Dst.V = Src.UV.Y;
-
-            // 재질 인덱스: 필요시 설정
-            Dst.MaterialIndex = 0;
-        }
-
-        // 버퍼 생성 호출 (StaticVerts, Indices 사용)
-        CreateBuffers(
-            GEngineLoop.GraphicDevice.Device,
-            StaticVerts,
-            outData.Indices,
-            outData.VertexBuffer,
-            outData.IndexBuffer
-        );
+        const auto& S = outData.Vertices[i];
+        auto& D = StaticVerts[i];
+        D.X = S.Position.X; D.Y = S.Position.Y; D.Z = S.Position.Z;
+        D.R = D.G = D.B = D.A = 1.0f;
+        D.NormalX  = S.Normal.X;  D.NormalY  = S.Normal.Y;  D.NormalZ  = S.Normal.Z;
+        D.TangentX = S.Tangent.X; D.TangentY = S.Tangent.Y; D.TangentZ = S.Tangent.Z;
+        D.U = S.UV.X; D.V = S.UV.Y;
+        D.MaterialIndex = 0;
     }
+    CreateBuffers(
+        GEngineLoop.GraphicDevice.Device,
+        StaticVerts,
+        outData.Indices,
+        outData.VertexBuffer,
+        outData.IndexBuffer
+    );
 }
+
+
 
 FMatrix FFBXManager::ConvertToFMatrix(const FbxAMatrix& in)
 {

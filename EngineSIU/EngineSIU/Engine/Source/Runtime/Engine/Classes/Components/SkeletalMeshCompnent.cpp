@@ -4,5 +4,5 @@
 
 USkeletalMeshCompnent::USkeletalMeshCompnent()
 {
-    FFBXManager::Get().LoadFbx("C:\\Users\\Jungle\\Desktop\\Person.fbx", test);
+    FFBXManager::Get().LoadFbx("C:\\Users\\Jungle\\Desktop\\character.fbx", test);
 }
