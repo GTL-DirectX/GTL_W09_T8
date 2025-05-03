@@ -22,9 +22,9 @@ void FDepthPrePass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevi
     __super::Initialize(InBufferManager, InGraphics, InShaderManage);
 }
 
-void FDepthPrePass::PrepareRenderArr()
+void FDepthPrePass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
-    __super::PrepareRenderArr();
+    __super::PrepareRenderArr(Viewport);
 }
 
 void FDepthPrePass::Render(const std::shared_ptr<FViewportClient>& Viewport)

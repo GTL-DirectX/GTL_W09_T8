@@ -1,7 +1,7 @@
 #include "PlayerCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Delegates/DelegateCombination.h"
 #include "EnemyCharacter.h"
 #include "Wall.h"
@@ -22,7 +22,7 @@
 
 APlayerCharacter::APlayerCharacter()
 {
-    BodyMesh->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Contents/Gunner/Gunner.obj"));
+    BodyMesh->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Gunner/Gunner.obj"));
 
     FollowCamera = AddComponent<UCameraComponent>("PlayerCamera");
     FollowCamera->SetupAttachment(RootComponent);
@@ -271,7 +271,7 @@ void APlayerCharacter::SetCharacterMeshCount(int32 InCount)
     {
         UStaticMeshComponent* StaticMeshComponent = AddComponent<UStaticMeshComponent>();
         StaticMeshComponents.Add(StaticMeshComponent);
-        StaticMeshComponent->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Contents/Gunner/Gunner.obj"));
+        StaticMeshComponent->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Gunner/Gunner.obj"));
         StaticMeshComponent->SetupAttachment(RootComponent);
     }
 

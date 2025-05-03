@@ -32,13 +32,13 @@ public:
     void InitializeShadowManager(class FShadowManager* InShadowManager);
     void PrepareRenderState();
     void PrepareCSMRenderState();
-    virtual void PrepareRenderArr() override;
+    virtual void PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport) override;
     void UpdateIsShadowConstant(int32 isShadow) const;
     void Render(ULightComponentBase* Light);
     virtual void Render(const std::shared_ptr<FViewportClient>& Viewport) override;    
     virtual void ClearRenderArr() override;
 
-    void RenderPrimitive(OBJ::FStaticMeshRenderData* render_data, const TArray<FStaticMaterial*> array, TArray<UMaterial*> materials, int getselected_sub_mesh_index);
+    void RenderPrimitive(FStaticMeshRenderData* render_data, const TArray<FStaticMaterial*> array, TArray<UMaterial*> materials, int getselected_sub_mesh_index);
     virtual void RenderAllStaticMeshes();
     void RenderAllStaticMeshesForCSM(FCascadeConstantBuffer FCasCadeData);
     void BindResourcesForSampling();

@@ -76,11 +76,16 @@ void FFadeRenderPass::ReleaseShader()
 
 }
 
-void FFadeRenderPass::PrepareRenderArr()
+void FFadeRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
-    if (GEngine->ActiveWorld && GEngine->ActiveWorld->WorldType != EWorldType::Editor) {
-        FadeAlpha = GEngine->ActiveWorld->GetFirstPlayerController()->PlayerCameraManager->FadeAmount;
-        FadeColor = GEngine->ActiveWorld->GetFirstPlayerController()->PlayerCameraManager->FadeColor;
+    if (Viewport == nullptr || Viewport->GetWorld() == nullptr)
+        return;
+
+    UWorld* World = Viewport->GetWorld();
+
+    if (World && World->WorldType != EWorldType::Editor) {
+        FadeAlpha = World->GetFirstPlayerController()->PlayerCameraManager->FadeAmount;
+        FadeColor = World->GetFirstPlayerController()->PlayerCameraManager->FadeColor;
     }
     else
     {

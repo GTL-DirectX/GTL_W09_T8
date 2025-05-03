@@ -10,6 +10,8 @@
 #include "GraphicDevice.h"
 #include "UserInterface/Console.h"
 
+#include "Rendering/Types/Buffers.h"
+
 // ShaderStage 열거형
 enum class EShaderStage
 {

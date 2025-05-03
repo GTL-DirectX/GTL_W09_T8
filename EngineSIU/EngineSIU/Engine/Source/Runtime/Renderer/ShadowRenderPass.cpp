@@ -84,11 +84,14 @@ void FShadowRenderPass::PrepareCSMRenderState()
 
 }
 
-void FShadowRenderPass::PrepareRenderArr()
+void FShadowRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
+    if (Viewport == nullptr || Viewport->GetWorld() == nullptr)
+        return;
+
     for (const auto iter : TObjectRange<UStaticMeshComponent>())
     {
-        if (!Cast<UGizmoBaseComponent>(iter) && iter->GetWorld() == GEngine->ActiveWorld)
+        if (!Cast<UGizmoBaseComponent>(iter) && iter->GetWorld() == Viewport->GetWorld())
         {
             StaticMeshComponents.Add(iter);
         }
@@ -191,7 +194,7 @@ void FShadowRenderPass::SetLightData(const TArray<class UPointLightComponent*>& 
     SpotLights = InSpotLights;
 }
 
-void FShadowRenderPass::RenderPrimitive(OBJ::FStaticMeshRenderData* RenderData, const TArray<FStaticMaterial*> Materials, TArray<UMaterial*> OverrideMaterials,
+void FShadowRenderPass::RenderPrimitive(FStaticMeshRenderData* RenderData, const TArray<FStaticMaterial*> Materials, TArray<UMaterial*> OverrideMaterials,
                                         int SelectedSubMeshIndex)
 {
     UINT Stride = sizeof(FStaticMeshVertex);
@@ -242,7 +245,7 @@ void FShadowRenderPass::RenderAllStaticMeshes()
             continue;
         }
 
-        OBJ::FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
+        FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
         if (RenderData == nullptr)
         {
             continue;
@@ -270,7 +273,7 @@ void FShadowRenderPass::RenderAllStaticMeshesForCSM(FCascadeConstantBuffer FCasC
             continue;
         }
 
-        OBJ::FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
+        FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
         if (RenderData == nullptr)
         {
             continue;
@@ -312,7 +315,7 @@ void FShadowRenderPass::RenderAllStaticMeshesForPointLight(UPointLightComponent*
     {
         if (!Comp || !Comp->GetStaticMesh()) { continue; }
 
-        OBJ::FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
+        FStaticMeshRenderData* RenderData = Comp->GetStaticMesh()->GetRenderData();
         if (RenderData == nullptr) { continue; }
 
         UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);

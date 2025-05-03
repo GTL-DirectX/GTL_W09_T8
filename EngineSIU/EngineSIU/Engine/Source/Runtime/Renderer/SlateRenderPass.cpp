@@ -1,4 +1,4 @@
-﻿#include "SlateRenderPass.h"
+#include "SlateRenderPass.h"
 
 #include "RendererHelpers.h"
 #include "UnrealClient.h"
@@ -29,7 +29,7 @@ void FSlateRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsD
     CreateSampler();
 }
 
-void FSlateRenderPass::PrepareRenderArr()
+void FSlateRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
 }
 

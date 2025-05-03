@@ -23,7 +23,7 @@ FEditorViewportClient::FEditorViewportClient() : FViewportClient()
 {
 }
 
-void FEditorViewportClient::Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect)
+void FEditorViewportClient::Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld)
 {
     ViewportIndex = static_cast<uint32>(InViewportIndex);
     
@@ -35,6 +35,8 @@ void FEditorViewportClient::Initialize(EViewScreenLocation InViewportIndex, cons
 
     GizmoActor = FObjectFactory::ConstructObject<ATransformGizmo>(GEngine); // TODO : EditorEngine 외의 다른 Engine 형태가 추가되면 GEngine 대신 다른 방식으로 넣어주어야 함.
     GizmoActor->Initialize(this);
+
+    World = InWorld;
 }
 
 void FEditorViewportClient::Tick(const float DeltaTime)

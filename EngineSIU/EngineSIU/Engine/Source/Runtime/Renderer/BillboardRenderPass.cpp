@@ -42,7 +42,7 @@ void FBillboardRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraph
     CreateShader();
 }
 
-void FBillboardRenderPass::PrepareRenderArr()
+void FBillboardRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
     BillboardComps.Empty();
     for (const auto iter : TObjectRange<UBillboardComponent>())

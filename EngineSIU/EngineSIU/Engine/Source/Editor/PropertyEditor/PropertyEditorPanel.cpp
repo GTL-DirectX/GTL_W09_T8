@@ -13,7 +13,7 @@
 #include "Camera/CameraComponent.h"
 
 #include "Engine/EditorEngine.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Engine/AssetManager.h"
 
 #include "UnrealEd/ImGuiWidget.h"
@@ -409,7 +409,7 @@ void PropertyEditorPanel::RenderForStaticMesh(UStaticMeshComponent* StaticMeshCo
                     if (ImGui::Selectable(GetData(Asset.Value.AssetName.ToString()), false))
                     {
                         FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
-                        UStaticMesh* StaticMesh = FManagerOBJ::GetStaticMesh(MeshName.ToWideString());
+                        UStaticMesh* StaticMesh = FObjManager::GetStaticMesh(MeshName.ToWideString());
                         if (StaticMesh)
                         {
                             StaticMeshComp->SetStaticMesh(StaticMesh);
@@ -899,7 +899,7 @@ void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
     }
 
     //// 드롭다운 표시 (currentMaterialIndex가 범위를 벗어나지 않도록 확인)
-    //if (currentMaterialIndex >= FManagerOBJ::GetMaterialNum())
+    //if (currentMaterialIndex >= FObjManager::GetMaterialNum())
     //    currentMaterialIndex = 0;
 
     if (ImGui::Combo("##MaterialDropdown", &CurMaterialIndex, materialChars.data(), UMaterial::GetMaterialNum())) {

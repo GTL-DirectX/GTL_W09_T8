@@ -24,7 +24,7 @@ public:
     
     void InitializeShadowManager(class FShadowManager* InShadowManager);
     
-    virtual void PrepareRenderArr() override;
+    virtual void PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport) override;
 
     virtual void Render(const std::shared_ptr<FViewportClient>& Viewport) override;
 
@@ -39,7 +39,7 @@ public:
   
     void UpdateLitUnlitConstant(int32 isLit) const;
 
-    void RenderPrimitive(OBJ::FStaticMeshRenderData* RenderData, TArray<FStaticMaterial*> Materials, TArray<UMaterial*> OverrideMaterials, int SelectedSubMeshIndex) const;
+    void RenderPrimitive(FStaticMeshRenderData* RenderData, TArray<FStaticMaterial*> Materials, TArray<UMaterial*> OverrideMaterials, int SelectedSubMeshIndex) const;
     
     void RenderPrimitive(ID3D11Buffer* pBuffer, UINT numVertices) const;
 
