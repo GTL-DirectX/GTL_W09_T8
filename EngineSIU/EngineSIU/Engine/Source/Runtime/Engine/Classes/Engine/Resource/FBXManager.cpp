@@ -76,7 +76,6 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
             }
             break;
         }
-        
     }
 }
 

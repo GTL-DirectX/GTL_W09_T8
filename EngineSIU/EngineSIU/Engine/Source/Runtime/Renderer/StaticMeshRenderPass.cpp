@@ -20,7 +20,6 @@
 #include "D3D11RHI/DXDShaderManager.h"
 
 #include "Components/StaticMeshComponent.h"
-#include "Components/SkeletalMeshCompnent.h"
 
 #include "BaseGizmos/GizmoBaseComponent.h"
 #include "Engine/EditorEngine.h"
@@ -163,7 +162,6 @@ void FStaticMeshRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGrap
 
 void FStaticMeshRenderPass::InitializeShadowManager(class FShadowManager* InShadowManager)
 {
-    
     ShadowManager = InShadowManager;
 }
 
@@ -176,12 +174,6 @@ void FStaticMeshRenderPass::PrepareRenderArr()
             StaticMeshComponents.Add(iter);
         }
     }
-#pragma region SkeletalMesh
-    for (const auto iter : TObjectRange<USkeletalMeshCompnent>())
-    {
-        SkeletalMeshComponents.Add(iter);
-    }
-#pragma endregion
 }
 
 void FStaticMeshRenderPass::PrepareRenderState(const std::shared_ptr<FViewportClient>& Viewport) 
@@ -321,31 +313,31 @@ void FStaticMeshRenderPass::RenderPrimitive(ID3D11Buffer* pVertexBuffer, UINT nu
     Graphics->DeviceContext->DrawIndexed(numIndices, 0, 0);
 }
 
-void FStaticMeshRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewportClient>& Viewport)
-{
-    for (USkeletalMeshCompnent* Comp : SkeletalMeshComponents)
-    {
-        if (!Comp)
-            continue;
-        FSkeletalMeshRenderData RenderData = Comp->test;
-        
-        UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
-
-        
-
-        FMatrix WorldMatrix = Comp->GetWorldMatrix();
-        FVector4 UUIDColor = Comp->EncodeUUID() / 255.0f;
-
-        UpdateObjectConstant(WorldMatrix, UUIDColor, false);
-
-        RenderPrimitive(RenderData.VertexBuffer, RenderData.Vertices.Num(), RenderData.IndexBuffer, RenderData.Indices.Num());
-
-        if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
-        {
-            FEngineLoop::PrimitiveDrawBatch.AddAABBToBatch(Comp->GetBoundingBox(), Comp->GetWorldLocation(), WorldMatrix);
-        }
-    }
-}
+// void FStaticMeshRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewportClient>& Viewport)
+// {
+//     for (USkeletalMeshCompnent* Comp : SkeletalMeshComponents)
+//     {
+//         if (!Comp)
+//             continue;
+//         FSkeletalMeshRenderData RenderData = Comp->test;
+//         
+//         UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
+//
+//         
+//
+//         FMatrix WorldMatrix = Comp->GetWorldMatrix();
+//         FVector4 UUIDColor = Comp->EncodeUUID() / 255.0f;
+//
+//         UpdateObjectConstant(WorldMatrix, UUIDColor, false);
+//
+//         RenderPrimitive(RenderData.VertexBuffer, RenderData.Vertices.Num(), RenderData.IndexBuffer, RenderData.Indices.Num());
+//
+//         if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
+//         {
+//             FEngineLoop::PrimitiveDrawBatch.AddAABBToBatch(Comp->GetBoundingBox(), Comp->GetWorldLocation(), WorldMatrix);
+//         }
+//     }
+// }
 
 void FStaticMeshRenderPass::RenderAllStaticMeshes(const std::shared_ptr<FViewportClient>& Viewport)
 {
@@ -408,7 +400,7 @@ void FStaticMeshRenderPass::Render(const std::shared_ptr<FViewportClient>& Viewp
     PrepareRenderState(Viewport);
 
     RenderAllStaticMeshes(Viewport);
-    RenderAllSkeletalMeshes(Viewport);
+    // RenderAllSkeletalMeshes(Viewport);
     // 렌더 타겟 해제
     Graphics->DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
     ID3D11ShaderResourceView* nullSRV = nullptr;
@@ -433,7 +425,7 @@ void FStaticMeshRenderPass::Render(const std::shared_ptr<FViewportClient>& Viewp
 void FStaticMeshRenderPass::ClearRenderArr()
 {
     StaticMeshComponents.Empty();
-    SkeletalMeshComponents.Empty();
+    // SkeletalMeshComponents.Empty();
 }
 
 
