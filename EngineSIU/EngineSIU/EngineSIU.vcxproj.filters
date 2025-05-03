@@ -811,8 +811,9 @@
     <ClCompile Include="Engine\Source\Editor\ViewerEditor\ViewerEditor.cpp">
       <Filter>Engine\Source\Editor\ViewerEditor</Filter>
     </ClCompile>
-    <ClCompile Include="SkeletalMeshComponent.cpp" />
-    <ClCompile Include="SkinnedMeshComponent.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SkinnedMeshComponent.cpp">
+      <Filter>Engine\Source\Runtime\Engine\Classes\Components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1076,8 +1077,12 @@
     <ClInclude Include="Engine\Source\Editor\ViewerEditor\ViewerEditor.h">
       <Filter>Engine\Source\Editor\ViewerEditor</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SkeletalMeshComponent.h" />
-    <ClInclude Include="SkinnedMeshComponent.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SkeletalMeshComponent.h">
+      <Filter>Engine\Source\Runtime\Engine\Classes\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SkinnedMeshComponent.h">
+      <Filter>Engine\Source\Runtime\Engine\Classes\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\SlateShader.hlsl" />

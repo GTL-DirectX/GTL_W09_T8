@@ -8,6 +8,6 @@ class ViewerEditor
 public:
     static void CreateViewerWindow();
 
-    void RenderSkeletalMesh(USkeletalMesh* SkeletalMeshComp) const;
+    //void RenderSkeletalMesh(USkeletalMesh* SkeletalMeshComp) const;
 };
 

@@ -19,7 +19,7 @@ public:
     USkeletalMesh() = default;
     virtual ~USkeletalMesh() override;
 
-    virtual UObject* Duplicate(UObject* InOuter) override;
+    //virtual UObject* Duplicate(UObject* InOuter) override;
     FSkeletalMeshRenderData* GetRenderData() const { return SkeletalMeshRenderData; }
 
     //FWString GetOjbectName() const
