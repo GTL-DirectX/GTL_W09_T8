@@ -106,6 +106,26 @@ void ATransformGizmo::Tick(float DeltaTime)
     USceneComponent* SelectedComponent = Engine->GetSelectedComponent();
     AActor* SelectedActor = Engine->GetSelectedActor();
 
+    UWorld* World = GetWorld();
+
+    if (SelectedComponent)
+    {
+        UWorld* SelectedWorld = SelectedComponent->GetWorld();
+        if (World != SelectedWorld)
+        {
+            return;
+        }
+    }
+
+    if (SelectedActor)
+    {
+        UWorld* SelectedWorld = SelectedActor->GetWorld();
+        if (World != SelectedWorld)
+        {
+            return;
+        }
+    }
+
     USceneComponent* TargetComponent = nullptr;
 
     if (SelectedComponent != nullptr)
