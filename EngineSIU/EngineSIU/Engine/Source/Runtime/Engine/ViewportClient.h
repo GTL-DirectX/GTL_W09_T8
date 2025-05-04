@@ -148,6 +148,9 @@ public:
     FViewportCamera& GetOrthogonalCamera() { return OrthogonalCamera; }
     FVector GetCameraLocation() const;
 
+    void SetShouldDraw(bool bInShouldDraw) { bShouldDraw = bInShouldDraw; }
+    bool ShouldDraw() const { return bShouldDraw; }
+
 public:
     void UpdateOrthoCameraLoc();
     
@@ -164,6 +167,8 @@ protected:
 
     FMatrix View;
     FMatrix Projection;
+
+    bool bShouldDraw = true;
 
 public:
     static FVector GetOrthoPivot() { return OrthoPivot; }
