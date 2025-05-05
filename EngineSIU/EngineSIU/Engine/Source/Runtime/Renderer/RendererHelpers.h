@@ -40,8 +40,11 @@ namespace MaterialUtils
         // Update Textures
         if (MaterialInfo.TextureFlag & (1 << 1)) {
             std::shared_ptr<FTexture> texture = FEngineLoop::ResourceManager.GetTexture(MaterialInfo.DiffuseTexturePath);
-            Graphics->DeviceContext->PSSetShaderResources(0, 1, &texture->TextureSRV);
-            Graphics->DeviceContext->PSSetSamplers(0, 1, &texture->SamplerState);
+            if (texture)
+            {
+                Graphics->DeviceContext->PSSetShaderResources(0, 1, &texture->TextureSRV);
+                Graphics->DeviceContext->PSSetSamplers(0, 1, &texture->SamplerState);
+            }
         }
         else
         {
@@ -55,8 +58,11 @@ namespace MaterialUtils
         if (MaterialInfo.TextureFlag & (1 << 2))
         {
             std::shared_ptr<FTexture> texture = FEngineLoop::ResourceManager.GetTexture(MaterialInfo.BumpTexturePath);
-            Graphics->DeviceContext->PSSetShaderResources(1, 1, &texture->TextureSRV);
-            Graphics->DeviceContext->PSSetSamplers(1, 1, &texture->SamplerState);
+            if (texture)
+            {
+                Graphics->DeviceContext->PSSetShaderResources(1, 1, &texture->TextureSRV);
+                Graphics->DeviceContext->PSSetSamplers(1, 1, &texture->SamplerState);
+            }
         }
         else {
             ID3D11ShaderResourceView* nullSRV[1] = { nullptr };

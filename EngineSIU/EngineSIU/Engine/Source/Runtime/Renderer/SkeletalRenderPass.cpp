@@ -1,4 +1,4 @@
-﻿#include "SkeletalRenderPass.h"
+#include "SkeletalRenderPass.h"
 
 #include "Define.h"
 #include "ShadowManager.h"
@@ -8,6 +8,8 @@
 #include "ViewportClient.h"
 #include "Engine/EditorEngine.h"
 #include "ShowFlag.h"
+#include "Rendering/Mesh/SkeletalMesh.h"
+
 FSkeletalRenderPass::FSkeletalRenderPass()
     : VertexShader(nullptr)
     , PixelShader(nullptr)
@@ -52,16 +54,19 @@ void FSkeletalRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewpor
     {
         if (!Comp)
             continue;
-        FSkeletalMeshRenderData RenderData = Comp->test;
-        
-        UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
+        FSkeletalMeshRenderData* RenderData = Comp->GetSkeletalMesh()->GetRenderData();
         
         FMatrix WorldMatrix = Comp->GetWorldMatrix();
         FVector4 UUIDColor = Comp->EncodeUUID() / 255.0f;
 
         UpdateObjectConstant(WorldMatrix, UUIDColor, false);
+        TArray<FStaticMaterial*> Materials = Comp->GetSkeletalMesh()->GetMaterials();
+        for (int MaterialIndex = 0; MaterialIndex < Materials.Num(); MaterialIndex++)
+        {
+            MaterialUtils::UpdateMaterial(BufferManager, Graphics, Materials[MaterialIndex]->Material->GetMaterialInfo());
+        }
 
-        RenderPrimitive(RenderData.VertexBuffer, RenderData.Vertices.Num(), RenderData.IndexBuffer, RenderData.Indices.Num());
+        RenderPrimitive(RenderData->VertexBuffer, RenderData->Vertices.Num(), RenderData->IndexBuffer, RenderData->Indices.Num());
 
         if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
         {
