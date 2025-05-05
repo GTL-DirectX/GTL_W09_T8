@@ -397,6 +397,11 @@ void SLevelEditor::Tick(float DeltaTime)
     {
         Viewport->Tick(DeltaTime);
     }
+
+    for (auto& [Name, Viewport] : WindowViewportClients)
+    {
+        Viewport->Tick(DeltaTime);
+    }
 }
 
 void SLevelEditor::Release()
@@ -481,6 +486,7 @@ FEditorViewportClient* SLevelEditor::AddWindowViewportClient(FName ViewportName,
 
     std::shared_ptr<FEditorViewportClient> NewViewportClient = std::make_shared<FEditorViewportClient>();
     NewViewportClient->Initialize(EViewScreenLocation::EVL_Window, InRect, PreviewWorld);
+    NewViewportClient->SetViewportType(ELevelViewportType::LVT_Perspective);
 
     WindowViewportClients.Add(ViewportName, NewViewportClient);
 
