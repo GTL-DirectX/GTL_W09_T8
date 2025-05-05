@@ -49,6 +49,8 @@ struct FSkeletalMeshRenderData
 
     // 버텍스 & 인덱스
     TArray<FSkeletalMeshVertex> Vertices;    // Position, Normal, UV, 그리고 BoneIndices/BoneWeights 포함
+    TArray<FSkeletalMeshVertex> OrigineVertices;
+    
     TArray<UINT>               Indices;
 
     // GPU 업로드용 버퍼
@@ -66,6 +68,8 @@ struct FSkeletalMeshRenderData
     TArray<FString>     BoneNames;        // 본 이름 리스트
     TArray<int>          ParentBoneIndices;// 본 계층 트리 (각 본의 부모 인덱스)
     TArray<FMatrix>      ReferencePose;    // 본의 바인드 포즈 변환 행렬
+    TArray<FMatrix>      OrigineReferencePose; 
+    
     TArray<FMatrix>      BoneTransforms;
     TArray<FMatrix>      LocalBindPose;
     // 애니메이션 처리용 (선택)
@@ -169,6 +173,44 @@ struct FSkeletalMeshRenderData
         meshData.ParentBoneIndices = NewParents;
         meshData.ReferencePose    = NewRefPose;
         meshData.LocalBindPose    = NewLocalPose;
-    } 
+    }
+    void UpdateVerticesFromNewBindPose(FSkeletalMeshRenderData& meshData)
+    {
+        // 1) 델타 행렬 계산 (위 4번)
+        int32 BoneCount = meshData.ReferencePose.Num();
+        TArray<FMatrix> OldGlobal = OrigineReferencePose;
+        TArray<FMatrix> Delta; Delta.SetNum(BoneCount);
+        for (int32 bi = 0; bi < BoneCount; ++bi)
+        {
+            Delta[bi] = meshData.ReferencePose[bi] * FMatrix::Inverse(OldGlobal[bi]);
+        }
+
+        // 2) 버텍스 재계산
+        int32 VCount = meshData.Vertices.Num();
+        for (int32 vi = 0; vi < VCount; ++vi)
+        {
+            const FVector& P0 = meshData.OrigineVertices[vi].Position;
+            const FVector& N0 = meshData.OrigineVertices[vi].Normal;
+            FVector Pnew(0,0,0), Nnew(0,0,0);
+
+            const auto& vert = meshData.Vertices[vi];
+            for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+            {
+                float w = vert.BoneWeights[j];
+                if (w <= 0.0f) continue;
+
+                int bi = vert.BoneIndices[j];
+                Pnew += Delta[bi].TransformPosition(P0) * w;
+                Nnew += FMatrix::TransformVector(P0,Delta[bi])  * w;
+            }
+
+            meshData.Vertices[vi].Position = Pnew;
+            meshData.Vertices[vi].Normal   = Nnew.GetSafeNormal();
+        }
+
+        // 3) (선택) 바운딩 박스, GPU 버퍼 등도 다시 업데이트
+        // ComputeBounds(meshData.Vertices, meshData.BoundingBoxMin, meshData.BoundingBoxMax);
+        // CreateBuffers(...) 다시 호출 등
+    }
 };
 #pragma endregion
