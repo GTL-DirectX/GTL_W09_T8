@@ -13,6 +13,8 @@
 #include "UnrealEd/EditorViewportClient.h"
 #include "UObject/ObjectTypes.h"
 
+#include "GameFramework/PlayerController.h"
+
 
 extern FEngineLoop GEngineLoop;
 
@@ -90,6 +92,15 @@ void SLevelEditor::Initialize(uint32 InEditorWidth, uint32 InEditorHeight, UEngi
 
     Handler->OnMouseDownDelegate.AddLambda([this](const FPointerEvent& InMouseEvent)
     {
+        if (GEngine->ActiveWorld->WorldType == EWorldType::PIE)
+        {
+            if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+            {
+                FWindowsCursor::SetShowMouseCursor(false);
+                MousePinPosition = InMouseEvent.GetScreenSpacePosition();
+            }
+        }
+
         if (GEngine->ActiveWorld->WorldType != EWorldType::Editor)
         {
             return;
@@ -247,6 +258,12 @@ void SLevelEditor::Initialize(uint32 InEditorWidth, uint32 InEditorHeight, UEngi
 
     Handler->OnRawMouseInputDelegate.AddLambda([this](const FPointerEvent& InMouseEvent)
     {
+
+        if (GEngine->ActiveWorld->WorldType == EWorldType::PIE)
+        {
+            ActiveViewportClient->GetWorld()->GetFirstPlayerController()->MouseInput(InMouseEvent.GetCursorDelta().X, InMouseEvent.GetCursorDelta().Y);
+        }
+
         if (GEngine->ActiveWorld->WorldType != EWorldType::Editor)
         {
             return;

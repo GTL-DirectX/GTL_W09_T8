@@ -34,7 +34,7 @@ void APlayerController::Tick(float DeltaTime)
         for (const auto& Key : PlayerInput->PressedKeys)
         {
             // 키에 대응하는 InputAxis 호출
-            InputAxis(Key);
+            InputAxis(Key, IE_Axis);
         }
     }
 }
@@ -109,9 +109,14 @@ void APlayerController::InputKey(EKeys::Type Key, EInputEvent EventType)
     PlayerInput->InputKey(Key, EventType);
 }
 
-void APlayerController::InputAxis(EKeys::Type Key)
+void APlayerController::InputAxis(EKeys::Type Key, EInputEvent EventType)
 {
-    PlayerInput->InputAxis(Key);
+    PlayerInput->InputAxis(Key, EventType);
+}
+
+void APlayerController::MouseInput(float DeltaX, float DeltaY)
+{
+    PlayerInput->MouseInput(DeltaX, DeltaY);
 }
 
 void APlayerController::SetupInputBindings()
