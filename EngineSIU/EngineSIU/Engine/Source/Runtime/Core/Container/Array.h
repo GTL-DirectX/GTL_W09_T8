@@ -79,6 +79,7 @@ public:
 	/** 특정 위치에 있는 요소를 제거합니다. */
     void RemoveAt(SizeType Index);
 
+    void Reset();
 	/** Predicate에 부합하는 모든 요소를 제거합니다. */
     template <typename Predicate>
         requires std::is_invocable_r_v<bool, Predicate, const T&>
@@ -392,4 +393,10 @@ FArchive& operator<<(FArchive& Ar, TArray<ElementType, Allocator>& Array)
     }
 
     return Ar;
+}
+template <typename T, typename Allocator>
+void TArray<T, Allocator>::Reset()
+{
+    // 요소 개수만 0으로 초기화, capacity는 그대로 유지
+    ContainerPrivate.clear();
 }

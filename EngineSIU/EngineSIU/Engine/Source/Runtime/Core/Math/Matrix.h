@@ -54,6 +54,8 @@ public:
     FMatrix GetMatrixWithoutScale(float Tolerance = SMALL_NUMBER) const;
 
     void RemoveScaling(float Tolerance = SMALL_NUMBER);
+
+    void PrintMatirx() const;
 };
 
 inline FArchive& operator<<(FArchive& Ar, FMatrix& M)

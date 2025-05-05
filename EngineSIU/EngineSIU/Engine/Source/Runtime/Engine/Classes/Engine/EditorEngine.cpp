@@ -48,7 +48,6 @@ void UEditorEngine::Init()
         assert(AssetManager);
         AssetManager->InitAssetManager();
     }
-
     
     TMap<FString, FString> Config = FEditorConfigManager::GetInstance().Read();
     FString ScenePath = FEditorConfigManager::GetValueFromConfig<std::string>(Config, "ScenePath", "Saved/DefaultLevel.scene");

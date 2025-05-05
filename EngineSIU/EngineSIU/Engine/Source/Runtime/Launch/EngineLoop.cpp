@@ -12,6 +12,7 @@
 #include "World/World.h"
 #include "Renderer/TileLightCullingPass.h"
 #include "Engine/Lua/LuaScriptManager.h" 
+#include "Engine/Resource/FBXManager.h"
 #include "UnrealEd/EditorConfigManager.h"
 #include "Games/LastWar/UI/LastWarUI.h"
 
@@ -54,9 +55,11 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     LuaScriptManager = new FLuaScriptManager();
     LastWarGameUI = new LastWarUI();
 
+        
     UnrealEditor->Initialize();
     GraphicDevice.Initialize(AppWnd);
     AudioManager::Get().Initialize();
+    FFBXManager::Get().Initialize();
 
     if (!GPUTimingManager.Initialize(GraphicDevice.Device, GraphicDevice.DeviceContext))
     {
@@ -226,7 +229,7 @@ void FEngineLoop::Exit()
     Renderer.Release();
     GraphicDevice.Release();
     LastWarGameUI->Release();
-    
+    FFBXManager::Get().Release();
     GEngine->Release();
 
     delete UnrealEditor;
