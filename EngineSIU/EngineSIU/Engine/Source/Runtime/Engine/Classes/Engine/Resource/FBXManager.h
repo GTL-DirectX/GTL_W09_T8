@@ -7,9 +7,15 @@
 
 #include "Rendering/Mesh/SkeletalMeshRenderData.h"
 
+class USkeletalMesh;
+
 // FBX SDK forward declarations to avoid include issues
 class FFBXManager
 {
+   
+private:
+    TMap<FString, USkeletalMesh*> SkeletalMeshMap; // SkeletalMesh 이름과 포인터를 저장하는 맵
+
 public:
     // 전역 싱글톤 인스턴스 접근
     static FFBXManager& Get()
@@ -17,6 +23,8 @@ public:
         static FFBXManager Instance;
         return Instance;
     }
+
+    USkeletalMesh* LoadSkeletalMesh(const FString& FbxFilePath);
 
     // SDK 초기화
     void Initialize();

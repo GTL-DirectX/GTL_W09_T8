@@ -19,6 +19,7 @@ public:
     USkeletalMesh() = default;
 
     virtual bool IsSkeletalMesh() const override { return true; } // 이 섹션이 스켈레탈 메쉬인지 확인하는 함수
+    void SetRenderData(FSkeletalMeshRenderData* InRenderData) { RenderData = InRenderData; }
 
 private:
     FSkeletalMeshRenderData* RenderData = nullptr;

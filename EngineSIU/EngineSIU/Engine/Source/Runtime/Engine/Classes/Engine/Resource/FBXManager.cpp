@@ -3,10 +3,30 @@
 #include <fbxsdk.h>
 
 #include "UObject/Object.h"
+#include "UObject/ObjectFactory.h"
 #include "UserInterface/Console.h"
+
+#include "Rendering/Mesh/SkeletalMesh.h"
 
 // 전역 인스턴스 정의
 FFBXManager* GFBXManager = nullptr;
+
+USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
+{
+    // SkeletalMesh가 이미 로드되어 있는지 확인
+    if (SkeletalMeshMap.Contains(FbxFilePath))
+    {
+        return *SkeletalMeshMap.Find(FbxFilePath);
+    }
+    // 새로운 SkeletalMesh 생성
+    USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(nullptr); // 추후 AssetManager로 잡히도록 설정해줘야 함.
+    SkeletalMeshMap.Add(FbxFilePath, NewSkeletalMesh);
+    // FBX 파일 로드 및 데이터 설정
+    FSkeletalMeshRenderData RenderData;
+    LoadFbx(FbxFilePath, RenderData);
+    NewSkeletalMesh->SetRenderData(&RenderData);
+    return NewSkeletalMesh;
+}
 
 void FFBXManager::Initialize()
 {
@@ -22,6 +42,7 @@ void FFBXManager::Release()
     if (Importer)   Importer->Destroy();
     if (IOSettings) IOSettings->Destroy();
     if (SdkManager) SdkManager->Destroy();
+    SkeletalMeshMap.Empty();
 }
 
 void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
