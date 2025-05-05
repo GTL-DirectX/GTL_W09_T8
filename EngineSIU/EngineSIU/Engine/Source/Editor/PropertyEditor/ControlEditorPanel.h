@@ -21,7 +21,7 @@ private:
     void CreateLightSpawnButton(ImVec2 InButtonSize, ImFont* IconFont);
 
     // Begin Test
-    static void CreateViewerButton();
+    void CreateViewerButton();
     // End Test
 
 private:
@@ -31,6 +31,7 @@ private:
     float Width = 300, Height = 100;
     bool bOpenMenu = false;
     bool bShowImGuiDemoWindow = false; // 데모 창 표시 여부를 관리하는 변수
+    bool bShowSkeletalMeshViewer = false;
 
     FLightGridGenerator LightGridGenerator;
 };

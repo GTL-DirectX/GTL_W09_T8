@@ -5,78 +5,139 @@
 #include "Classes/Engine/AssetManager.h"
 #include "Engine/ObjLoader.h"
 
-void ViewerEditor::CreateViewerWindow()
-{
-    static bool show_new_window = false;
+// Begin Test
+#include "Runtime/CoreUObject/UObject/ObjectFactory.h"
+#include "Runtime/Engine/World/World.h"
+#include "Runtime/Engine/Classes/Actors/Cube.h"
+#include "Editor/LevelEditor/SLevelEditor.h"
+#include "Editor/UnrealEd/EditorViewportClient.h"
+#include "Runtime/Engine/UnrealClient.h"
+#include "Runtime/Core/Container/String.h"
+// End Test
 
-    if (ImGui::Button("SkeletalMesh Viewer"))
+UWorld* ViewerEditor::ViewerWorld = nullptr;
+FEditorViewportClient* ViewerEditor::ViewerViewportClient = nullptr;
+bool ViewerEditor::bIsInitialized = false;
+FString ViewerEditor::ViewportIdentifier = TEXT("SkeletalMeshViewerViewport");
+
+void ViewerEditor::InitializeViewerResources()
+{
+    if (bIsInitialized || !GEngineLoop.GetLevelEditor())
     {
-        show_new_window = true;
+        return;
     }
 
-    if (show_new_window)
+    ViewerWorld = FObjectFactory::ConstructObject<UWorld>(nullptr);
+    if (!ViewerWorld)
     {
-        ImGui::Begin("SkeletalMesh Viewer", &show_new_window);
+        return;
+    }
 
-        ImGui::Text("SkeletalMesh Viewer");
-        if (ImGui::Button("Close"))
+    ViewerWorld->InitializeNewWorld();
+    ViewerWorld->WorldType = EWorldType::EditorPreview;
+
+    // Begin Test
+    ACube* CubeActor = ViewerWorld->SpawnActor<ACube>();
+    if (CubeActor)
+    {
+        CubeActor->SetActorLabel(TEXT("Viewer_Cube"));
+    }
+
+    ViewerViewportClient = GEngineLoop.GetLevelEditor()->AddWindowViewportClient(
+        ViewportIdentifier,
+        ViewerWorld,
+        FRect(100, 100, 800, 800)
+    );
+    // End Test
+
+    if (!ViewerViewportClient)
+    {
+        if (ViewerWorld)
         {
-            show_new_window = false;
+            ViewerWorld = nullptr;
+        }
+        return;
+    }
+
+    ViewerViewportClient->SetShouldDraw(false);
+    FViewportCamera& vpCam = ViewerViewportClient->GetPerspectiveCamera();
+    vpCam.SetLocation(FVector(-10, 0, 5));
+    FVector TargetLocation = FVector(0, 0, 0);
+    FVector CamLocation = vpCam.GetLocation();
+    FVector Dir = (TargetLocation - CamLocation).GetSafeNormal();
+
+    FVector forward;
+
+    float pitch = FMath::RadiansToDegrees(FMath::Atan2(Dir.Y, Dir.Z));
+    float yaw = FMath::RadiansToDegrees(FMath::Atan2(Dir.X, Dir.Z));
+
+    forward.X = FMath::Cos(FMath::DegreesToRadians(pitch)) * FMath::Cos(FMath::DegreesToRadians(yaw));
+    forward.Y = FMath::Cos(FMath::DegreesToRadians(pitch)) * FMath::Sin(FMath::DegreesToRadians(yaw));
+    forward.Z = FMath::Sin(FMath::DegreesToRadians(pitch));
+
+    vpCam.SetRotation(forward);
+
+    bIsInitialized = true;
+}
+
+void ViewerEditor::DestroyViewerResources()
+{
+    if (!bIsInitialized || !GEngineLoop.GetLevelEditor())
+    {
+        return;
+    }
+
+    if (ViewerViewportClient)
+    {
+        GEngineLoop.GetLevelEditor()->RemoveWindowViewportClient(ViewportIdentifier);
+        ViewerViewportClient = nullptr;
+    }
+
+    if (ViewerWorld)
+    {
+        ViewerWorld->Release();
+        ViewerWorld = nullptr;
+    }
+
+    bIsInitialized = false;
+}
+
+void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
+{
+    if (!bShowWindow)
+    {
+        if (bIsInitialized)
+        {
+            DestroyViewerResources();
+        }
+        return;
+    }
+
+    if (!bIsInitialized)
+    {
+        InitializeViewerResources();
+        if (!bIsInitialized) {
+            bShowWindow = false;
+            return;
+        }
+    }
+
+    if (ImGui::Begin("SkeletalMesh Viewer", &bShowWindow))
+    {
+        if (ViewerViewportClient && ViewerViewportClient->GetViewportResource())
+        {
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            float width = FMath::Max(1.0f, contentRegion.x);
+            float height = FMath::Max(1.0f, contentRegion.y);
+
+            ID3D11ShaderResourceView* SRV = ViewerViewportClient->GetViewportResource()->GetRenderTarget(EResourceType::ERT_Compositing)->SRV;
+            if (SRV)
+            {
+                ImGui::Image(reinterpret_cast<ImTextureID>(SRV), ImVec2(width, height));
+            }
         }
 
-        ImGui::End();
+        //여기에 skeletal mesh property가 들어갈 예정
     }
-
+    ImGui::End(); 
 }
-//
-//void ViewerEditor::RenderSkeletalMesh(USkeletalMesh* SkeletalMeshComp) const
-//{
-//    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-//    if (ImGui::TreeNodeEx("Static Mesh", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
-//    {
-//        ImGui::Text("StaticMesh");
-//        ImGui::SameLine();
-//
-//        FString PreviewName;
-//        // TO-DO: USkeletalMeshComponent::GetSkeletalMesh()를 구현할 예정
-//        // 다른 함수들도 많이 남았음.
-//        if (SkeletalMeshComp->GetSkeletalMesh())
-//        {
-//            PreviewName = SkeletalMeshComp->GetSkeletalMesh()->GetRenderData()->DisplayName;
-//        }
-//        else
-//        {
-//            PreviewName = TEXT("None");
-//        }
-//
-//        const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
-//
-//        if (ImGui::BeginCombo("##StaticMesh", GetData(PreviewName), ImGuiComboFlags_None))
-//        {
-//            if (ImGui::Selectable(TEXT("None"), false))
-//            {
-//                SkeletalMeshComp->SetSkeletalMesh(nullptr);
-//            }
-//
-//            for (const auto& Asset : Assets)
-//            {
-//                if (Asset.Value.AssetType == EAssetType::SkeletalMesh)
-//                {
-//                    if (ImGui::Selectable(GetData(Asset.Value.AssetName.ToString()), false))
-//                    {
-//                        FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
-//                        USkeletalMesh* SkeletalMesh = FObjManager::GetSkeletalMesh(MeshName.ToWideString());
-//                        if (SkeletalMesh)
-//                        {
-//                            SkeletalMeshComp->SetSkeletalMesh(SkeletalMesh);
-//                        }
-//                    }
-//                }
-//            }
-//            ImGui::EndCombo();
-//        }
-//
-//        ImGui::TreePop();
-//    }
-//    ImGui::PopStyleColor();
-//}

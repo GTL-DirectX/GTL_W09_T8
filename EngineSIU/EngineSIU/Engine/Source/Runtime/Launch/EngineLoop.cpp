@@ -180,6 +180,8 @@ void FEngineLoop::Tick()
         LevelEditor->Tick(DeltaTime);
 
         UIMgr->BeginFrame();
+
+        // Begin Test
         ImGuiID mainDockspaceId = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode); // Passthru 플래그 추가 시도
 
         static bool dockspace_built = false;
@@ -212,6 +214,7 @@ void FEngineLoop::Tick()
             ImGui::DockBuilderFinish(mainDockspaceId);
             dockspace_built = true;
         }
+        // End Test
 
         UnrealEditor->Render();
         LastWarGameUI->Render();
@@ -223,12 +226,15 @@ void FEngineLoop::Tick()
 
         UIMgr->EndFrame();
 
+        // Begin Test
         ImGuiIO& io = ImGui::GetIO();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
+        // End Test
+        
         // Pending 처리된 오브젝트 제거
         GUObjectArray.ProcessPendingDestroyObjects();
 

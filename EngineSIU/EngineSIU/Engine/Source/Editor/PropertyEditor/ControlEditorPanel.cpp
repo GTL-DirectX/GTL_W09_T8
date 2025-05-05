@@ -408,14 +408,15 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
         ImGui::EndPopup();
     }
 }
-
 void ControlEditorPanel::CreateViewerButton()
 {
-    const std::shared_ptr<FEditorViewportClient> ActiveViewport = GEngineLoop.GetLevelEditor()->GetActiveViewportClient();
+    if (ImGui::Button("SkeletalMesh Viewer"))
+    {
+        bShowSkeletalMeshViewer = true;
+    }
 
-    ViewerEditor::CreateViewerWindow();
+    ViewerEditor::RenderViewerWindow(bShowSkeletalMeshViewer);
 }
-
 void ControlEditorPanel::CreateFlagButton()
 {
     const std::shared_ptr<FEditorViewportClient> ActiveViewport = GEngineLoop.GetLevelEditor()->GetActiveViewportClient();
