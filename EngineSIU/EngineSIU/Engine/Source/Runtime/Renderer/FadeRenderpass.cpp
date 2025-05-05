@@ -83,7 +83,7 @@ void FFadeRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& V
 
     UWorld* World = Viewport->GetWorld();
 
-    if (World && World->WorldType != EWorldType::Editor) {
+    if (World && World->WorldType == EWorldType::PIE || World->WorldType == EWorldType::Game) {
         FadeAlpha = World->GetFirstPlayerController()->PlayerCameraManager->FadeAmount;
         FadeColor = World->GetFirstPlayerController()->PlayerCameraManager->FadeColor;
     }
