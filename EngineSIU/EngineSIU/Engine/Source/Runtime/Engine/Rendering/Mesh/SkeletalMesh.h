@@ -24,11 +24,11 @@ public:
 
     virtual bool IsSkeletalMesh() const override { return true; } // 이 섹션이 스켈레탈 메쉬인지 확인하는 함수
     void SetRenderData(FSkeletalMeshRenderData* InRenderData) { RenderData = InRenderData; }
-
+    FSkeletalMeshRenderData* GetRenderData() const { return RenderData; }
+    
     const TArray<FStaticMaterial*>& GetMaterials() const { return Materials; }
     uint32 GetMaterialIndex(FName MaterialSlotName) const;
     void GetUsedMaterials(TArray<UMaterial*>& Out) const;
-    FSkeletalMeshRenderData* GetRenderData() const { return RenderData; }
 
     FString GetObjectName() const;
 
@@ -38,3 +38,4 @@ private:
     FSkeletalMeshRenderData* RenderData = nullptr;
     TArray<FStaticMaterial*> Materials;
 };
+

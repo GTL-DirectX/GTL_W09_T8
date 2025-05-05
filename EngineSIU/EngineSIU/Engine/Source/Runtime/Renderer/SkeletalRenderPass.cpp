@@ -1,5 +1,7 @@
 #include "SkeletalRenderPass.h"
 
+#include <Rendering/Mesh/SkeletalMesh.h>
+
 #include "Define.h"
 #include "ShadowManager.h"
 #include "UnrealClient.h"
@@ -8,7 +10,7 @@
 #include "ViewportClient.h"
 #include "Engine/EditorEngine.h"
 #include "ShowFlag.h"
-#include "Rendering/Mesh/SkeletalMesh.h"
+#include "Rendering/Mesh/SkeletalMeshRenderData.h"
 
 FSkeletalRenderPass::FSkeletalRenderPass()
     : VertexShader(nullptr)
@@ -54,7 +56,14 @@ void FSkeletalRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewpor
     {
         if (!Comp)
             continue;
+
         FSkeletalMeshRenderData* RenderData = Comp->GetSkeletalMesh()->GetRenderData();
+        
+        if (RenderData == nullptr)
+        {
+            continue;
+        }
+
         
         FMatrix WorldMatrix = Comp->GetWorldMatrix();
         FVector4 UUIDColor = Comp->EncodeUUID() / 255.0f;

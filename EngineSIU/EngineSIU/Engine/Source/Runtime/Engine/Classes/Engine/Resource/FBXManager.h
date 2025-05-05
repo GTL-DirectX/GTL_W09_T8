@@ -4,6 +4,7 @@
 #include <fbxsdk.h>
 
 #include "Define.h"
+#include "Container/Map.h"
 
 #include "Rendering/Mesh/SkeletalMeshRenderData.h"
 #include "Rendering/Mesh/SkeletalMesh.h"

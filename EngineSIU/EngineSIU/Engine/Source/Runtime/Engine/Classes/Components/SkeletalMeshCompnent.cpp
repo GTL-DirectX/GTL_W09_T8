@@ -1,15 +1,21 @@
 #include "SkeletalMeshCompnent.h"
-#include "UObject/ObjectFactory.h"
+
 #include "Engine/Resource/FBXManager.h"
+
 #include "Rendering/Mesh/SkeletalMesh.h"
 
 USkeletalMeshCompnent::USkeletalMeshCompnent()
 {
-    SkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(nullptr);
+    // 경로 다시 잡아주기.
+    SkeletalMeshAsset = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\character.fbx");
+}
 
-    // 이 쓰레기코드는 뭐지
-    FSkeletalMeshRenderData* test = new FSkeletalMeshRenderData();
-    FFBXManager::Get().LoadFbx("C:\\Users\\Jungle\\Desktop\\ywj\\fbx\\character.fbx", *test);
+void USkeletalMeshCompnent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
+{
+    SkeletalMeshAsset = InSkeletalMesh;
+}
 
-    SkeletalMesh->SetData(test);
+USkeletalMesh* USkeletalMeshCompnent::GetSkeletalMesh() const
+{
+    return SkeletalMeshAsset;
 }
