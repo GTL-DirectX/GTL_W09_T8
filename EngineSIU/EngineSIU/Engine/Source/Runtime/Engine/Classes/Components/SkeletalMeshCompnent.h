@@ -1,19 +1,19 @@
-﻿#pragma once
+#pragma once
 
 #include "SkinnedMeshComponent.h"
 
-#include "Rendering/Mesh/SkeletalMeshRenderData.h"
-
 class USkeletalMesh;
-
 class USkeletalMeshCompnent : public USkinnedMeshComponent
 {
     DECLARE_CLASS(USkeletalMeshCompnent, USkinnedMeshComponent)
 public:
     USkeletalMeshCompnent();
 
-    FSkeletalMeshRenderData test;
+public:
+    virtual void SetSkeletalMesh(USkeletalMesh* InSkeletalMesh);
+    virtual USkeletalMesh* GetSkeletalMesh() const;
 
 private:
-    USkeletalMesh* SkeletalMesh;
+    USkeletalMesh* SkeletalMeshAsset;
+    
 };
