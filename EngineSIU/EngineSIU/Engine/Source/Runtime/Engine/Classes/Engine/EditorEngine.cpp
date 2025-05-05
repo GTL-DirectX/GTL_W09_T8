@@ -217,8 +217,6 @@ void UEditorEngine::EndPIE()
         
         DeselectActor(GetSelectedActor());
         DeselectComponent(GetSelectedComponent());
-        
-
     }
     // 다시 EditorWorld로 돌아옴.
     ActiveWorld = EditorWorld;

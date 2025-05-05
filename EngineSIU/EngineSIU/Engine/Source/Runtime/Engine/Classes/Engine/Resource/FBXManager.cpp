@@ -1,6 +1,7 @@
 #include "FBXManager.h"
 
 #include <fbxsdk.h>
+#include <filesystem>
 
 #include "UObject/Object.h"
 #include "UObject/ObjectFactory.h"
@@ -8,6 +9,7 @@
 
 #include "Rendering/Mesh/SkeletalMesh.h"
 #include "Engine/AssetManager.h"
+#include "Rendering/Material/Material.h"
 
 // 전역 인스턴스 정의
 FFBXManager* GFBXManager = nullptr;
@@ -48,6 +50,11 @@ void FFBXManager::Release()
 
 void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
 {
+    if (!std::filesystem::exists(FbxFilePath.ToWideString()))
+    {
+        assert(0 && "FBX File Not Found");
+    }
+
     // FBX 파일 열기
     if (!Importer->Initialize(*FbxFilePath, -1, SdkManager->GetIOSettings()))
     {
@@ -78,46 +85,43 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
         {
             FbxNode* child =root->GetChild(i);
 
-            // PrintStaticMeshData(root->GetChild(i));
             ExtractSkeletalMeshData(child, OutRenderData);
             std::cout << GetData(OutRenderData.FilePath) << std::endl;
-            // for (int i=0;i<OutRenderData.Vertices.Num();i++)
-            // {
-            //     std::cout << "Vertex "<< i << " Pos : "<<  OutRenderData.Vertices[i].Position.X << " " << OutRenderData.Vertices[i].Position.Y << " " << OutRenderData.Vertices[i].Position.Z << std::endl;
-            //     std::cout << "Vertex "<< i << " Normal : " << OutRenderData.Vertices[i].Normal.X << " " << OutRenderData.Vertices[i].Normal.Y << " " << OutRenderData.Vertices[i].Normal.Z << std::endl;
-            //     std::cout << "Vertex "<< i << " TextureUV : " << OutRenderData.Vertices[i].UV.X << " " << OutRenderData.Vertices[i].UV.Y  << std::endl;
-            //     std::cout << "Vertex "<< i << " BoneIndex : " <<OutRenderData.Vertices[i].BoneIndices[0] << " " << OutRenderData.Vertices[i].BoneIndices[1] << std::endl;
-            //     std::cout << "Vertex "<< i << " Weight : " <<OutRenderData.Vertices[i].BoneWeights[0] << " " << OutRenderData.Vertices[i].BoneWeights[1] << std::endl;
-            // }
-            // for (int i=0;i<OutRenderData.BoneNames.Num();i++)
-            // {
-            //     std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
-            // }
+
             for (int i=0;i<OutRenderData.BoneNames.Num();i++)
             {
-                std::cout << "Currnet Bone :" << GetData(OutRenderData.BoneNames[i]) << std::endl;
+                std::cout << "Currnet Bone " <<  i <<" : " << GetData(OutRenderData.BoneNames[i]) << std::endl;
                 if (OutRenderData.ParentBoneIndices[i] != -1)
                     std::cout << "Parent Idx : " << OutRenderData.ParentBoneIndices[i] << ", Parent Name : " << GetData(OutRenderData.BoneNames[OutRenderData.ParentBoneIndices[i]]) << std::endl;
                 else
                     std::cout << "Parent Idx " << OutRenderData.ParentBoneIndices[i] << "  Root" <<std::endl;
             }
-            // for (int i=0;i<OutRenderData.Materials.Num();i++)
+            // for (int i=0;i<OutRenderData.BoneNames.Num();i++)
             // {
-            //     std::wcout << OutRenderData.Materials[i].DiffuseTexturePath << std::endl;
-            //     std::wcout << OutRenderData.Materials[i].SpecularTexturePath << std::endl;
-            //     std::wcout << OutRenderData.Materials[i].AmbientTexturePath<< std::endl;
-            //     std::wcout << OutRenderData.Materials[i].BumpTexturePath << std::endl;
+            //     std::cout << "Currnet Bone :" << GetData(OutRenderData.BoneNames[i]) << std::endl;
+            //     if (OutRenderData.ParentBoneIndices[i] != -1)
+            //         std::cout << "Parent Idx : " << OutRenderData.ParentBoneIndices[i] << ", Parent Name : " << GetData(OutRenderData.BoneNames[OutRenderData.ParentBoneIndices[i]]) << std::endl;
+            //     else
+            //         std::cout << "Parent Idx " << OutRenderData.ParentBoneIndices[i] << "  Root" <<std::endl;
             // }
-            for (int i=0;i<OutRenderData.ReferencePose.Num();i++)
-            {
-                std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
-                OutRenderData.LocalBindPose[i].PrintMatirx();
-            }
         }
     }
 }
 void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
 {
+    // 0) 좌표계 판단
+    
+    // FBX의 좌표계
+    FbxAxisSystem sourceAxisSystem = node->GetScene()->GetGlobalSettings().GetAxisSystem();
+    FbxSystemUnit sourceUnit = node->GetScene()->GetGlobalSettings().GetSystemUnit();
+
+    // 이 엔진의 좌표계 정의
+    const FbxAxisSystem EngineAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eLeftHanded); // Z-up, X-fwd(ParityOdd), LH
+    const float EngineUnitScaleFactor = 0.01f; // 엔진 단위가 미터라고 가정 (cm -> m)
+
+    FMatrix conversionMatrix = GetConversionMatrix(sourceAxisSystem, EngineAxisSystem);
+    float conversionMatrixDet = conversionMatrix.Determinant3x3();
+    double finalScaleFactor = sourceUnit.GetScaleFactor() * EngineUnitScaleFactor;
     // 1) 메시 얻기
     FbxMesh* mesh = node->GetMesh();
     if (!mesh) return;
@@ -129,7 +133,8 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     for (int i = 0; i < cpCount; ++i)
     {
         auto& v = outData.Vertices[i];
-        v.Position = FVector(cps[i][0], cps[i][1], cps[i][2]);
+        FVector sourcePosition = FVector(cps[i][0], cps[i][1], cps[i][2]);
+        v.Position = conversionMatrix.TransformPosition(sourcePosition) * finalScaleFactor; // 변환 행렬을 사용하여 변환
         for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
             v.BoneIndices[j] = v.BoneWeights[j] = 0;
     }
@@ -138,16 +143,139 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     int polyCount = mesh->GetPolygonCount();
     outData.Indices.Reset();
     outData.Indices.Reserve(polyCount * 3);
-    for (int p = 0; p < polyCount; ++p)
-        for (int k = 0; k < 3; ++k)
-            outData.Indices.Add(mesh->GetPolygonVertex(p, k));
 
     // 4) 클러스터 정보 미리 수집 (본 노드, TransformLinkMatrix, 가중치)
     TSet<FbxNode*>            BoneNodeSet;
     TMap<FbxNode*, FMatrix>   ClusterBindPose;
     TMap<FbxNode*, TArray<std::pair<int, float>>>  BoneWeightsMap; 
       // boneNode -> array of (controlPointIdx, weight)
-    
+
+    // UV Element 가져오기 (첫 번째 UV 세트)
+    FbxLayerElementUV* uvElement = mesh->GetLayer(0)->GetUVs(); // mesh->GetElementUV(0) 과 동일할 수 있음
+    bool hasUVs = (uvElement != nullptr);
+
+    // Normal Element 가져오기 (첫 번째 Normal 세트)
+    FbxLayerElementNormal* normalElement = mesh->GetLayer(0)->GetNormals();
+    bool hasNormals = (normalElement != nullptr);
+
+    // TODO: Tangent Element 가져오기 (필요시)
+    // FbxLayerElementTangent* tangentElement = mesh->GetLayer(0)->GetTangents();
+    // bool hasTangents = (tangentElement != nullptr);
+    for (int p = 0; p < polyCount; ++p) // 폴리곤 순회
+    {
+        if (mesh->GetPolygonSize(p) != 3)
+        {
+            // 삼각화되지 않은 폴리곤 처리 (경고 또는 예외)
+            // 여기서는 간단히 건너뛰거나 삼각화 필요
+            continue;
+        }
+
+        int triangleIndices[3]; // 현재 삼각형의 컨트롤 포인트 인덱스 저장
+        bool validTriangle = true; // 삼각형 유효성 플래그
+
+        for (int k = 0; k < 3; ++k) // 폴리곤의 각 정점 순회 (0, 1, 2)
+        {
+            int cpIndex = mesh->GetPolygonVertex(p, k); // 컨트롤 포인트 인덱스
+            if (cpIndex < 0 || cpIndex >= cpCount)
+            {
+                validTriangle = false;
+                continue; // 유효하지 않은 인덱스
+            }
+
+            // 인덱스 버퍼 채우기
+            //outData.Indices.Add(cpIndex);
+
+            // --- UV 추출 ---
+            if (hasUVs)
+            {
+                int uvIndex = -1;
+                // UV가 컨트롤 포인트별인지 폴리곤 정점별인지 확인
+                if (uvElement->GetMappingMode() == FbxLayerElement::eByControlPoint)
+                {
+                    // 참조 방식 확인 (Direct 또는 IndexToDirect)
+                    if (uvElement->GetReferenceMode() == FbxLayerElement::eDirect)
+                        uvIndex = cpIndex;
+                    else if (uvElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+                        uvIndex = uvElement->GetIndexArray().GetAt(cpIndex);
+                }
+                else if (uvElement->GetMappingMode() == FbxLayerElement::eByPolygonVertex)
+                {
+                    int polygonVertexIndex = p * 3 + k; // 현재 폴리곤 정점의 인덱스
+                    // 참조 방식 확인
+                    if (uvElement->GetReferenceMode() == FbxLayerElement::eDirect)
+                        uvIndex = polygonVertexIndex;
+                    else if (uvElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+                        uvIndex = uvElement->GetIndexArray().GetAt(polygonVertexIndex);
+                }
+
+                if (uvIndex != -1)
+                {
+                    FbxVector2 uv = uvElement->GetDirectArray().GetAt(uvIndex);
+                    // FBX UV는 Y가 반전될 수 있으므로 엔진에 맞게 조정 (texture->SamplerState 설정과 관련)
+                    // 예: outData.Vertices[cpIndex].UV = FVector2D(uv[0], 1.0 - uv[1]);
+                    //outData.Vertices[cpIndex].UV = FVector2D(uv[0], uv[1]);
+                    outData.Vertices[cpIndex].UV = FVector2D(uv[0], 1.0 - uv[1]);
+                    // 참고: 동일한 컨트롤 포인트가 다른 UV를 가질 경우 마지막 값으로 덮어쓰게 됨.
+                    // 완벽한 처리를 위해서는 정점 분리(duplication) 필요.
+                }
+            }
+
+            // --- 노멀 추출 (UV와 유사한 로직) ---
+            if (hasNormals)
+            {
+                int normalIndex = -1;
+                if (normalElement->GetMappingMode() == FbxLayerElement::eByControlPoint)
+                {
+                    if (normalElement->GetReferenceMode() == FbxLayerElement::eDirect)
+                        normalIndex = cpIndex;
+                    else if (normalElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+                        normalIndex = normalElement->GetIndexArray().GetAt(cpIndex);
+                }
+                else if (normalElement->GetMappingMode() == FbxLayerElement::eByPolygonVertex)
+                {
+                    int polygonVertexIndex = p * 3 + k;
+                    if (normalElement->GetReferenceMode() == FbxLayerElement::eDirect)
+                        normalIndex = polygonVertexIndex;
+                    else if (normalElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+                        normalIndex = normalElement->GetIndexArray().GetAt(polygonVertexIndex);
+                }
+
+                if (normalIndex != -1)
+                {
+                    FbxVector4 normal = normalElement->GetDirectArray().GetAt(normalIndex);
+                    // 좌표계 변환 필요시 수행
+                    FVector sourceNormal = FVector(normal[0], normal[1], normal[2]);
+
+                    outData.Vertices[cpIndex].Normal = conversionMatrix.TransformPosition(sourceNormal);
+                    // 참고: UV와 마찬가지로 덮어쓰기 문제 가능성 있음
+                }
+            }
+
+            // TODO: --- 탄젠트 추출 (필요하고 FBX에 데이터가 있다면) ---
+            // if (hasTangents) { ... }
+        }
+
+        if (validTriangle)
+        {
+            // 삼각형 인덱스 추가
+            // Determinant < 0이면, 좌표계 뒤집힌 것
+            if (conversionMatrixDet < 0.0f)
+            {
+                outData.Indices.Add(mesh->GetPolygonVertex(p, 0));
+                outData.Indices.Add(mesh->GetPolygonVertex(p, 2));
+                outData.Indices.Add(mesh->GetPolygonVertex(p, 1));
+            }
+            else
+            {
+                outData.Indices.Add(mesh->GetPolygonVertex(p, 0));
+                outData.Indices.Add(mesh->GetPolygonVertex(p, 1));
+                outData.Indices.Add(mesh->GetPolygonVertex(p, 2));
+            }
+        }
+    }
+
+
+    // 5) 본 + 스킨 정보 수집
     for (int d = 0; d < mesh->GetDeformerCount(FbxDeformer::eSkin); ++d)
     {
         auto* skin = static_cast<FbxSkin*>(mesh->GetDeformer(d, FbxDeformer::eSkin));
@@ -236,99 +364,100 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     }
 
     // 9) (이전 로직) 재질 & 서브셋 처리 …
-        //
-        // // 재질 리셋
-        // outData.Materials.Reset();
-        // outData.MaterialSubsets.Reset();
-        //
-        // FbxNode* fbxNode = mesh->GetNode();
-        // int materialCount = fbxNode->GetMaterialCount();
-        //
-        // // 머티리얼 정보 수집
-        // for (int m = 0; m < materialCount; ++m)
-        // {
-        //     FObjMaterialInfo matInfo;
-        //     FbxSurfaceMaterial* fbxMat = fbxNode->GetMaterial(m);
-        //     matInfo.MaterialName = fbxMat->GetName();
-        //
-        //     auto ReadColor = [&](const char* propName, FVector& outVec)
-        //     {
-        //         FbxProperty prop = fbxMat->FindProperty(propName);
-        //         if (prop.IsValid())
-        //         {
-        //             FbxDouble3 val = prop.Get<FbxDouble3>();
-        //             outVec = FVector((float)val[0], (float)val[1], (float)val[2]);
-        //         }
-        //     };
-        //     ReadColor(FbxSurfaceMaterial::sDiffuse,  matInfo.Diffuse);
-        //     ReadColor(FbxSurfaceMaterial::sSpecular, matInfo.Specular);
-        //     ReadColor(FbxSurfaceMaterial::sAmbient,  matInfo.Ambient);
-        //     ReadColor(FbxSurfaceMaterial::sEmissive, matInfo.Emissive);
-        //
-        //     matInfo.SpecularScalar     = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sShininess).Get<double>());
-        //     matInfo.DensityScalar      = static_cast<float>(fbxMat->FindProperty("Ni").Get<double>());
-        //     matInfo.TransparencyScalar = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sTransparencyFactor).Get<double>());
-        //     matInfo.bTransparent       = (matInfo.TransparencyScalar > 0.0f);
-        //
-        //     auto LoadTex = [&](const char* propName, FString& outName, FWString& outPath, uint32 flag)
-        //     {
-        //         FbxProperty prop = fbxMat->FindProperty(propName);
-        //         if (!prop.IsValid()) return;
-        //         int count = prop.GetSrcObjectCount<FbxFileTexture>();
-        //         if (count <= 0) return;
-        //         FbxFileTexture* tex = prop.GetSrcObject<FbxFileTexture>(0);
-        //         outName = tex->GetName();
-        //         std::string fp(tex->GetFileName());
-        //         outPath = std::wstring(fp.begin(), fp.end());
-        //         matInfo.TextureFlag |= flag;
-        //     };
-        //     LoadTex(FbxSurfaceMaterial::sDiffuse,  matInfo.DiffuseTextureName,  matInfo.DiffuseTexturePath,  1);
-        //     LoadTex(FbxSurfaceMaterial::sAmbient,  matInfo.AmbientTextureName,  matInfo.AmbientTexturePath,  2);
-        //     LoadTex(FbxSurfaceMaterial::sSpecular, matInfo.SpecularTextureName, matInfo.SpecularTexturePath, 4);
-        //     LoadTex("NormalMap",                   matInfo.BumpTextureName,     matInfo.BumpTexturePath,     8);
-        //     LoadTex(FbxSurfaceMaterial::sTransparencyFactor, matInfo.AlphaTextureName, matInfo.AlphaTexturePath, 16);
-        //
-        //     outData.Materials.Add(matInfo);
-        // }
-        //
-        // // 서브셋 맵 생성
-        // TMap<int, FMaterialSubset> subsetMap;
-        // FbxLayerElementMaterial* elemMat = mesh->GetElementMaterial();
-        // if (elemMat)
-        // {
-        //     const auto& indexArray = elemMat->GetIndexArray();
-        //     for (int p = 0; p < polyCount; ++p)
-        //     {
-        //         int matIndex = indexArray.GetAt(p);
-        //         if (matIndex < 0 || matIndex >= outData.Materials.Num())
-        //             matIndex = 0;
-        //
-        //         auto& sub = subsetMap.FindOrAdd(matIndex);
-        //         if (sub.IndexCount == 0)
-        //         {
-        //             sub.IndexStart    = p * 3;
-        //             sub.MaterialIndex = matIndex;
-        //             sub.MaterialName  = outData.Materials[matIndex].MaterialName;
-        //         }
-        //         sub.IndexCount += 3;
-        //     }
-        // }
-        // else if (outData.Materials.Num() > 0)
-        // {
-        //     // 단일 머티리얼
-        //     FMaterialSubset sub;
-        //     sub.IndexStart    = 0;
-        //     sub.IndexCount    = polyCount * 3;
-        //     sub.MaterialIndex = 0;
-        //     sub.MaterialName  = outData.Materials[0].MaterialName;
-        //     subsetMap.Add(0, sub);
-        // }
-        //
-        // for (auto& kv : subsetMap)
-        // {
-        //     outData.MaterialSubsets.Add(kv.Value);
-        // }
-        //
+        
+    // 재질 리셋
+    outData.Materials.Reset();
+    outData.MaterialSubsets.Reset();
+        
+    FbxNode* fbxNode = mesh->GetNode();
+    int materialCount = fbxNode->GetMaterialCount();
+        
+    // 머티리얼 정보 수집
+    for (int m = 0; m < materialCount; ++m)
+    {
+        FObjMaterialInfo matInfo;
+        FbxSurfaceMaterial* fbxMat = fbxNode->GetMaterial(m);
+        matInfo.MaterialName = fbxMat->GetName();
+        
+        auto ReadColor = [&](const char* propName, FVector& outVec)
+        {
+            FbxProperty prop = fbxMat->FindProperty(propName);
+            if (prop.IsValid())
+            {
+                FbxDouble3 val = prop.Get<FbxDouble3>();
+                outVec = FVector((float)val[0], (float)val[1], (float)val[2]);
+            }
+        };
+        ReadColor(FbxSurfaceMaterial::sDiffuse,  matInfo.Diffuse);
+        ReadColor(FbxSurfaceMaterial::sSpecular, matInfo.Specular);
+        ReadColor(FbxSurfaceMaterial::sAmbient,  matInfo.Ambient);
+        ReadColor(FbxSurfaceMaterial::sEmissive, matInfo.Emissive);
+        
+        matInfo.SpecularScalar     = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sShininess).Get<double>());
+        matInfo.DensityScalar      = static_cast<float>(fbxMat->FindProperty("Ni").Get<double>());
+        matInfo.TransparencyScalar = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sTransparencyFactor).Get<double>());
+        matInfo.bTransparent       = (matInfo.TransparencyScalar > 0.0f);
+        
+        auto LoadTex = [&](const char* propName, FString& outName, FWString& outPath, uint32 flag)
+        {
+            FbxProperty prop = fbxMat->FindProperty(propName);
+            if (!prop.IsValid()) return;
+            int count = prop.GetSrcObjectCount<FbxFileTexture>();
+            if (count <= 0) return;
+            FbxFileTexture* tex = prop.GetSrcObject<FbxFileTexture>(0);
+            outName = tex->GetName();
+            std::string fp(tex->GetFileName());
+            outPath = std::wstring(fp.begin(), fp.end());
+            matInfo.TextureFlag |= flag;
+        };
+
+        LoadTex(FbxSurfaceMaterial::sDiffuse,               matInfo.DiffuseTextureName,     matInfo.DiffuseTexturePath,     1 << 1);
+        LoadTex("NormalMap",                                matInfo.BumpTextureName,        matInfo.BumpTexturePath,        1 << 2);
+        LoadTex(FbxSurfaceMaterial::sSpecular,              matInfo.SpecularTextureName,    matInfo.SpecularTexturePath,    1 << 3);
+        LoadTex(FbxSurfaceMaterial::sAmbient,               matInfo.AmbientTextureName,     matInfo.AmbientTexturePath,     1 << 4);
+        LoadTex(FbxSurfaceMaterial::sTransparencyFactor,    matInfo.AlphaTextureName,       matInfo.AlphaTexturePath,       1 << 5);
+        
+        outData.Materials.Add(matInfo);
+    }
+        
+    // 서브셋 맵 생성
+    TMap<int, FMaterialSubset> subsetMap;
+    FbxLayerElementMaterial* elemMat = mesh->GetElementMaterial();
+    if (elemMat)
+    {
+        const auto& indexArray = elemMat->GetIndexArray();
+        for (int p = 0; p < polyCount; ++p)
+        {
+            int matIndex = indexArray.GetAt(p);
+            if (matIndex < 0 || matIndex >= outData.Materials.Num())
+                matIndex = 0;
+        
+            auto& sub = subsetMap.FindOrAdd(matIndex);
+            if (sub.IndexCount == 0)
+            {
+                sub.IndexStart    = p * 3;
+                sub.MaterialIndex = matIndex;
+                sub.MaterialName  = outData.Materials[matIndex].MaterialName;
+            }
+            sub.IndexCount += 3;
+        }
+    }
+    else if (outData.Materials.Num() > 0)
+    {
+        // 단일 머티리얼
+        FMaterialSubset sub;
+        sub.IndexStart    = 0;
+        sub.IndexCount    = polyCount * 3;
+        sub.MaterialIndex = 0;
+        sub.MaterialName  = outData.Materials[0].MaterialName;
+        subsetMap.Add(0, sub);
+    }
+        
+    for (auto& kv : subsetMap)
+    {
+        outData.MaterialSubsets.Add(kv.Value);
+    }
+        
 
     // 7) 바운딩 박스 계산
     ComputeBounds(outData.Vertices, outData.BoundingBoxMin, outData.BoundingBoxMax);
@@ -371,7 +500,7 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     // 11) 원본 데이터 보관
     outData.OrigineVertices          = outData.Vertices;
     outData.OrigineReferencePose     = outData.ReferencePose;
-
+    outData.BoneTransforms           = outData.ReferencePose;
     // (끝)
 }
 // void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
@@ -729,5 +858,77 @@ void FFBXManager::UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData, ID3D11Dev
         // 맵 실패 시 로깅
         OutputDebugStringA("Failed to map skeletal vertex buffer for skinning update\\n");
     }
+}
+
+FMatrix FFBXManager::GetConversionMatrix(const FbxAxisSystem& sourceAxisSystem, const FbxAxisSystem& targetAxisSystem)
+{
+    FbxAMatrix sourceMatrix;
+    FbxAMatrix targetMatrix;
+
+    // FBX 좌표계 변환 행렬 생성
+    BuildBasisMatrix(sourceAxisSystem, sourceMatrix);
+    BuildBasisMatrix(targetAxisSystem, targetMatrix);
+
+    FbxAMatrix conversionMatrix = targetMatrix.Inverse() * sourceMatrix;
+    FMatrix result;
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            result.M[i][j] = conversionMatrix.Get(j, i);// 전치
+        }
+    }
+    return result;
+}
+
+void FFBXManager::BuildBasisMatrix(const FbxAxisSystem& system, FbxAMatrix& outMatrix)
+{
+    outMatrix.SetIdentity();
+
+    int upAxisSign;
+    FbxAxisSystem::EUpVector upAxis = system.GetUpVector(upAxisSign);
+
+    FbxAxisSystem::ECoordSystem coordSystem = system.GetCoorSystem();
+
+    FbxVector4 axisX(1, 0, 0);
+    FbxVector4 axisY(0, 1, 0);
+    FbxVector4 axisZ(0, 0, 1);
+
+    FbxVector4 upVec;
+    FbxVector4 rightVec;
+    FbxVector4 forwardVec;
+
+    if (upAxis == FbxAxisSystem::eXAxis)      upVec = axisX * upAxisSign;
+    else if (upAxis == FbxAxisSystem::eYAxis) upVec = axisY * upAxisSign;
+    else /* e ZAxis */                        upVec = axisZ * upAxisSign;
+
+    if (upAxis == FbxAxisSystem::eYAxis) // Y-Up (Maya, OpenGL 방식 가정)
+    {
+        rightVec = axisX;
+        forwardVec = axisZ;
+    }
+    else if (upAxis == FbxAxisSystem::eZAxis) // Z-Up (Max, Maya Z-up 방식 가정)
+    {
+        forwardVec = axisX;
+        rightVec = axisY;
+    }
+    else // X-Up (덜 일반적)
+    {
+        rightVec = axisY;
+        forwardVec = axisZ;
+    }
+
+    // 3. 왼손 좌표계(Left Handed)인 경우 Right 벡터 반전
+    if (coordSystem == FbxAxisSystem::eLeftHanded)
+    {
+        rightVec = rightVec * -1.0;
+    }
+
+    FbxAMatrix invBasisMatrix;
+    invBasisMatrix.SetRow(0, FbxVector4(axisX.DotProduct(rightVec), axisX.DotProduct(upVec), axisX.DotProduct(forwardVec)));
+    invBasisMatrix.SetRow(1, FbxVector4(axisY.DotProduct(rightVec), axisY.DotProduct(upVec), axisY.DotProduct(forwardVec)));
+    invBasisMatrix.SetRow(2, FbxVector4(axisZ.DotProduct(rightVec), axisZ.DotProduct(upVec), axisZ.DotProduct(forwardVec)));
+    invBasisMatrix.SetRow(3, FbxVector4(0, 0, 0, 1)); // Translation 없음
+    outMatrix = invBasisMatrix.Inverse(); // 더 안전하게 Inverse 사용
 }
 
