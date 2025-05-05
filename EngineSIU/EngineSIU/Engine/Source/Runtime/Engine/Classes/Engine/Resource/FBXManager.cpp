@@ -59,7 +59,7 @@ void FFBXManager::Release()
 
 void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
 {
-    if (std::filesystem::exists(FbxFilePath.ToWideString()))
+    if (!std::filesystem::exists(FbxFilePath.ToWideString()))
     {
         assert(0 && "FBX File Not Found");
     }
