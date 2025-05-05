@@ -240,7 +240,7 @@ void FRenderer::PrepareRender(FViewportResource* ViewportResource) const
 void FRenderer::PrepareRenderPass(const std::shared_ptr<FViewportClient>& Viewport) const
 {
     StaticMeshRenderPass->PrepareRenderArr(Viewport);
-    SkeletalMeshRenderPass->PrepareRenderArr();
+    SkeletalMeshRenderPass->PrepareRenderArr(Viewport);
     ShadowRenderPass->PrepareRenderArr(Viewport);
     GizmoRenderPass->PrepareRenderArr(Viewport);
     WorldBillboardRenderPass->PrepareRenderArr(Viewport);

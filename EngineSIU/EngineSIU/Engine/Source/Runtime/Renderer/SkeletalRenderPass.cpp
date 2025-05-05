@@ -37,13 +37,15 @@ void FSkeletalRenderPass::InitializeShadowManager(class FShadowManager* InShadow
     ShadowManager = InShadowManager;
 }
 
-void FSkeletalRenderPass::PrepareRenderArr()
+void FSkeletalRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
     for (const auto iter : TObjectRange<USkeletalMeshCompnent>())
     {
-        SkeletalMeshComponents.Add(iter);
+        if (iter->GetWorld() == Viewport->GetWorld())
+            SkeletalMeshComponents.Add(iter);
     }
 }
+
 void FSkeletalRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewportClient>& Viewport)
 {
     for (USkeletalMeshCompnent* Comp : SkeletalMeshComponents)

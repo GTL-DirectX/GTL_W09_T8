@@ -5,6 +5,8 @@
 
 #include "Define.h"
 
+#include "Rendering/Mesh/SkeletalMeshRenderData.h"
+
 // FBX SDK forward declarations to avoid include issues
 class FFBXManager
 {

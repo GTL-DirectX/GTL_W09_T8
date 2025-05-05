@@ -1,4 +1,5 @@
 ﻿#pragma once
+
 #include "Define.h"
 #include "EngineBaseTypes.h"
 #include "IRenderPass.h"
@@ -17,10 +18,10 @@ public:
 
     virtual void Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager) override;
     void InitializeShadowManager(class FShadowManager* InShadowManager);
-    virtual void PrepareRenderArr() override;
+    virtual void PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport) override;
     virtual void Render(const std::shared_ptr<FViewportClient>& Viewport) override;
     virtual void ClearRenderArr() override;
-
+    
     void ChangeViewMode(EViewModeIndex view_mode);
     virtual void PrepareRenderState(const std::shared_ptr<FViewportClient>& Viewport);
 

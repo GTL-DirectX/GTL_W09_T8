@@ -1,5 +1,8 @@
 ﻿#pragma once
+
 #include "SkinnedMeshComponent.h"
+
+#include "Rendering/Mesh/SkeletalMeshRenderData.h"
 
 class USkeletalMeshCompnent : public USkinnedMeshComponent
 {
