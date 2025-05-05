@@ -23,9 +23,9 @@ USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
     USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(&UAssetManager::Get()); // AssetManager를 Outer로 설정해서 Asset 총 관리하도록 설정.
     SkeletalMeshMap.Add(FbxFilePath, NewSkeletalMesh);
     // FBX 파일 로드 및 데이터 설정
-    FSkeletalMeshRenderData RenderData;
-    LoadFbx(FbxFilePath, RenderData);
-    NewSkeletalMesh->SetRenderData(&RenderData);
+    FSkeletalMeshRenderData* RenderData = new FSkeletalMeshRenderData();
+    LoadFbx(FbxFilePath, *RenderData);
+    NewSkeletalMesh->SetRenderData(RenderData);
     return NewSkeletalMesh;
 }
 

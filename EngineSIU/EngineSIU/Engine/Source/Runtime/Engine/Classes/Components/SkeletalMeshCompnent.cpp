@@ -7,7 +7,7 @@
 USkeletalMeshCompnent::USkeletalMeshCompnent()
 {
     // 경로 다시 잡아주기.
-    SkeletalMeshAsset = FFBXManager::Get().LoadSkeletalMesh("character.fbx");
+    SkeletalMeshAsset = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\character.fbx");
 }
 
 void USkeletalMeshCompnent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
