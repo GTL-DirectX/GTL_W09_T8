@@ -30,6 +30,9 @@
 #include "ImGUI/imgui.h"
 
 #include "Editor/ViewerEditor/ViewerEditor.h"
+#include <Engine/SkeletalMeshActor.h>
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/Resource/FBXManager.h"
 
 void ControlEditorPanel::Render()
 {
@@ -295,7 +298,9 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
             { .Label= "Text",      .OBJ= OBJ_TEXT },
             { .Label= "Fireball",  .OBJ = OBJ_FIREBALL},
             { .Label= "Fog",       .OBJ= OBJ_FOG },
-            { .Label = "Spawner",  .OBJ = OBJ_Spawner}
+            { .Label = "Spawner",  .OBJ = OBJ_Spawner},
+            { .Label = "SkeletalMeshActor",  .OBJ = OBJ_SKELETALMESHACTOR}
+
         };
 
         for (const auto& primitive : primitives)
@@ -389,6 +394,19 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                 {
                     SpawnedActor = World->SpawnActor<ASpawnerActor>();
                     SpawnedActor->SetActorLabel(TEXT("OBJ_Spawner"));
+                    break;
+                }
+                case OBJ_SKELETALMESHACTOR:
+                {
+                    SpawnedActor = World->SpawnActor<ASkeletalMeshActor>();
+                    SpawnedActor->SetActorLabel(TEXT("OBJ_SKELETALMESHACTOR"));
+                    USkeletalMeshComponent* SkeletalMeshComponent = SpawnedActor->GetComponentByClass<USkeletalMeshComponent>();
+                    if (SkeletalMeshComponent)
+                    {
+                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\character.fbx");
+                        SkeletalMeshComponent->SetSkeletalMesh(SkeletalMesh);
+                    }
+                    break;
                 }
                 case OBJ_TRIANGLE:
                 case OBJ_CAMERA:
