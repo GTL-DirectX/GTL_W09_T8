@@ -40,11 +40,10 @@ void FResourceMgr::Initialize(FRenderer* renderer, FGraphicsDevice* device)
     LoadTextureFromFile(device->Device, device->DeviceContext, L"Assets/Editor/Icon/AtmosphericFog_64.png");
     LoadTextureFromFile(device->Device, device->DeviceContext, L"Assets/Editor/Icon/AmbientLight_64x.png");
     // test
-    LoadTextureFromFile(device->Device, device->DeviceContext, L"C:\\Users\\Jungle\\Desktop\\ywj\\fbx\\character.fbm/Ch19_1001_Diffuse.png");
-
-    LoadTextureFromFile(device->Device, device->DeviceContext, L"C:\\Users\\Jungle\\Desktop\\ywj\\fbx\\character.fbm/Ch19_1001_Glossiness.png");
-    LoadTextureFromFile(device->Device, device->DeviceContext, L"C:\\Users\\Jungle\\Desktop\\ywj\\fbx\\character.fbm/Ch19_1001_Normal.png");
-    LoadTextureFromFile(device->Device, device->DeviceContext, L"C:\\Users\\Jungle\\Desktop\\ywj\\fbx\\character.fbm/Ch19_1001_Specular.png");
+    LoadTextureFromFile(device->Device, device->DeviceContext, L"C:\\Users\\Jungle\\Desktop\\character.fbm/Ch19_1001_Diffuse.png");
+    LoadTextureFromFile(device->Device, device->DeviceContext, L"C:\\Users\\Jungle\\Desktop\\character.fbm/Ch19_1001_Glossiness.png");
+    LoadTextureFromFile(device->Device, device->DeviceContext, L"C:\\Users\\Jungle\\Desktop\\character.fbm/Ch19_1001_Normal.png");
+    LoadTextureFromFile(device->Device, device->DeviceContext, L"C:\\Users\\Jungle\\Desktop\\character.fbm/Ch19_1001_Specular.png");
 
 
 }

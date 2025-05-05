@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Serialization/Archive.h"
 
 struct FVector;
@@ -56,6 +56,8 @@ public:
     void RemoveScaling(float Tolerance = SMALL_NUMBER);
 
     void PrintMatirx() const;
+
+    float Determinant3x3() const;
 };
 
 inline FArchive& operator<<(FArchive& Ar, FMatrix& M)

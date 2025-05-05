@@ -12,9 +12,13 @@ public:
     USkeletalMeshComponent();
 
 public:
+    virtual UObject* Duplicate(UObject* InOuter) override;
+    void GetProperties(TMap<FString, FString>& OutProperties) const override;
+    void SetProperties(const TMap<FString, FString>& InProperties) override;
+
     virtual void SetSkeletalMesh(USkeletalMesh* InSkeletalMesh);
     virtual USkeletalMesh* GetSkeletalMesh() const;
 
 private:
-    USkeletalMesh* SkeletalMeshAsset;
+    USkeletalMesh* SkeletalMeshAsset = nullptr;
 };

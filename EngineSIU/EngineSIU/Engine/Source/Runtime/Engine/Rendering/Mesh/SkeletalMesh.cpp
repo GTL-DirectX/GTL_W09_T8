@@ -39,13 +39,19 @@ void USkeletalMesh::GetUsedMaterials(TArray<UMaterial*>& Out) const
     }
 }
 
+void USkeletalMesh::AddMaterial(UMaterial* InMaterial)
+{
+    FStaticMaterial* newMaterialSlot = new FStaticMaterial();
+    newMaterialSlot->Material = InMaterial;
+    newMaterialSlot->MaterialSlotName = InMaterial->GetName();
+    Materials.Add(newMaterialSlot);
+}
+
 FString USkeletalMesh::GetObjectName() const
 {
-    //if(!RenderData)
-        
-        
+    if(!RenderData)
         return FString();
-
+    return RenderData->FilePath;
 }
 
 void USkeletalMesh::SetData(FSkeletalMeshRenderData* renderData)

@@ -29,6 +29,7 @@ public:
     const TArray<FStaticMaterial*>& GetMaterials() const { return Materials; }
     uint32 GetMaterialIndex(FName MaterialSlotName) const;
     void GetUsedMaterials(TArray<UMaterial*>& Out) const;
+    void AddMaterial(UMaterial* InMaterial);
 
     FString GetObjectName() const;
 
