@@ -7,6 +7,7 @@
 #include "UserInterface/Console.h"
 
 #include "Rendering/Mesh/SkeletalMesh.h"
+#include "Engine/AssetManager.h"
 
 // 전역 인스턴스 정의
 FFBXManager* GFBXManager = nullptr;
@@ -19,7 +20,7 @@ USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
         return *SkeletalMeshMap.Find(FbxFilePath);
     }
     // 새로운 SkeletalMesh 생성
-    USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(nullptr); // 추후 AssetManager로 잡히도록 설정해줘야 함.
+    USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(&UAssetManager::Get()); // AssetManager를 Outer로 설정해서 Asset 총 관리하도록 설정.
     SkeletalMeshMap.Add(FbxFilePath, NewSkeletalMesh);
     // FBX 파일 로드 및 데이터 설정
     FSkeletalMeshRenderData RenderData;
