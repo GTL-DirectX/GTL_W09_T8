@@ -99,13 +99,19 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
 
             for (int i=0;i<OutRenderData.BoneNames.Num();i++)
             {
-                std::cout << "Currnet Bone :" << GetData(OutRenderData.BoneNames[i]) << std::endl;
+                std::cout << "Currnet Bone " <<  i <<" : " << GetData(OutRenderData.BoneNames[i]) << std::endl;
                 if (OutRenderData.ParentBoneIndices[i] != -1)
                     std::cout << "Parent Idx : " << OutRenderData.ParentBoneIndices[i] << ", Parent Name : " << GetData(OutRenderData.BoneNames[OutRenderData.ParentBoneIndices[i]]) << std::endl;
                 else
                     std::cout << "Parent Idx " << OutRenderData.ParentBoneIndices[i] << "  Root" <<std::endl;
             }
-
+            // for (int i=0;i<OutRenderData.Materials.Num();i++)
+            // {
+            //     std::wcout << OutRenderData.Materials[i].DiffuseTexturePath << std::endl;
+            //     std::wcout << OutRenderData.Materials[i].SpecularTexturePath << std::endl;
+            //     std::wcout << OutRenderData.Materials[i].AmbientTexturePath<< std::endl;
+            //     std::wcout << OutRenderData.Materials[i].BumpTexturePath << std::endl;
+            // }
             for (int i=0;i<OutRenderData.ReferencePose.Num();i++)
             {
                 std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
@@ -507,7 +513,7 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     // 11) 원본 데이터 보관
     outData.OrigineVertices          = outData.Vertices;
     outData.OrigineReferencePose     = outData.ReferencePose;
-
+    outData.BoneTransforms           = outData.ReferencePose;
     // (끝)
 }
 // void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
