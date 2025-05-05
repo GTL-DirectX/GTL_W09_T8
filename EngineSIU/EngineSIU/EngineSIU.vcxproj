@@ -251,6 +251,8 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\PrimitiveComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\ProjectileMovementComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SceneComponent.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SkeletalMeshCompnent.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SkySphereComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SphereComp.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Shapes\SphereComponent.cpp" />
@@ -299,6 +301,7 @@
     <ClCompile Include="Engine\Source\Runtime\Renderer\PostProcessCompositingPass.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\Renderer.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\ShadowManager.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Renderer\SkeletalRenderPass.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\SlateRenderPass.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\StaticMeshRenderPass.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\TileLightCullingPass.cpp" />
@@ -531,6 +534,8 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\ProjectileMovementComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Quad.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SceneComponent.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SkeletalMeshCompnent.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SkinnedMeshComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SkySphereComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SphereComp.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Shapes\SphereComponent.h" />
@@ -593,6 +598,7 @@
     <ClInclude Include="Engine\Source\Runtime\Renderer\RenderResources.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\ShaderConstants.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\ShadowManager.h" />
+    <ClInclude Include="Engine\Source\Runtime\Renderer\SkeletalRenderPass.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\SlateRenderPass.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\StaticMeshRenderPass.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\TileLightCullingPass.h" />

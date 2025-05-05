@@ -387,3 +387,17 @@ void FMatrix::RemoveScaling(float Tolerance)
     M[2][1] *= Scale2;
     M[2][2] *= Scale2;
 }
+
+void FMatrix::PrintMatirx() const
+{
+    // 행 단위로 출력
+    for (int row = 0; row < 4; ++row)
+    {
+        printf("|");
+        for (int col = 0; col < 4; ++col)
+        {
+            printf(" %8.4f", M[row][col]);
+        }
+        printf(" |\n");
+    }
+}
