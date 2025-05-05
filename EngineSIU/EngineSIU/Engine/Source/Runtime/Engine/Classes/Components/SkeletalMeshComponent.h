@@ -16,6 +16,8 @@ public:
     void GetProperties(TMap<FString, FString>& OutProperties) const override;
     void SetProperties(const TMap<FString, FString>& InProperties) override;
 
+    virtual int CheckRayIntersection(const FVector& InRayOrigin, const FVector& InRayDirection, float& OutHitDistance) const override;
+    
     virtual void SetSkeletalMesh(USkeletalMesh* InSkeletalMesh);
     virtual USkeletalMesh* GetSkeletalMesh() const;
 

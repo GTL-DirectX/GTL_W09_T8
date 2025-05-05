@@ -66,6 +66,63 @@ void USkeletalMeshComponent::SetProperties(const TMap<FString, FString>& InPrope
     }
 }
 
+int USkeletalMeshComponent::CheckRayIntersection(const FVector& InRayOrigin, const FVector& InRayDirection, float& OutHitDistance) const
+{
+    if (!AABB.Intersect(InRayOrigin, InRayDirection, OutHitDistance))
+    {
+        return 0;
+    }
+    if (SkeletalMeshAsset == nullptr)
+    {
+        return 0;
+    }
+
+    OutHitDistance = FLT_MAX;
+
+    int IntersectionNum = 0;
+
+    FSkeletalMeshRenderData* RenderData = SkeletalMeshAsset->GetRenderData();
+    const TArray<FSkeletalMeshVertex>& Vertices = RenderData->Vertices;
+    const int32 VertexNum = Vertices.Num();
+    if (VertexNum == 0)
+    {
+        return 0;
+    }
+
+    const TArray<UINT>& Indices = RenderData->Indices;
+    const int32 IndexNum = Indices.Num();
+    const bool bHasIndices = (IndexNum > 0);
+
+    int32 TriangleNum = bHasIndices ? (IndexNum / 3) : (VertexNum / 3);
+    for (int32 i = 0; i < TriangleNum; i++)
+    {
+        int32 Idx0 = i * 3;
+        int32 Idx1 = i * 3 + 1;
+        int32 Idx2 = i * 3 + 2;
+
+        if (bHasIndices)
+        {
+            Idx0 = Indices[Idx0];
+            Idx1 = Indices[Idx1];
+            Idx2 = Indices[Idx2];
+        }
+
+        // 각 삼각형의 버텍스 위치를 FVector로 불러옵니다.
+        FVector v0 = FVector(Vertices[Idx0].Position.X, Vertices[Idx0].Position.Y, Vertices[Idx0].Position.Z);
+        FVector v1 = FVector(Vertices[Idx1].Position.X, Vertices[Idx1].Position.Y, Vertices[Idx1].Position.Z);
+        FVector v2 = FVector(Vertices[Idx2].Position.X, Vertices[Idx2].Position.Y, Vertices[Idx2].Position.Z);
+
+        float HitDistance = FLT_MAX;
+        if (IntersectRayTriangle(InRayOrigin, InRayDirection, v0, v1, v2, HitDistance))
+        {
+            OutHitDistance = FMath::Min(HitDistance, OutHitDistance);
+            IntersectionNum++;
+        }
+
+    }
+    return IntersectionNum;
+}
+
 void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 {
     SkeletalMeshAsset = InSkeletalMesh;

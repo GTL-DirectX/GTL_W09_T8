@@ -20,7 +20,7 @@ public:
 
 public:
     bool PickGizmo(FVector RayOrigin, FEditorViewportClient* InActiveViewport);
-    void ProcessGizmoIntersection(UStaticMeshComponent* Component, const FVector& PickPosition, FEditorViewportClient* InActiveViewport, bool& bIsPickedGizmo);
+    void ProcessGizmoIntersection(USceneComponent* Component, const FVector& PickPosition, FEditorViewportClient* InActiveViewport, bool& bIsPickedGizmo);
     void PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport);
     void SetControlMode();
     void SetCoordiMode();

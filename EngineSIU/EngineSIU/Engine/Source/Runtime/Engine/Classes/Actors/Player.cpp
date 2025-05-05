@@ -81,7 +81,7 @@ void UEditorPlayer::Initialize()
     });
 }
 
-void UEditorPlayer::ProcessGizmoIntersection(UStaticMeshComponent* Component, const FVector& PickPosition, FEditorViewportClient* InActiveViewport, bool& bIsPickedGizmo)
+void UEditorPlayer::ProcessGizmoIntersection(USceneComponent* Component, const FVector& PickPosition, FEditorViewportClient* InActiveViewport, bool& bIsPickedGizmo)
 {
     int maxIntersect = 0;
     float minDistance = FLT_MAX;
