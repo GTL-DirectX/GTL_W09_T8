@@ -236,100 +236,99 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     }
 
     // 9) (이전 로직) 재질 & 서브셋 처리 …
-    // 6) 재질 & 서브셋 처리
-    {
-        // 재질 리셋
-        outData.Materials.Reset();
-        outData.MaterialSubsets.Reset();
-
-        FbxNode* fbxNode = mesh->GetNode();
-        int materialCount = fbxNode->GetMaterialCount();
-
-        // 머티리얼 정보 수집
-        for (int m = 0; m < materialCount; ++m)
-        {
-            FObjMaterialInfo matInfo;
-            FbxSurfaceMaterial* fbxMat = fbxNode->GetMaterial(m);
-            matInfo.MaterialName = fbxMat->GetName();
-
-            auto ReadColor = [&](const char* propName, FVector& outVec)
-            {
-                FbxProperty prop = fbxMat->FindProperty(propName);
-                if (prop.IsValid())
-                {
-                    FbxDouble3 val = prop.Get<FbxDouble3>();
-                    outVec = FVector((float)val[0], (float)val[1], (float)val[2]);
-                }
-            };
-            ReadColor(FbxSurfaceMaterial::sDiffuse,  matInfo.Diffuse);
-            ReadColor(FbxSurfaceMaterial::sSpecular, matInfo.Specular);
-            ReadColor(FbxSurfaceMaterial::sAmbient,  matInfo.Ambient);
-            ReadColor(FbxSurfaceMaterial::sEmissive, matInfo.Emissive);
-
-            matInfo.SpecularScalar     = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sShininess).Get<double>());
-            matInfo.DensityScalar      = static_cast<float>(fbxMat->FindProperty("Ni").Get<double>());
-            matInfo.TransparencyScalar = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sTransparencyFactor).Get<double>());
-            matInfo.bTransparent       = (matInfo.TransparencyScalar > 0.0f);
-
-            auto LoadTex = [&](const char* propName, FString& outName, FWString& outPath, uint32 flag)
-            {
-                FbxProperty prop = fbxMat->FindProperty(propName);
-                if (!prop.IsValid()) return;
-                int count = prop.GetSrcObjectCount<FbxFileTexture>();
-                if (count <= 0) return;
-                FbxFileTexture* tex = prop.GetSrcObject<FbxFileTexture>(0);
-                outName = tex->GetName();
-                std::string fp(tex->GetFileName());
-                outPath = std::wstring(fp.begin(), fp.end());
-                matInfo.TextureFlag |= flag;
-            };
-            LoadTex(FbxSurfaceMaterial::sDiffuse,  matInfo.DiffuseTextureName,  matInfo.DiffuseTexturePath,  1);
-            LoadTex(FbxSurfaceMaterial::sAmbient,  matInfo.AmbientTextureName,  matInfo.AmbientTexturePath,  2);
-            LoadTex(FbxSurfaceMaterial::sSpecular, matInfo.SpecularTextureName, matInfo.SpecularTexturePath, 4);
-            LoadTex("NormalMap",                   matInfo.BumpTextureName,     matInfo.BumpTexturePath,     8);
-            LoadTex(FbxSurfaceMaterial::sTransparencyFactor, matInfo.AlphaTextureName, matInfo.AlphaTexturePath, 16);
-
-            outData.Materials.Add(matInfo);
-        }
-
-        // 서브셋 맵 생성
-        TMap<int, FMaterialSubset> subsetMap;
-        FbxLayerElementMaterial* elemMat = mesh->GetElementMaterial();
-        if (elemMat)
-        {
-            const auto& indexArray = elemMat->GetIndexArray();
-            for (int p = 0; p < polyCount; ++p)
-            {
-                int matIndex = indexArray.GetAt(p);
-                if (matIndex < 0 || matIndex >= outData.Materials.Num())
-                    matIndex = 0;
-
-                auto& sub = subsetMap.FindOrAdd(matIndex);
-                if (sub.IndexCount == 0)
-                {
-                    sub.IndexStart    = p * 3;
-                    sub.MaterialIndex = matIndex;
-                    sub.MaterialName  = outData.Materials[matIndex].MaterialName;
-                }
-                sub.IndexCount += 3;
-            }
-        }
-        else if (outData.Materials.Num() > 0)
-        {
-            // 단일 머티리얼
-            FMaterialSubset sub;
-            sub.IndexStart    = 0;
-            sub.IndexCount    = polyCount * 3;
-            sub.MaterialIndex = 0;
-            sub.MaterialName  = outData.Materials[0].MaterialName;
-            subsetMap.Add(0, sub);
-        }
-
-        for (auto& kv : subsetMap)
-        {
-            outData.MaterialSubsets.Add(kv.Value);
-        }
-    }
+        //
+        // // 재질 리셋
+        // outData.Materials.Reset();
+        // outData.MaterialSubsets.Reset();
+        //
+        // FbxNode* fbxNode = mesh->GetNode();
+        // int materialCount = fbxNode->GetMaterialCount();
+        //
+        // // 머티리얼 정보 수집
+        // for (int m = 0; m < materialCount; ++m)
+        // {
+        //     FObjMaterialInfo matInfo;
+        //     FbxSurfaceMaterial* fbxMat = fbxNode->GetMaterial(m);
+        //     matInfo.MaterialName = fbxMat->GetName();
+        //
+        //     auto ReadColor = [&](const char* propName, FVector& outVec)
+        //     {
+        //         FbxProperty prop = fbxMat->FindProperty(propName);
+        //         if (prop.IsValid())
+        //         {
+        //             FbxDouble3 val = prop.Get<FbxDouble3>();
+        //             outVec = FVector((float)val[0], (float)val[1], (float)val[2]);
+        //         }
+        //     };
+        //     ReadColor(FbxSurfaceMaterial::sDiffuse,  matInfo.Diffuse);
+        //     ReadColor(FbxSurfaceMaterial::sSpecular, matInfo.Specular);
+        //     ReadColor(FbxSurfaceMaterial::sAmbient,  matInfo.Ambient);
+        //     ReadColor(FbxSurfaceMaterial::sEmissive, matInfo.Emissive);
+        //
+        //     matInfo.SpecularScalar     = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sShininess).Get<double>());
+        //     matInfo.DensityScalar      = static_cast<float>(fbxMat->FindProperty("Ni").Get<double>());
+        //     matInfo.TransparencyScalar = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sTransparencyFactor).Get<double>());
+        //     matInfo.bTransparent       = (matInfo.TransparencyScalar > 0.0f);
+        //
+        //     auto LoadTex = [&](const char* propName, FString& outName, FWString& outPath, uint32 flag)
+        //     {
+        //         FbxProperty prop = fbxMat->FindProperty(propName);
+        //         if (!prop.IsValid()) return;
+        //         int count = prop.GetSrcObjectCount<FbxFileTexture>();
+        //         if (count <= 0) return;
+        //         FbxFileTexture* tex = prop.GetSrcObject<FbxFileTexture>(0);
+        //         outName = tex->GetName();
+        //         std::string fp(tex->GetFileName());
+        //         outPath = std::wstring(fp.begin(), fp.end());
+        //         matInfo.TextureFlag |= flag;
+        //     };
+        //     LoadTex(FbxSurfaceMaterial::sDiffuse,  matInfo.DiffuseTextureName,  matInfo.DiffuseTexturePath,  1);
+        //     LoadTex(FbxSurfaceMaterial::sAmbient,  matInfo.AmbientTextureName,  matInfo.AmbientTexturePath,  2);
+        //     LoadTex(FbxSurfaceMaterial::sSpecular, matInfo.SpecularTextureName, matInfo.SpecularTexturePath, 4);
+        //     LoadTex("NormalMap",                   matInfo.BumpTextureName,     matInfo.BumpTexturePath,     8);
+        //     LoadTex(FbxSurfaceMaterial::sTransparencyFactor, matInfo.AlphaTextureName, matInfo.AlphaTexturePath, 16);
+        //
+        //     outData.Materials.Add(matInfo);
+        // }
+        //
+        // // 서브셋 맵 생성
+        // TMap<int, FMaterialSubset> subsetMap;
+        // FbxLayerElementMaterial* elemMat = mesh->GetElementMaterial();
+        // if (elemMat)
+        // {
+        //     const auto& indexArray = elemMat->GetIndexArray();
+        //     for (int p = 0; p < polyCount; ++p)
+        //     {
+        //         int matIndex = indexArray.GetAt(p);
+        //         if (matIndex < 0 || matIndex >= outData.Materials.Num())
+        //             matIndex = 0;
+        //
+        //         auto& sub = subsetMap.FindOrAdd(matIndex);
+        //         if (sub.IndexCount == 0)
+        //         {
+        //             sub.IndexStart    = p * 3;
+        //             sub.MaterialIndex = matIndex;
+        //             sub.MaterialName  = outData.Materials[matIndex].MaterialName;
+        //         }
+        //         sub.IndexCount += 3;
+        //     }
+        // }
+        // else if (outData.Materials.Num() > 0)
+        // {
+        //     // 단일 머티리얼
+        //     FMaterialSubset sub;
+        //     sub.IndexStart    = 0;
+        //     sub.IndexCount    = polyCount * 3;
+        //     sub.MaterialIndex = 0;
+        //     sub.MaterialName  = outData.Materials[0].MaterialName;
+        //     subsetMap.Add(0, sub);
+        // }
+        //
+        // for (auto& kv : subsetMap)
+        // {
+        //     outData.MaterialSubsets.Add(kv.Value);
+        // }
+        //
 
     // 7) 바운딩 박스 계산
     ComputeBounds(outData.Vertices, outData.BoundingBoxMin, outData.BoundingBoxMax);
