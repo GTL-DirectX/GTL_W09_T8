@@ -4,12 +4,19 @@
 #include <fbxsdk.h>
 
 #include "Define.h"
+#include "Container/Map.h"
 
 #include "Rendering/Mesh/SkeletalMeshRenderData.h"
+
+class USkeletalMesh;
 
 // FBX SDK forward declarations to avoid include issues
 class FFBXManager
 {
+   
+private:
+    TMap<FString, USkeletalMesh*> SkeletalMeshMap; // SkeletalMesh 이름과 포인터를 저장하는 맵
+
 public:
     // 전역 싱글톤 인스턴스 접근
     static FFBXManager& Get()
@@ -18,6 +25,8 @@ public:
         return Instance;
     }
 
+    USkeletalMesh* LoadSkeletalMesh(const FString& FbxFilePath);
+
     // SDK 초기화
     void Initialize();
 
@@ -25,7 +34,6 @@ public:
     void LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData);
     void Release();
     // 씬에서 노드 데이터 출력 (예시)
-    void PrintStaticMeshData(FbxNode* node);
     void ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData);
     FMatrix ConvertToFMatrix(const FbxAMatrix& in);
     void ComputeBounds(
@@ -38,10 +46,8 @@ public:
         const TArray<UINT>& Indices,
         ID3D11Buffer*& OutVB,
         ID3D11Buffer*& OutIB);
-    void UpdateCPUSkinnedMesh(const FSkeletalMeshRenderData& inData,
-                                        TArray<FVector>& OutPositions,
-                                        TArray<FVector>& OutNormals,
-                                        TArray<FBone>& OutBones);
+    void UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData,
+                                        ID3D11DeviceContext* Context);
 private:
     // 생성/소멸은 외부 호출을 막기 위해 private
     FFBXManager() = default;
