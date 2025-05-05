@@ -3,7 +3,6 @@
 #include "SkinnedMeshComponent.h"
 
 class USkeletalMesh;
-
 class USkeletalMeshCompnent : public USkinnedMeshComponent
 {
     DECLARE_CLASS(USkeletalMeshCompnent, USkinnedMeshComponent)
@@ -16,4 +15,5 @@ public:
 
 private:
     USkeletalMesh* SkeletalMeshAsset;
+    
 };
