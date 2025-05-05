@@ -66,6 +66,19 @@ void USkeletalMeshComponent::SetProperties(const TMap<FString, FString>& InPrope
     }
 }
 
+void USkeletalMeshComponent::BeginPlay()
+{
+    USkinnedMeshComponent::BeginPlay();
+    // SkeletalMeshAsset->GetRenderData()->ApplyBoneOffsetAndRebuild(7,FVector(0,0,0),FRotator(0,0,0),FVector(1,1,1));
+}
+
+void USkeletalMeshComponent::TickComponent(float DeltaTime)
+{
+    USkinnedMeshComponent::TickComponent(DeltaTime);
+
+    SkeletalMeshAsset->GetRenderData()->ApplyBoneOffsetAndRebuild(7,FVector::ZeroVector,FRotator(0.1,0,0),FVector(1,1,1));
+}
+
 int USkeletalMeshComponent::CheckRayIntersection(const FVector& InRayOrigin, const FVector& InRayDirection, float& OutHitDistance) const
 {
     if (!AABB.Intersect(InRayOrigin, InRayDirection, OutHitDistance))

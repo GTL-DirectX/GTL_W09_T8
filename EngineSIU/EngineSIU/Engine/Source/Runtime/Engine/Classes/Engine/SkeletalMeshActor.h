@@ -10,7 +10,7 @@ public:
     ASkeletalMeshActor();
 
     UObject* Duplicate(UObject* InOuter) override;
-
+    
     USkeletalMeshComponent* GetSkeletalMeshComponent() const;
 
 protected:
