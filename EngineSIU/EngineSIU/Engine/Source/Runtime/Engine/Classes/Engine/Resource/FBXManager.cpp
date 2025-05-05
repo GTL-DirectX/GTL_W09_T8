@@ -3,10 +3,31 @@
 #include <fbxsdk.h>
 
 #include "UObject/Object.h"
+#include "UObject/ObjectFactory.h"
 #include "UserInterface/Console.h"
+
+#include "Rendering/Mesh/SkeletalMesh.h"
+#include "Engine/AssetManager.h"
 
 // 전역 인스턴스 정의
 FFBXManager* GFBXManager = nullptr;
+
+USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
+{
+    // SkeletalMesh가 이미 로드되어 있는지 확인
+    if (SkeletalMeshMap.Contains(FbxFilePath))
+    {
+        return *SkeletalMeshMap.Find(FbxFilePath);
+    }
+    // 새로운 SkeletalMesh 생성
+    USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(&UAssetManager::Get()); // AssetManager를 Outer로 설정해서 Asset 총 관리하도록 설정.
+    SkeletalMeshMap.Add(FbxFilePath, NewSkeletalMesh);
+    // FBX 파일 로드 및 데이터 설정
+    FSkeletalMeshRenderData RenderData;
+    LoadFbx(FbxFilePath, RenderData);
+    NewSkeletalMesh->SetRenderData(&RenderData);
+    return NewSkeletalMesh;
+}
 
 void FFBXManager::Initialize()
 {
@@ -22,6 +43,7 @@ void FFBXManager::Release()
     if (Importer)   Importer->Destroy();
     if (IOSettings) IOSettings->Destroy();
     if (SdkManager) SdkManager->Destroy();
+    SkeletalMeshMap.Empty();
 }
 
 void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
@@ -47,7 +69,7 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
     {
         std::cerr << "Triangulation failed" << std::endl;
     }
-
+    OutRenderData.FilePath = FbxFilePath;
     // 루트 노드 순회하여 데이터 출력
     FbxNode* root = Scene->GetRootNode();
     if (root)
@@ -58,7 +80,7 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
 
             // PrintStaticMeshData(root->GetChild(i));
             ExtractSkeletalMeshData(child, OutRenderData);
-            std::cout << GetData(OutRenderData.ObjectName) << std::endl;
+            std::cout << GetData(OutRenderData.FilePath) << std::endl;
             // for (int i=0;i<OutRenderData.Vertices.Num();i++)
             // {
             //     std::cout << "Vertex "<< i << " Pos : "<<  OutRenderData.Vertices[i].Position.X << " " << OutRenderData.Vertices[i].Position.Y << " " << OutRenderData.Vertices[i].Position.Z << std::endl;
@@ -91,122 +113,12 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
     }
 }
 
-void FFBXManager::PrintStaticMeshData(FbxNode* node)
-{
-    FbxMesh* mesh = node->GetMesh();
-    if (!mesh) return;
-
-    std::cout << "=== Object Name: " << node->GetName() << " ===\n";
-    std::cout << "Display Name: " << node->GetName() << "\n\n";
-
-    // 정점 출력
-    // 컨트롤 포인트
-    int cpCount = mesh->GetControlPointsCount();
-    FbxVector4* cps = mesh->GetControlPoints();
-    auto uvLayer      = mesh->GetElementUV(0);
-    auto normalLayer  = mesh->GetElementNormal(0);
-    auto tangentLayer = mesh->GetElementTangent(0);
-    auto binormalLayer= mesh->GetElementBinormal(0);
-
-    // 바운딩
-    FbxVector4 bbMin( FLT_MAX,  FLT_MAX,  FLT_MAX);
-    FbxVector4 bbMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-    std::cout << "--- Vertices (" << cpCount << ") ---\n";
-    for (int i = 0; i < cpCount; ++i) {
-        auto& cp = cps[i];
-        std::cout << "V[" << i << "] pos=(" << cp[0] << ", " << cp[1] << ", " << cp[2] << ") ";
-        bbMin[0] = std::min(bbMin[0], cp[0]);  bbMax[0] = std::max(bbMax[0], cp[0]);
-        bbMin[1] = std::min(bbMin[1], cp[1]);  bbMax[1] = std::max(bbMax[1], cp[1]);
-        bbMin[2] = std::min(bbMin[2], cp[2]);  bbMax[2] = std::max(bbMax[2], cp[2]);
-
-        if (uvLayer && uvLayer->GetMappingMode()==FbxGeometryElement::eByControlPoint) {
-            int uvIndex = uvLayer->GetIndexArray().GetAt(i);
-            auto  uv     = uvLayer->GetDirectArray().GetAt(uvIndex);
-            std::cout << "UV=(" << uv[0] << ", " << uv[1] << ") ";
-        }
-        if (normalLayer && normalLayer->GetMappingMode()==FbxGeometryElement::eByControlPoint) {
-            auto n = normalLayer->GetDirectArray().GetAt(i);
-            std::cout << "N=(" << n[0] << ", " << n[1] << ", " << n[2] << ") ";
-        }
-        if (tangentLayer && tangentLayer->GetMappingMode()==FbxGeometryElement::eByControlPoint) {
-            auto t = tangentLayer->GetDirectArray().GetAt(i);
-            std::cout << "T=(" << t[0] << ", " << t[1] << ", " << t[2] << ") ";
-        }
-        if (binormalLayer && binormalLayer->GetMappingMode()==FbxGeometryElement::eByControlPoint) {
-            auto b = binormalLayer->GetDirectArray().GetAt(i);
-            std::cout << "B=(" << b[0] << ", " << b[1] << ", " << b[2] << ") ";
-        }
-        std::cout << "\n";
-    }
-    std::cout << "Bounding Box Min = (" << bbMin[0] << ", " << bbMin[1] << ", " << bbMin[2] << ")\n";
-    std::cout << "Bounding Box Max = (" << bbMax[0] << ", " << bbMax[1] << ", " << bbMax[2] << ")\n\n";
-
-    // 인덱스 출력
-    int polyCount = mesh->GetPolygonCount();
-    std::cout << "--- Indices (Polygons: " << polyCount << ", Triangles) ---\n";
-    for (int p = 0; p < polyCount; ++p) {
-        std::cout << "Tri[" << p << "]: ";
-        std::cout << mesh->GetPolygonVertex(p, 0) << " ";
-        std::cout << mesh->GetPolygonVertex(p, 1) << " ";
-        std::cout << mesh->GetPolygonVertex(p, 2) << "\n";
-    }
-    std::cout << "\n";
-
-    // 재질 및 서브셋 출력
-    int matCount = node->GetMaterialCount();
-    std::cout << "--- Materials (" << matCount << ") ---\n";
-    for (int i = 0; i < matCount; ++i) {
-        auto* m = node->GetMaterial(i);
-        std::cout << "Material[" << i << "]: " << m->GetName() << "\n";
-    }
-    std::cout << "\n";
-
-    auto matLayer = mesh->GetElementMaterial();
-    if (matLayer) {
-        std::cout << "--- Material Subsets ---\n";
-        const auto& idxArray = matLayer->GetIndexArray();
-        for (int p = 0; p < polyCount; ++p) {
-            int mIdx = idxArray.GetAt(p);
-            std::cout << "Poly[" << p << "] uses material " << mIdx << "\n";
-        }
-        std::cout << "\n";
-    }
-
-    // 스킨/본 가중치 출력
-    int skinCount = mesh->GetDeformerCount(FbxDeformer::eSkin);
-    std::cout << "--- Skinning (Skins: " << skinCount << ") ---\n";
-    for (int d = 0; d < skinCount; ++d) {
-        auto* skin = static_cast<FbxSkin*>(mesh->GetDeformer(d, FbxDeformer::eSkin));
-        int clusCnt = skin->GetClusterCount();
-        std::cout << "Skin Deformer[" << d << "] Clusters: " << clusCnt << "\n";
-        for (int c = 0; c < clusCnt; ++c) {
-            auto* cluster = skin->GetCluster(c);
-            auto* link    = cluster->GetLink();  
-            std::cout << "  Cluster[" << c << "] Bone: " 
-                      << (link ? link->GetName() : "null") << "\n";
-            const int*    cpIndices = cluster->GetControlPointIndices();
-            int            cpCount  = cluster->GetControlPointIndicesCount();
-            const double* weights   = cluster->GetControlPointWeights();
-            for (int i = 0; i < cpCount; ++i) {
-                std::cout << "    CP[" << cpIndices[i] << "] weight=" 
-                          << weights[i] << "\n";
-            }
-        }
-    }
-    std::cout << "\n";
-}
-
 void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
 {
     // 1) 메시 얻기
     FbxMesh* mesh = node->GetMesh();
     if (!mesh) return;
-
-    // 2) 이름 설정
-    outData.ObjectName  = node->GetName();
-    outData.DisplayName = node->GetName();
-
+    
     // 3) 컨트롤 포인트 버텍스 초기화
     int cpCount = mesh->GetControlPointsCount();
     outData.Vertices.SetNum(cpCount);
@@ -405,6 +317,28 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
         outData.VertexBuffer,
         outData.IndexBuffer
     );
+    
+    // 9) Local Bind Pose Matrix 추출
+    int32 BoneCount = outData.ReferencePose.Num();
+    outData.LocalBindPose.SetNum(BoneCount);
+
+    for (int32 i = 0; i < BoneCount; ++i)
+    {
+        const FMatrix& GlobalMatrix = outData.ReferencePose[i];
+        int32 ParentIndex = outData.ParentBoneIndices[i];
+
+        if (ParentIndex >= 0 && ParentIndex < BoneCount)
+        {
+            const FMatrix& ParentGlobal = outData.ReferencePose[ParentIndex];
+            // 로컬 = Parent⁻¹ * Global
+            outData.LocalBindPose[i] = FMatrix::Inverse(ParentGlobal) * GlobalMatrix;
+        }
+        else
+        {
+            // 최상위 본(root)은 로컬 = 글로벌
+            outData.LocalBindPose[i] = GlobalMatrix;
+        }
+    }
 }
 
 
@@ -456,5 +390,80 @@ void FFBXManager::CreateBuffers(ID3D11Device* Device, const TArray<FStaticMeshVe
     D3D11_SUBRESOURCE_DATA ibData = {};
     ibData.pSysMem = Indices.GetData();
     Device->CreateBuffer(&ibDesc, &ibData, &OutIB);
+}
+
+void FFBXManager::UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData, ID3D11DeviceContext* Context)
+{
+    const int32 VertCount = MeshData.Vertices.Num();
+    const int32 BoneCount = MeshData.ReferencePose.Num();
+
+    // 1) 본별 스키닝 매트릭스 계산
+    TArray<FMatrix> SkinMatrices;
+    SkinMatrices.SetNum(BoneCount);
+    for (int b = 0; b < BoneCount; ++b)
+    {
+        const FMatrix& Bind    = MeshData.ReferencePose[b];
+        const FMatrix& Current = MeshData.BoneTransforms[b];
+        SkinMatrices[b] = Current * FMatrix::Inverse(Bind);
+    }
+
+    // 2) CPU 스키닝: 업데이트할 버텍스 데이터 임시 보관
+    struct SVertex { FVector Pos, Normal; FVector2D UV; };
+    std::vector<SVertex> Skinned(VertCount);
+
+    for (int i = 0; i < VertCount; ++i)
+    {
+        const auto& Src = MeshData.Vertices[i];
+        FVector skPos(0,0,0);
+        FVector skNorm(0,0,0);
+
+        for (int b = 0; b < MAX_BONES_PER_VERTEX; ++b)
+        {
+            int bi = Src.BoneIndices[b];
+            float w = Src.BoneWeights[b];
+            if (bi < 0 || w <= KINDA_SMALL_NUMBER) continue;
+
+            const FMatrix& M = SkinMatrices[bi];
+            skPos   += M.TransformPosition(Src.Position) * w;
+            skNorm  += FMatrix::TransformVector(Src.Normal,M).GetSafeNormal() * w;
+        }
+
+        Skinned[i].Pos    = skPos;
+        Skinned[i].Normal = skNorm.GetSafeNormal();
+        Skinned[i].UV     = Src.UV;
+    }
+
+    // 3) D3D11 버텍스 버퍼 업데이트 (DYNAMIC+WRITE_DISCARD)
+    D3D11_MAPPED_SUBRESOURCE Mapped;
+    HRESULT hr = Context->Map(
+        MeshData.VertexBuffer, 
+        0, 
+        D3D11_MAP_WRITE_DISCARD, 
+        0, 
+        &Mapped
+    );
+    if (SUCCEEDED(hr))
+    {
+        // FStaticMeshVertex 와 메모리 레이아웃이 동일하다고 가정
+        FStaticMeshVertex* Dest = reinterpret_cast<FStaticMeshVertex*>(Mapped.pData);
+        for (int i = 0; i < VertCount; ++i)
+        {
+            Dest[i].X = Skinned[i].Pos.X;
+            Dest[i].Y = Skinned[i].Pos.Y;
+            Dest[i].Z = Skinned[i].Pos.Z;
+            Dest[i].NormalX = Skinned[i].Normal.X;
+            Dest[i].NormalY = Skinned[i].Normal.Y;
+            Dest[i].NormalZ = Skinned[i].Normal.Z;
+            Dest[i].U = Skinned[i].UV.X;
+            Dest[i].V = Skinned[i].UV.Y;
+            // MaterialIndex, Color 등은 변하지 않으므로 그대로 유지
+        }
+        Context->Unmap(MeshData.VertexBuffer, 0);
+    }
+    else
+    {
+        // 맵 실패 시 로깅
+        OutputDebugStringA("Failed to map skeletal vertex buffer for skinning update\\n");
+    }
 }
 
