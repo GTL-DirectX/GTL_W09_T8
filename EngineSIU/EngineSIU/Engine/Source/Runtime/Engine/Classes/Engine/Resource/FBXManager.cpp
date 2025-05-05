@@ -1,6 +1,7 @@
 #include "FBXManager.h"
 
 #include <fbxsdk.h>
+#include <filesystem>
 
 #include "UObject/Object.h"
 #include "UObject/ObjectFactory.h"
@@ -58,6 +59,11 @@ void FFBXManager::Release()
 
 void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
 {
+    if (std::filesystem::exists(FbxFilePath.ToWideString()))
+    {
+        assert(0 && "FBX File Not Found");
+    }
+
     // FBX 파일 열기
     if (!Importer->Initialize(*FbxFilePath, -1, SdkManager->GetIOSettings()))
     {
