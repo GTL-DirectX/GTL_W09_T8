@@ -36,6 +36,10 @@ public:
         const TArray<UINT>& Indices,
         ID3D11Buffer*& OutVB,
         ID3D11Buffer*& OutIB);
+    void UpdateCPUSkinnedMesh(const FSkeletalMeshRenderData& inData,
+                                        TArray<FVector>& OutPositions,
+                                        TArray<FVector>& OutNormals,
+                                        TArray<FBone>& OutBones);
 private:
     // 생성/소멸은 외부 호출을 막기 위해 private
     FFBXManager() = default;

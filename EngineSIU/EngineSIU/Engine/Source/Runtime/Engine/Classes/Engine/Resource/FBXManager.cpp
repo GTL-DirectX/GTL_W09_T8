@@ -59,31 +59,34 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
             // PrintStaticMeshData(root->GetChild(i));
             ExtractSkeletalMeshData(child, OutRenderData);
             std::cout << GetData(OutRenderData.ObjectName) << std::endl;
-            for (int i=0;i<OutRenderData.Vertices.Num();i++)
-            {
-                std::cout << "Vertex "<< i << " Pos : "<<  OutRenderData.Vertices[i].Position.X << " " << OutRenderData.Vertices[i].Position.Y << " " << OutRenderData.Vertices[i].Position.Z << std::endl;
-                std::cout << "Vertex "<< i << " Normal : " << OutRenderData.Vertices[i].Normal.X << " " << OutRenderData.Vertices[i].Normal.Y << " " << OutRenderData.Vertices[i].Normal.Z << std::endl;
-                std::cout << "Vertex "<< i << " TextureUV : " << OutRenderData.Vertices[i].UV.X << " " << OutRenderData.Vertices[i].UV.Y  << std::endl;
-                std::cout << "Vertex "<< i << " BoneIndex : " <<OutRenderData.Vertices[i].BoneIndices[0] << " " << OutRenderData.Vertices[i].BoneIndices[1] << std::endl;
-                std::cout << "Vertex "<< i << " Weight : " <<OutRenderData.Vertices[i].BoneWeights[0] << " " << OutRenderData.Vertices[i].BoneWeights[1] << std::endl;
-            }
+            // for (int i=0;i<OutRenderData.Vertices.Num();i++)
+            // {
+            //     std::cout << "Vertex "<< i << " Pos : "<<  OutRenderData.Vertices[i].Position.X << " " << OutRenderData.Vertices[i].Position.Y << " " << OutRenderData.Vertices[i].Position.Z << std::endl;
+            //     std::cout << "Vertex "<< i << " Normal : " << OutRenderData.Vertices[i].Normal.X << " " << OutRenderData.Vertices[i].Normal.Y << " " << OutRenderData.Vertices[i].Normal.Z << std::endl;
+            //     std::cout << "Vertex "<< i << " TextureUV : " << OutRenderData.Vertices[i].UV.X << " " << OutRenderData.Vertices[i].UV.Y  << std::endl;
+            //     std::cout << "Vertex "<< i << " BoneIndex : " <<OutRenderData.Vertices[i].BoneIndices[0] << " " << OutRenderData.Vertices[i].BoneIndices[1] << std::endl;
+            //     std::cout << "Vertex "<< i << " Weight : " <<OutRenderData.Vertices[i].BoneWeights[0] << " " << OutRenderData.Vertices[i].BoneWeights[1] << std::endl;
+            // }
             // for (int i=0;i<OutRenderData.BoneNames.Num();i++)
             // {
             //     std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
             // }
             // for (int i=0;i<OutRenderData.ParentBoneIndices.Num();i++)
             // {
-            //     std::cout << OutRenderData.ParentBoneIndices[i] << std::endl;
+            //     std::cout << OutRenderData.ParentBoneIndices[i];
             // }
-            for (int i=0;i<OutRenderData.Materials.Num();i++)
+            // for (int i=0;i<OutRenderData.Materials.Num();i++)
+            // {
+            //     std::wcout << OutRenderData.Materials[i].DiffuseTexturePath << std::endl;
+            //     std::wcout << OutRenderData.Materials[i].SpecularTexturePath << std::endl;
+            //     std::wcout << OutRenderData.Materials[i].AmbientTexturePath<< std::endl;
+            //     std::wcout << OutRenderData.Materials[i].BumpTexturePath << std::endl;
+            // }
+            for (int i=0;i<OutRenderData.ReferencePose.Num();i++)
             {
-                std::wcout << OutRenderData.Materials[i].DiffuseTexturePath << std::endl;
-                std::wcout << OutRenderData.Materials[i].SpecularTexturePath << std::endl;
-                std::wcout << OutRenderData.Materials[i].AmbientTexturePath<< std::endl;
-                std::wcout << OutRenderData.Materials[i].BumpTexturePath << std::endl;
-
+                std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
+                OutRenderData.ReferencePose[i].PrintMatirx();
             }
-            break;
         }
     }
 }
