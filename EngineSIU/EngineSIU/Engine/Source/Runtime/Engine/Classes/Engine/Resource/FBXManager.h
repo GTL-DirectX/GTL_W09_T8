@@ -4,12 +4,18 @@
 #include <fbxsdk.h>
 
 #include "Define.h"
+#include "Container/Map.h"
 
 #include "Rendering/Mesh/SkeletalMeshRenderData.h"
+#include "Rendering/Mesh/SkeletalMesh.h"
 
 // FBX SDK forward declarations to avoid include issues
 class FFBXManager
 {
+   
+private:
+    TMap<FString, USkeletalMesh*> SkeletalMeshMap; // SkeletalMesh 이름과 포인터를 저장하는 맵
+
 public:
     // 전역 싱글톤 인스턴스 접근
     static FFBXManager& Get()
@@ -17,6 +23,8 @@ public:
         static FFBXManager Instance;
         return Instance;
     }
+
+    USkeletalMesh* LoadSkeletalMesh(const FString& FbxFilePath);
 
     // SDK 초기화
     void Initialize();
@@ -39,6 +47,13 @@ public:
         ID3D11Buffer*& OutIB);
     void UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData,
                                         ID3D11DeviceContext* Context);
+
+    FMatrix GetConversionMatrix(
+        const FbxAxisSystem& sourceAxisSystem,
+        const FbxAxisSystem& targetAxisSystem);
+
+    void BuildBasisMatrix(const FbxAxisSystem& system, FbxAMatrix& outMatrix);
+
 private:
     // 생성/소멸은 외부 호출을 막기 위해 private
     FFBXManager() = default;

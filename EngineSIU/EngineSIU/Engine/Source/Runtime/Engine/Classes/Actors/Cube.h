@@ -10,7 +10,5 @@ class ACube : public AStaticMeshActor
 
 public:
     ACube();
-
-    USkeletalMeshComponent* test;
 };
 

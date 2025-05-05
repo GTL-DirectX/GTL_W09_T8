@@ -1,4 +1,4 @@
-﻿#include "Matrix.h"
+#include "Matrix.h"
 
 #include "MathSSE.h"
 #include "MathUtility.h"
@@ -400,4 +400,12 @@ void FMatrix::PrintMatirx() const
         }
         printf(" |\n");
     }
+}
+
+float FMatrix::Determinant3x3() const
+{
+    // 3x3행렬의 determinant
+    return M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
+        M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) +
+        M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
 }

@@ -11,6 +11,9 @@ class FSkeletalMeshRenderData;
     SkeletalMesh는 본 계층 + Skin 가중치를 가진 메시.
 */
 
+class FStaticMaterial;
+class UMaterial;
+
 class USkeletalMesh : public USkinnedAsset
 {   
     DECLARE_CLASS(USkeletalMesh, USkinnedAsset)
@@ -19,18 +22,21 @@ public:
     USkeletalMesh() = default;
     virtual ~USkeletalMesh() override;
 
-    //virtual UObject* Duplicate(UObject* InOuter) override;
-    FSkeletalMeshRenderData* GetRenderData() const { return SkeletalMeshRenderData; }
-
-    //FWString GetOjbectName() const
-    //{
-    //    return SkeletalMeshRenderData->ObjectName;
-    //}
-
     virtual bool IsSkeletalMesh() const override { return true; } // 이 섹션이 스켈레탈 메쉬인지 확인하는 함수
+    void SetRenderData(FSkeletalMeshRenderData* InRenderData) { RenderData = InRenderData; }
+    FSkeletalMeshRenderData* GetRenderData() const { return RenderData; }
+    
+    const TArray<FStaticMaterial*>& GetMaterials() const { return Materials; }
+    uint32 GetMaterialIndex(FName MaterialSlotName) const;
+    void GetUsedMaterials(TArray<UMaterial*>& Out) const;
+    void AddMaterial(UMaterial* InMaterial);
+
+    FString GetObjectName() const;
+
+    void SetData(FSkeletalMeshRenderData* renderData);
 
 private:
-    FSkeletalMeshRenderData* SkeletalMeshRenderData = nullptr;
-
-
+    FSkeletalMeshRenderData* RenderData = nullptr;
+    TArray<FStaticMaterial*> Materials;
 };
+

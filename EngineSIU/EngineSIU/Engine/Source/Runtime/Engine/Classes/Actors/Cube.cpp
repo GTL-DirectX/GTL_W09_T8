@@ -12,8 +12,6 @@
 ACube::ACube()
 {
     StaticMeshComponent->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Reference/Reference.obj"));
-    test = AddComponent<USkeletalMeshComponent>();
-    test->SetupAttachment(RootComponent);
     // TODO 임시 코드임. (Class Table에 생성되지 않으면 안넣어짐.)
     auto BoxComponent = AddComponent<UBoxComponent>();
     BoxComponent->DestroyComponent();
