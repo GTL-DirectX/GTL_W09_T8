@@ -22,6 +22,10 @@ public:
     bool ShowLight = false;
     bool ShowRender = false;
 
+    // Begin Test
+    void RenderStatWidgets() const;
+    // End Test
+
     void ToggleStat(const std::string& Command);
     void Render(ID3D11DeviceContext* Context, UINT Width, UINT Height) const;
 };

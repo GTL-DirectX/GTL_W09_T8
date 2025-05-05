@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Define.h"
 #include "EngineBaseTypes.h"
@@ -8,7 +8,7 @@
 struct FVector4;
 struct FMatrix;
 class FShadowManager;
-class USkeletalMeshCompnent;
+class USkeletalMeshComponent;
 
 class FSkeletalRenderPass : public IRenderPass
 {
@@ -36,7 +36,7 @@ public:
     void CreateShader();
 public:
 #pragma region SkeletalMesh
-    TArray<USkeletalMeshCompnent*> SkeletalMeshComponents;
+    TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
 #pragma endregion
     
     ID3D11VertexShader* VertexShader;
