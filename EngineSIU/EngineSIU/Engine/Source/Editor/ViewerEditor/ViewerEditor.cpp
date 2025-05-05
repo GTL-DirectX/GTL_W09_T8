@@ -2,6 +2,7 @@
 #include "ImGUI/imgui.h"
 
 #include "Rendering/Mesh/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Classes/Engine/AssetManager.h"
 #include "Engine/ObjLoader.h"
 
@@ -13,7 +14,16 @@
 #include "Editor/UnrealEd/EditorViewportClient.h"
 #include "Runtime/Engine/UnrealClient.h"
 #include "Runtime/Core/Container/String.h"
+#include "Runtime/Engine/Classes/Engine/Resource/FBXManager.h"
+
+#include "Runtime/Engine/Classes/Actors/DirectionalLightActor.h"
+#include "Components/Light/DirectionalLightComponent.h"
+
 // End Test
+
+// static 멤버 변수 정의 및 초기화
+AActor* ViewerEditor::SelectedActor = nullptr;
+USkeletalMesh* ViewerEditor::SelectedSkeletalMesh = nullptr;
 
 UWorld* ViewerEditor::ViewerWorld = nullptr;
 FEditorViewportClient* ViewerEditor::ViewerViewportClient = nullptr;
@@ -37,10 +47,18 @@ void ViewerEditor::InitializeViewerResources()
     ViewerWorld->WorldType = EWorldType::EditorPreview;
 
     // Begin Test
-    ACube* CubeActor = ViewerWorld->SpawnActor<ACube>();
-    if (CubeActor)
+    SelectedActor = ViewerWorld->SpawnActor<AActor>();
+    USkeletalMeshComponent* SkeletalMeshComp = SelectedActor->AddComponent<USkeletalMeshComponent>();
+
+    ADirectionalLight* LightActor = ViewerWorld->SpawnActor<ADirectionalLight>();
+    UDirectionalLightComponent* LightComp=LightActor->GetComponentByClass<UDirectionalLightComponent>();
+    LightComp->SetRelativeRotation(FRotator(0.f, 180.f,0.f));
+
+    SelectedSkeletalMesh = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\character.fbx");
+    SkeletalMeshComp->SetSkeletalMesh(SelectedSkeletalMesh);
+    if (SelectedActor)
     {
-        CubeActor->SetActorLabel(TEXT("Viewer_Cube"));
+        SelectedActor->SetActorLabel(TEXT("Viewer_SkeletalMesh"));
     }
 
     ViewerViewportClient = GEngineLoop.GetLevelEditor()->AddWindowViewportClient(
@@ -102,6 +120,34 @@ void ViewerEditor::DestroyViewerResources()
     bIsInitialized = false;
 }
 
+void ViewerEditor::DrawBoneHierarchyRecursive(int BoneIndex, const TArray<FString>& BoneNames, const TArray<TArray<int>>& Children)
+{
+    if (BoneIndex < 0 || BoneIndex >= BoneNames.Num())
+    {
+        return;
+    }
+
+    const FString& BoneName = BoneNames[BoneIndex];
+    const TArray<int>& CurrentChildren = Children[BoneIndex];
+
+    ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+    if (CurrentChildren.IsEmpty())
+    {
+        NodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+    }
+
+    bool bNodeOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>((intptr_t)BoneIndex), NodeFlags, "%s", GetData(BoneName));
+
+    if (bNodeOpen && !(NodeFlags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
+    {
+        for (int ChildIndex : CurrentChildren)
+        {
+            DrawBoneHierarchyRecursive(ChildIndex, BoneNames, Children);
+        }
+        ImGui::TreePop();
+    }
+}
+
 void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
 {
     if (!bShowWindow)
@@ -138,6 +184,52 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
         }
 
         //여기에 skeletal mesh property가 들어갈 예정
+        // 1. 그 SkeletalMesh 고르는 것
+
+        // 임시로 파일 경로로 해놨음.
+        // 원래 DisplayName이 있었던 것 같은데
+        FString PreviewName = SelectedSkeletalMesh ? SelectedSkeletalMesh->GetRenderData()->FilePath : TEXT("None");
+
+        if (ImGui::BeginCombo("Skeletal Mesh", GetData(PreviewName)))
+        {
+            if (ImGui::Selectable(TEXT("None"), SelectedSkeletalMesh == nullptr))
+            {
+                SelectedSkeletalMesh = nullptr;
+            }
+
+            // 지금 registry해놓은게 없어서 일단 테스트 코드로 수행.
+
+            ImGui::EndCombo();
+        }
+
+        if (SelectedSkeletalMesh)
+        {
+            FSkeletalMeshRenderData* RenderData = SelectedSkeletalMesh->GetRenderData();
+
+            if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                int BoneCount = RenderData->BoneNames.Num();
+                TArray<TArray<int>> Children;
+                Children.SetNum(BoneCount);
+                for (int i = 0; i < BoneCount; ++i)
+                {
+                    int ParentIndex = RenderData->ParentBoneIndices[i];
+                    if (ParentIndex >= 0 && ParentIndex < BoneCount)
+                    {
+                        Children[ParentIndex].Add(i);
+                    }
+                }
+
+                for (int i = 0; i < BoneCount; ++i)
+                {
+                    if (RenderData->ParentBoneIndices[i] < 0)
+                    {
+                        DrawBoneHierarchyRecursive(i, RenderData->BoneNames, Children);
+                    }
+                }
+            }
+        }
+
     }
-    ImGui::End(); 
+    ImGui::End();
 }
