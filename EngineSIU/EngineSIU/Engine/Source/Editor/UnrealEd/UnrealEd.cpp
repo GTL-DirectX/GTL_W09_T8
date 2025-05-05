@@ -1,4 +1,4 @@
-﻿#include "UnrealEd.h"
+#include "UnrealEd.h"
 #include "EditorPanel.h"
 
 #include "PropertyEditor/ControlEditorPanel.h"
@@ -15,6 +15,11 @@ void UnrealEd::Initialize()
     
     auto PropertyPanel = std::make_shared<PropertyEditorPanel>();
     Panels["PropertyPanel"] = PropertyPanel;
+
+    // 1. Viewer button을 만든다고 했으니까 그러면 ViewerPanel로 만드는게 아니라, ViewerWindow를 만들어야 하는건가?
+    // 2. 월드 단위로 한다고 했으면 언리얼처럼 따로 월드(아니면 레벨 단위)로 패널을 따로 두는게 맞을라나
+    //auto ViewerPanel = std::make_shared<ViewerEditorPanel>();
+    //Panels["ViewerPanel"] = ViewerPanel;
 }
 
 void UnrealEd::Render() const

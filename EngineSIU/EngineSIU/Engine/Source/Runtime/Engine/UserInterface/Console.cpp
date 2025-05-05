@@ -15,6 +15,54 @@
 #include "Stats/ProfilerStatsManager.h"
 #include "Stats/GPUTimingManager.h"
 
+void StatOverlay::RenderStatWidgets() const 
+{
+    if (!ShowRender)
+    {
+        return;
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // 초록색 텍스트
+
+    if (ShowFPS)
+    {
+        float FrameTimeMS = ImGui::GetIO().DeltaTime * 1000.0f;
+        float FPS = (FrameTimeMS > 0.0f) ? 1.0f / ImGui::GetIO().DeltaTime : 0.0f;
+
+        ImGui::Text("%.2f FPS (%.2f ms)", FPS, FrameTimeMS);
+        // ImGui::Text("\n");
+    }
+
+    if (ShowMemory)
+    {
+        ImGui::Text("Obj Cnt: %llu, Mem: %llu B", FPlatformMemory::GetAllocationCount<EAT_Object>(), FPlatformMemory::GetAllocationBytes<EAT_Object>());
+        ImGui::Text("Cont Cnt: %llu, Mem: %llu B", FPlatformMemory::GetAllocationCount<EAT_Container>(), FPlatformMemory::GetAllocationBytes<EAT_Container>());
+    }
+
+    if (ShowLight)
+    {
+        int NumPointLights = 0;
+        int NumSpotLights = 0;
+        if (GEngine && GEngine->ActiveWorld)
+        {
+            for (const auto iter : TObjectRange<ULightComponentBase>())
+            {
+                if (iter->GetWorld() == GEngine->ActiveWorld)
+                {
+                    if (Cast<UPointLightComponent>(iter)) NumPointLights++;
+                    else if (Cast<USpotLightComponent>(iter)) NumSpotLights++;
+                }
+            }
+        }
+        ImGui::Text("[Lights] Point: %d, Spot: %d", NumPointLights, NumSpotLights);
+        // ImGui::Text("\n"); 
+    }
+
+    ImGui::PopStyleColor(); 
+    ImGui::Separator();
+}
+
+
 void StatOverlay::ToggleStat(const std::string& Command)
 {
     if (Command == "stat fps")
@@ -231,94 +279,39 @@ void Console::Draw() {
         return;
     }
 
-    static ImGuiTextFilter Filter; // 필터링을 위한 ImGuiTextFilter
-    
-    // 창 크기 및 위치 계산
-    const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
-
-    // 콘솔 창의 크기와 위치 설정
-    const float ExpandedHeight = DisplaySize.y * 0.4f; // 확장된 상태일 때 높이 (예: 화면의 40%)
-    constexpr float CollapsedHeight = 30.0f;               // 축소된 상태일 때 높이
-    const float CurrentHeight = bExpand ? ExpandedHeight : CollapsedHeight;
-
-    // 왼쪽 하단에 위치하도록 계산 (창의 좌측 하단이 화면의 좌측 하단에 위치)
-    const ImVec2 WindowSize(DisplaySize.x * 0.5f, CurrentHeight); // 폭은 화면의 40%
-    const ImVec2 WindowPos(0, DisplaySize.y - CurrentHeight);
-
-    // 창 위치와 크기를 고정
-    ImGui::SetNextWindowPos(WindowPos, ImGuiCond_Always);
-    ImGui::SetNextWindowSize(WindowSize, ImGuiCond_Always);
-
-    // 창을 표시하고 닫힘 여부 확인
-    Overlay.Render(FEngineLoop::GraphicDevice.DeviceContext, Width, Height);
-
-    bExpand = ImGui::Begin("Console", &bWasOpen);
-    if (!bExpand)
+    if (!ImGui::Begin("Console", &bWasOpen))
     {
-        // 창을 접었을 경우 UI를 표시하지 않음
         ImGui::End();
         return;
     }
 
-    // 버튼 UI (로그 수준별 추가)
-    if (ImGui::Button("Clear"))
-    {
-        Clear();
-    }
+    Overlay.RenderStatWidgets(); 
+
+    static ImGuiTextFilter Filter; 
+
+    if (ImGui::Button("Clear")) Clear();
     ImGui::SameLine();
-    if (ImGui::Button("Copy"))
-    {
-        ImGui::LogToClipboard();
-    }
+    if (ImGui::Button("Copy")) ImGui::LogToClipboard();
+    ImGui::SameLine();
+
+    ImGui::Text("Filter:"); ImGui::SameLine(); Filter.Draw("##Filter", 100); ImGui::SameLine();
+    ImGui::Checkbox("Display", &ShowLogTemp); ImGui::SameLine();
+    ImGui::Checkbox("Warning", &ShowWarning); ImGui::SameLine();
+    ImGui::Checkbox("Error", &ShowError);
 
     ImGui::Separator();
 
-    // 필터 입력 창
-    ImGui::Text("Filter:");
-    ImGui::SameLine();
-    Filter.Draw("##Filter", 100);
-    ImGui::SameLine();
-    // 로그 수준을 선택할 체크박스
-    ImGui::Checkbox("Show Display", &ShowLogTemp);
-    ImGui::SameLine();
-    ImGui::Checkbox("Show Warning", &ShowWarning);
-    ImGui::SameLine();
-    ImGui::Checkbox("Show Error", &ShowError);
-
-    ImGui::Separator();
-
-    // 로그 출력 (필터 적용)
     ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetTextLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     for (const auto& [Level, Message] : Items)
     {
-        if (!Filter.PassFilter(*Message))
-        {
-            continue;
-        }
-
-        // 로그 수준에 맞는 필터링
+        if (!Filter.PassFilter(*Message)) continue;
         if ((Level == LogLevel::Display && !ShowLogTemp) ||
             (Level == LogLevel::Warning && !ShowWarning) ||
-            (Level == LogLevel::Error && !ShowError))
-        {
-            continue;
-        }
+            (Level == LogLevel::Error && !ShowError)) continue;
 
-        // 색상 지정
         ImVec4 Color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-        switch (Level)
-        {
-        case LogLevel::Display:
-            Color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // 기본 흰색
-            break;
-        case LogLevel::Warning:
-            Color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); // 노란색
-            break;
-        case LogLevel::Error:
-            Color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); // 빨간색
-            break;
-        }
-
+        if (Level == LogLevel::Warning) Color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+        else if (Level == LogLevel::Error) Color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
         ImGui::TextColored(Color, "%s", *Message);
     }
 
@@ -331,28 +324,22 @@ void Console::Draw() {
 
     ImGui::Separator();
 
-    // 입력창
     bool ReclaimFocus = false;
     if (ImGui::InputText("Input", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue))
     {
         if (InputBuf[0])
         {
             AddLog(LogLevel::Display, ">> %s", InputBuf);
-            const std::string Command(InputBuf);
-            ExecuteCommand(Command);
+            ExecuteCommand(std::string(InputBuf));
             History.Add(std::string(InputBuf));
             HistoryPos = -1;
-            ScrollToBottom = true; // 자동 스크롤
+            ScrollToBottom = true;
         }
         InputBuf[0] = '\0';
         ReclaimFocus = true;
     }
 
-    // 입력 필드에 자동 포커스
-    if (ReclaimFocus)
-    {
-        ImGui::SetKeyboardFocusHere(-1);
-    }
+    if (ReclaimFocus) ImGui::SetKeyboardFocusHere(-1); // Reclaim focus
 
     ImGui::End();
 }

@@ -5,7 +5,7 @@
 #include "Define.h"
 #include "Components/Light/PointLightComponent.h"
 
-class USkeletalMeshCompnent;
+class USkeletalMeshComponent;
 class FShadowManager;
 class FDXDShaderManager;
 class UWorld;

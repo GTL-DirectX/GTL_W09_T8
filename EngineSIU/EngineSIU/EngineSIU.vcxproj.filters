@@ -175,6 +175,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{A9773D1D-2B7E-4A45-9967-3C8F6D68F622}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Source\Editor\ViewerEditor">
+      <UniqueIdentifier>{57938001-e474-45ad-a0b2-c168afde15e1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Source\Editor\LevelEditor\SLevelEditor.cpp">
@@ -453,18 +456,6 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\UTextUUID.h">
       <Filter>Engine\Source\Runtime\Engine\Classes\Components</Filter>
     </ClInclude>
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Material\Material.cpp">
-      <Filter>Engine\Source\Runtime\Engine\Classes\Components\Material</Filter>
-    </ClCompile>
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Material\Material.h">
-      <Filter>Engine\Source\Runtime\Engine\Classes\Components\Material</Filter>
-    </ClInclude>
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\StaticMesh.cpp">
-      <Filter>Engine\Source\Runtime\Engine\Classes\Components\Mesh</Filter>
-    </ClCompile>
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\StaticMesh.h">
-      <Filter>Engine\Source\Runtime\Engine\Classes\Components\Mesh</Filter>
-    </ClInclude>
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\EditorEngine.cpp">
       <Filter>Engine\Source\Runtime\Engine\Classes\Engine</Filter>
     </ClCompile>
@@ -478,12 +469,6 @@
       <Filter>Engine\Source\Runtime\Engine\Classes\Engine</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\EngineTypes.h">
-      <Filter>Engine\Source\Runtime\Engine\Classes\Engine</Filter>
-    </ClInclude>
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\FLoaderOBJ.cpp">
-      <Filter>Engine\Source\Runtime\Engine\Classes\Engine</Filter>
-    </ClCompile>
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\FLoaderOBJ.h">
       <Filter>Engine\Source\Runtime\Engine\Classes\Engine</Filter>
     </ClInclude>
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\ResourceMgr.cpp">
@@ -816,10 +801,19 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Camera\CameraModifier\CameraShakeModifier.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SpringArmComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\CurveManager.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMesh.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkinnedAsset.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMeshRenderData.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\Resource\FBXManager.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Material\Material.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\StaticMesh.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\ObjLoader.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkeletalMesh.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkeletalMeshRenderData.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkinnedAsset.cpp" />
+    <ClCompile Include="Engine\Source\Editor\ViewerEditor\ViewerEditor.cpp">
+      <Filter>Engine\Source\Editor\ViewerEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Components\SkinnedMeshComponent.cpp">
+      <Filter>Engine\Source\Runtime\Engine\Classes\Components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1068,14 +1062,27 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Camera\CameraModifier\CameraShakeModifier.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SpringArmComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\CurveManager.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMesh.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkinnedAsset.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\Mesh\SkeletalMeshRenderData.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Resource\FBXManager.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Math\Interpolator.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Camera\CameraModifier\CameraShakeModifier.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SpringArmComponent.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\CurveManager.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Material\Material.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\StaticMesh.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\ObjLoader.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Types\Buffers.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkeletalMesh.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkeletalMeshRenderData.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkinnedAsset.h" />
+    <ClInclude Include="Engine\Source\Editor\ViewerEditor\ViewerEditor.h">
+      <Filter>Engine\Source\Editor\ViewerEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SkeletalMeshComponent.h">
+      <Filter>Engine\Source\Runtime\Engine\Classes\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\SkinnedMeshComponent.h">
+      <Filter>Engine\Source\Runtime\Engine\Classes\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\SlateShader.hlsl" />

@@ -318,7 +318,7 @@ void FStaticMeshRenderPass::RenderPrimitive(ID3D11Buffer* pVertexBuffer, UINT nu
 
 // void FStaticMeshRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewportClient>& Viewport)
 // {
-//     for (USkeletalMeshCompnent* Comp : SkeletalMeshComponents)
+//     for (USkeletalMeshComponent* Comp : SkeletalMeshComponents)
 //     {
 //         if (!Comp)
 //             continue;

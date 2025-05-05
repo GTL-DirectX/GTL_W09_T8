@@ -38,4 +38,3 @@ private:
     FSkeletalMeshRenderData* RenderData = nullptr;
     TArray<FStaticMaterial*> Materials;
 };
-

@@ -441,7 +441,6 @@ HRESULT FDXDShaderManager::AddPixelShader(const std::wstring& Key, const std::ws
 
 	ID3DBlob* PsBlob = nullptr;
 
-    // Begin Test
     ID3DBlob* errorBlob = nullptr;
 	//hr = D3DCompileFromFile(FileName.c_str(), defines, D3D_COMPILE_STANDARD_FILE_INCLUDE, EntryPoint.c_str(), "ps_5_0", shaderFlags, 0, &PsBlob, nullptr);
 	//if (FAILED(hr))
@@ -458,7 +457,6 @@ HRESULT FDXDShaderManager::AddPixelShader(const std::wstring& Key, const std::ws
         }
         return hr;
     }
-    // End Test
 
 	ID3D11PixelShader* NewPixelShader;
 	hr = DXDDevice->CreatePixelShader(PsBlob->GetBufferPointer(), PsBlob->GetBufferSize(), nullptr, &NewPixelShader);

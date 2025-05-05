@@ -4,7 +4,7 @@
 #include "ShadowManager.h"
 #include "UnrealClient.h"
 #include "UObject/UObjectIterator.h"
-#include "Components/SkeletalMeshCompnent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "ViewportClient.h"
 #include "Engine/EditorEngine.h"
 #include "ShowFlag.h"
@@ -41,7 +41,7 @@ void FSkeletalRenderPass::InitializeShadowManager(class FShadowManager* InShadow
 
 void FSkeletalRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
-    for (const auto iter : TObjectRange<USkeletalMeshCompnent>())
+    for (const auto iter : TObjectRange<USkeletalMeshComponent>())
     {
         if (iter->GetWorld() == Viewport->GetWorld())
             SkeletalMeshComponents.Add(iter);
@@ -50,7 +50,7 @@ void FSkeletalRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient
 
 void FSkeletalRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewportClient>& Viewport)
 {
-    for (USkeletalMeshCompnent* Comp : SkeletalMeshComponents)
+    for (USkeletalMeshComponent* Comp : SkeletalMeshComponents)
     {
         if (!Comp)
             continue;
