@@ -25,7 +25,6 @@ public:
     void LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData);
     void Release();
     // 씬에서 노드 데이터 출력 (예시)
-    void PrintStaticMeshData(FbxNode* node);
     void ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData);
     FMatrix ConvertToFMatrix(const FbxAMatrix& in);
     void ComputeBounds(
@@ -38,10 +37,8 @@ public:
         const TArray<UINT>& Indices,
         ID3D11Buffer*& OutVB,
         ID3D11Buffer*& OutIB);
-    void UpdateCPUSkinnedMesh(const FSkeletalMeshRenderData& inData,
-                                        TArray<FVector>& OutPositions,
-                                        TArray<FVector>& OutNormals,
-                                        TArray<FBone>& OutBones);
+    void UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData,
+                                        ID3D11DeviceContext* Context);
 private:
     // 생성/소멸은 외부 호출을 막기 위해 private
     FFBXManager() = default;
