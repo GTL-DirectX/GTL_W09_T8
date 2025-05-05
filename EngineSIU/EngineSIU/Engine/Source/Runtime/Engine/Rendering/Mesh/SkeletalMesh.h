@@ -22,7 +22,6 @@ public:
 
 private:
     FSkeletalMeshRenderData* RenderData = nullptr;
-
-
+    
 };
 

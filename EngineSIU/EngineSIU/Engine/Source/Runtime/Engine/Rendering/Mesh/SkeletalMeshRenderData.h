@@ -45,9 +45,7 @@ struct FBone
 
 struct FSkeletalMeshRenderData
 {
-    // 오브젝트 식별용
-    FString ObjectName;
-    FString  DisplayName;
+    FString FilePath;
 
     // 버텍스 & 인덱스
     TArray<FSkeletalMeshVertex> Vertices;    // Position, Normal, UV, 그리고 BoneIndices/BoneWeights 포함

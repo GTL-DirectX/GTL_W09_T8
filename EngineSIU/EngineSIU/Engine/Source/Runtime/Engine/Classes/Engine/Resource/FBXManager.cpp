@@ -47,7 +47,7 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
     {
         std::cerr << "Triangulation failed" << std::endl;
     }
-
+    OutRenderData.FilePath = FbxFilePath;
     // 루트 노드 순회하여 데이터 출력
     FbxNode* root = Scene->GetRootNode();
     if (root)
@@ -58,7 +58,7 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
 
             // PrintStaticMeshData(root->GetChild(i));
             ExtractSkeletalMeshData(child, OutRenderData);
-            std::cout << GetData(OutRenderData.ObjectName) << std::endl;
+            std::cout << GetData(OutRenderData.FilePath) << std::endl;
             // for (int i=0;i<OutRenderData.Vertices.Num();i++)
             // {
             //     std::cout << "Vertex "<< i << " Pos : "<<  OutRenderData.Vertices[i].Position.X << " " << OutRenderData.Vertices[i].Position.Y << " " << OutRenderData.Vertices[i].Position.Z << std::endl;
@@ -96,11 +96,7 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     // 1) 메시 얻기
     FbxMesh* mesh = node->GetMesh();
     if (!mesh) return;
-
-    // 2) 이름 설정
-    outData.ObjectName  = node->GetName();
-    outData.DisplayName = node->GetName();
-
+    
     // 3) 컨트롤 포인트 버텍스 초기화
     int cpCount = mesh->GetControlPointsCount();
     outData.Vertices.SetNum(cpCount);
