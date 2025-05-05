@@ -47,11 +47,14 @@ void FTileLightCullingPass::Initialize(FDXDBufferManager* InBufferManager, FGrap
     CreateBuffers(Graphics->ScreenWidth, Graphics->ScreenHeight); // 시작은 전체 크기
 }
 
-void FTileLightCullingPass::PrepareRenderArr()
+void FTileLightCullingPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
+    if (Viewport == nullptr || Viewport->GetWorld() == nullptr)
+        return;
+
     for (const auto iter : TObjectRange<ULightComponentBase>())
     {
-        if (iter->GetWorld() == GEngine->ActiveWorld)
+        if (iter->GetWorld() == Viewport->GetWorld())
         {
             if (UPointLightComponent* PointLight = Cast<UPointLightComponent>(iter))
             {

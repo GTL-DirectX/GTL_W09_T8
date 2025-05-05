@@ -198,6 +198,7 @@ void UEditorEngine::StartPIE()
 
     
 
+    OnStartPIE.Broadcast(PIEWorld);
     // 나중에 제거하기
 }
 
@@ -221,6 +222,8 @@ void UEditorEngine::EndPIE()
     }
     // 다시 EditorWorld로 돌아옴.
     ActiveWorld = EditorWorld;
+
+    OnEndPIE.Broadcast(ActiveWorld);
 }
 
 FWorldContext& UEditorEngine::GetEditorWorldContext(/*bool bEnsureIsGWorld*/)

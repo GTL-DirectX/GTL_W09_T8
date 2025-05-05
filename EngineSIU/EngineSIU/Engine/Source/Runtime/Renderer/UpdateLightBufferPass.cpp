@@ -15,6 +15,7 @@
 #include "GameFramework/Actor.h"
 #include "UObject/UObjectIterator.h"
 #include "TileLightCullingPass.h"
+#include "Engine/ViewportClient.h"
 
 //------------------------------------------------------------------------------
 // 생성자/소멸자
@@ -42,11 +43,14 @@ void FUpdateLightBufferPass::Initialize(FDXDBufferManager* InBufferManager, FGra
     CreateSpotLightPerTilesBuffer();
 }
 
-void FUpdateLightBufferPass::PrepareRenderArr()
+void FUpdateLightBufferPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
+    if (Viewport == nullptr || Viewport->GetWorld() == nullptr)
+        return;
+
     for (const auto iter : TObjectRange<ULightComponentBase>())
     {
-        if (iter->GetWorld() == GEngine->ActiveWorld)
+        if (iter->GetWorld() == Viewport->GetWorld())
         {
             if (UPointLightComponent* PointLight = Cast<UPointLightComponent>(iter))
             {

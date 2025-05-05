@@ -1,4 +1,4 @@
-﻿#include "SlateRenderPass.h"
+#include "SlateRenderPass.h"
 
 #include "RendererHelpers.h"
 #include "UnrealClient.h"
@@ -29,7 +29,7 @@ void FSlateRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsD
     CreateSampler();
 }
 
-void FSlateRenderPass::PrepareRenderArr()
+void FSlateRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
 }
 
@@ -77,8 +77,9 @@ void FSlateRenderPass::Render(const std::shared_ptr<FViewportClient>& Viewport)
     Graphics->DeviceContext->PSSetShader(PixelShader, nullptr, 0);
     Graphics->DeviceContext->IASetInputLayout(nullptr);
 
-    // Quad 렌더
-    Graphics->DeviceContext->Draw(6, 0);
+    // Quad 렌더. Viewport의 Should Draw 플래그가 켜져있어야만 Drawcall 실행
+    if (Viewport->ShouldDraw())
+        Graphics->DeviceContext->Draw(6, 0);
 
     // Clear: 사용한 리소스 해제
     ID3D11ShaderResourceView* NullSRV[1] = { nullptr };

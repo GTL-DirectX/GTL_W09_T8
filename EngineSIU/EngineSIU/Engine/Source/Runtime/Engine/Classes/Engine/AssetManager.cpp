@@ -2,7 +2,7 @@
 #include "Engine.h"
 
 #include <filesystem>
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 
 bool UAssetManager::IsInitialized()
 {
@@ -59,7 +59,7 @@ void UAssetManager::LoadObjFiles()
             AssetRegistry->PathNameToAssetInfo.Add(NewAssetInfo.AssetName, NewAssetInfo);
             
             FString MeshName = NewAssetInfo.PackagePath.ToString() + "/" + NewAssetInfo.AssetName.ToString();
-            FManagerOBJ::CreateStaticMesh(MeshName);
+            FObjManager::CreateStaticMesh(MeshName);
             // ObjFileNames.push_back(UGTLStringLibrary::StringToWString(Entry.path().string()));
             // FObjManager::LoadObjStaticMeshAsset(UGTLStringLibrary::StringToWString(Entry.path().string()));
         }

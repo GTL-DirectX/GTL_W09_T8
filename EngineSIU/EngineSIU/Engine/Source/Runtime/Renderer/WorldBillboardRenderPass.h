@@ -8,5 +8,5 @@ public:
     FWorldBillboardRenderPass();
     virtual ~FWorldBillboardRenderPass() = default;
 
-    virtual void PrepareRenderArr() override;
+    virtual void PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport) override;
 };

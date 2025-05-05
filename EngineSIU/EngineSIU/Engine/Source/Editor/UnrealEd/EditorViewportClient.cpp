@@ -17,13 +17,16 @@
 #include "SlateCore/Input/Events.h"
 
 #include "GameFramework/PlayerController.h"
+#include <Engine/StaticMeshActor.h>
+#include "Components/StaticMeshComponent.h"
+#include <Actors/Cube.h>
 
 
 FEditorViewportClient::FEditorViewportClient() : FViewportClient()
 {
 }
 
-void FEditorViewportClient::Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect)
+void FEditorViewportClient::Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld)
 {
     ViewportIndex = static_cast<uint32>(InViewportIndex);
     
@@ -33,8 +36,10 @@ void FEditorViewportClient::Initialize(EViewScreenLocation InViewportIndex, cons
     Viewport = new FViewport(InViewportIndex);
     Viewport->Initialize(InRect);
 
-    GizmoActor = FObjectFactory::ConstructObject<ATransformGizmo>(GEngine); // TODO : EditorEngine 외의 다른 Engine 형태가 추가되면 GEngine 대신 다른 방식으로 넣어주어야 함.
+    GizmoActor = FObjectFactory::ConstructObject<ATransformGizmo>(InWorld); // TODO : EditorEngine 외의 다른 Engine 형태가 추가되면 GEngine 대신 다른 방식으로 넣어주어야 함.
     GizmoActor->Initialize(this);
+
+    World = InWorld;
 }
 
 void FEditorViewportClient::Tick(const float DeltaTime)
@@ -302,6 +307,39 @@ void FEditorViewportClient::InputKey(const FKeyEvent& InKeyEvent)
                 FEngineLoop::GraphicDevice.Resize(GEngineLoop.AppWnd);
                 SLevelEditor* LevelEd = GEngineLoop.GetLevelEditor();
                 LevelEd->SetEnableMultiViewport(!LevelEd->IsMultiViewport());
+                break;
+            }
+            case 'O':
+            {
+                // TEST CODE
+                UWorld* TestWindowWorld = FObjectFactory::ConstructObject<UWorld>(nullptr);
+
+                TestWindowWorld->InitializeNewWorld();
+                TestWindowWorld->WorldType = EWorldType::EditorPreview;
+
+                ACube* CubeActor = TestWindowWorld->SpawnActor<ACube>();
+                CubeActor->SetActorLabel(TEXT("OBJ_CUBE"));
+                FEditorViewportClient* vpc = GEngineLoop.GetLevelEditor()->AddWindowViewportClient("Test", TestWindowWorld, FRect(100, 100, 800, 800));
+                vpc->SetShouldDraw(false);
+                FViewportCamera vpCam = vpc->GetPerspectiveCamera();
+                vpCam.SetLocation(FVector(-10, 0, 5));
+                FVector Dir = FVector(0, 0, 0) - FVector(-10, 0, 5);
+                Dir = Dir.GetSafeNormal();
+                FVector forward;
+
+                float pitch = FMath::RadiansToDegrees(FMath::Atan2(Dir.Y, Dir.Z));
+                float yaw = FMath::RadiansToDegrees(FMath::Atan2(Dir.X, Dir.Z));
+
+                forward.X = FMath::Cos(FMath::DegreesToRadians(pitch)) * FMath::Cos(FMath::DegreesToRadians(yaw));
+                forward.Y = FMath::Cos(FMath::DegreesToRadians(pitch)) * FMath::Sin(FMath::DegreesToRadians(yaw));
+                forward.Z = FMath::Sin(FMath::DegreesToRadians(pitch));
+
+                vpCam.SetRotation(forward);
+                break;
+            }
+            case 'P':
+            {
+                GEngineLoop.GetLevelEditor()->RemoveWindowViewportClient("Test");
                 break;
             }
             default:

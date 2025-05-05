@@ -95,6 +95,8 @@ public:
     uint32 GetViewportIndex() const { return ViewportIndex; }
     D3D11_VIEWPORT& GetD3DViewport() const;
     FViewportResource* GetViewportResource();
+    void SetWorld(UWorld* InWorld) { World = InWorld; }
+    UWorld* GetWorld() const { return World; }
 
 protected:
     FViewport* Viewport = nullptr;
@@ -116,6 +118,10 @@ protected:
     ELevelViewportType ViewportType;
     uint64 ShowFlag;
     EViewModeIndex ViewMode;
+
+protected:
+    // 참조중인 월드 정보
+    UWorld* World = nullptr;
 
     
     // 카메라 정보
@@ -142,6 +148,9 @@ public:
     FViewportCamera& GetOrthogonalCamera() { return OrthogonalCamera; }
     FVector GetCameraLocation() const;
 
+    void SetShouldDraw(bool bInShouldDraw) { bShouldDraw = bInShouldDraw; }
+    bool ShouldDraw() const { return bShouldDraw; }
+
 public:
     void UpdateOrthoCameraLoc();
     
@@ -158,6 +167,8 @@ protected:
 
     FMatrix View;
     FMatrix Projection;
+
+    bool bShouldDraw = true;
 
 public:
     static FVector GetOrthoPivot() { return OrthoPivot; }

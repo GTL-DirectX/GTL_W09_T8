@@ -7,11 +7,11 @@
 #include "Components/Shapes/CapsuleComponent.h"
 #include "Components/Shapes/SphereComponent.h"
 
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 
 ACube::ACube()
 {
-    StaticMeshComponent->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"Contents/Reference/Reference.obj"));
+    StaticMeshComponent->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Reference/Reference.obj"));
     test = AddComponent<USkeletalMeshCompnent>();
     test->SetupAttachment(RootComponent);
     // TODO 임시 코드임. (Class Table에 생성되지 않으면 안넣어짐.)

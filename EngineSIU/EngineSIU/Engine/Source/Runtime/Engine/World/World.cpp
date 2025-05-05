@@ -1,7 +1,7 @@
 #include "World.h"
 
 #include "Actors/Player.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 #include "Engine/EditorEngine.h"
 #include "Engine/Engine.h"
 #include "UnrealEd/SceneManager.h"

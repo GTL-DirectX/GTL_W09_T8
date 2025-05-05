@@ -6,23 +6,23 @@
 #include "Components/SkySphereComponent.h"
 #include "D3D11RHI/GraphicDevice.h"
 #include "DirectXTK/Include/DDSTextureLoader.h"
-#include "Engine/FLoaderOBJ.h"
+#include "Engine/ObjLoader.h"
 
 
 void FResourceMgr::Initialize(FRenderer* renderer, FGraphicsDevice* device)
 {
     //RegisterMesh(renderer, "Quad", quadVertices, sizeof(quadVertices) / sizeof(FVertexSimple), quadIndices, sizeof(quadIndices)/sizeof(uint32));
 
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets/AxisArrowX.obj");
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets/AxisArrowY.obj");
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets/AxisArrowZ.obj");
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets/AxisScaleArrowX.obj");
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets/AxisScaleArrowY.obj");
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets/AxisScaleArrowZ.obj");
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets//AxisCircleX.obj");
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets//AxisCircleY.obj");
-    //FManagerOBJ::LoadObjStaticMeshAsset("Assets//AxisCircleZ.obj");
-    // FManagerOBJ::LoadObjStaticMeshAsset("Assets/helloBlender.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets/AxisArrowX.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets/AxisArrowY.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets/AxisArrowZ.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets/AxisScaleArrowX.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets/AxisScaleArrowY.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets/AxisScaleArrowZ.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets//AxisCircleX.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets//AxisCircleY.obj");
+    //FObjManager::LoadObjStaticMeshAsset("Assets//AxisCircleZ.obj");
+    // FObjManager::LoadObjStaticMeshAsset("Assets/helloBlender.obj");
 
     LoadTextureFromFile(device->Device, device->DeviceContext, L"Assets/Texture/ocean_sky.jpg");
     LoadTextureFromFile(device->Device, device->DeviceContext, L"Assets/Texture/font.png");

@@ -235,23 +235,22 @@ void FRenderer::PrepareRender(FViewportResource* ViewportResource) const
     ViewportResource->ClearDepthStencils(Graphics->DeviceContext);
     ViewportResource->ClearRenderTargets(Graphics->DeviceContext);
 
-    PrepareRenderPass();
 }
 
-void FRenderer::PrepareRenderPass() const
+void FRenderer::PrepareRenderPass(const std::shared_ptr<FViewportClient>& Viewport) const
 {
-    StaticMeshRenderPass->PrepareRenderArr();
+    StaticMeshRenderPass->PrepareRenderArr(Viewport);
     SkeletalMeshRenderPass->PrepareRenderArr();
-    ShadowRenderPass->PrepareRenderArr();
-    GizmoRenderPass->PrepareRenderArr();
-    WorldBillboardRenderPass->PrepareRenderArr();
-    EditorBillboardRenderPass->PrepareRenderArr();
-    UpdateLightBufferPass->PrepareRenderArr();
-    FogRenderPass->PrepareRenderArr();
-    EditorRenderPass->PrepareRenderArr();
-    TileLightCullingPass->PrepareRenderArr();
-    DepthPrePass->PrepareRenderArr();
-    FadeRenderPass->PrepareRenderArr();
+    ShadowRenderPass->PrepareRenderArr(Viewport);
+    GizmoRenderPass->PrepareRenderArr(Viewport);
+    WorldBillboardRenderPass->PrepareRenderArr(Viewport);
+    EditorBillboardRenderPass->PrepareRenderArr(Viewport);
+    UpdateLightBufferPass->PrepareRenderArr(Viewport);
+    FogRenderPass->PrepareRenderArr(Viewport);
+    EditorRenderPass->PrepareRenderArr(Viewport);
+    TileLightCullingPass->PrepareRenderArr(Viewport);
+    DepthPrePass->PrepareRenderArr(Viewport);
+    FadeRenderPass->PrepareRenderArr(Viewport);
 }
 
 void FRenderer::ClearRenderArr() const
@@ -338,6 +337,8 @@ void FRenderer::BeginRender(const std::shared_ptr<FViewportClient>& Viewport)
     UpdateCommonBuffer(Viewport);
     
     PrepareRender(ViewportResource);
+
+    PrepareRenderPass(Viewport);
 }
 
 
