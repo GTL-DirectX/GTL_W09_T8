@@ -41,10 +41,11 @@ void USkeletalMesh::GetUsedMaterials(TArray<UMaterial*>& Out) const
 
 FString USkeletalMesh::GetObjectName() const
 {
-    if(!RenderData)
+    //if(!RenderData)
+        
+        
         return FString();
 
-    return RenderData->ObjectName;
 }
 
 void USkeletalMesh::SetData(FSkeletalMeshRenderData* renderData)

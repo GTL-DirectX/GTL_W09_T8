@@ -138,14 +138,111 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     int polyCount = mesh->GetPolygonCount();
     outData.Indices.Reset();
     outData.Indices.Reserve(polyCount * 3);
-    for (int p = 0; p < polyCount; ++p)
+    //for (int p = 0; p < polyCount; ++p)
+    //{
+    //    for (int k = 0; k < 3; ++k)
+    //    {
+    //        int idx = mesh->GetPolygonVertex(p, k);
+    //        outData.Indices.Add(idx);
+    //    }
+    //}
+
+    // UV Element 가져오기 (첫 번째 UV 세트)
+    FbxLayerElementUV* uvElement = mesh->GetLayer(0)->GetUVs(); // mesh->GetElementUV(0) 과 동일할 수 있음
+    bool hasUVs = (uvElement != nullptr);
+
+    // Normal Element 가져오기 (첫 번째 Normal 세트)
+    FbxLayerElementNormal* normalElement = mesh->GetLayer(0)->GetNormals();
+    bool hasNormals = (normalElement != nullptr);
+
+    // TODO: Tangent Element 가져오기 (필요시)
+    // FbxLayerElementTangent* tangentElement = mesh->GetLayer(0)->GetTangents();
+    // bool hasTangents = (tangentElement != nullptr);
+    for (int p = 0; p < polyCount; ++p) // 폴리곤 순회
     {
-        for (int k = 0; k < 3; ++k)
+        if (mesh->GetPolygonSize(p) != 3)
         {
-            int idx = mesh->GetPolygonVertex(p, k);
-            outData.Indices.Add(idx);
+            // 삼각화되지 않은 폴리곤 처리 (경고 또는 예외)
+            // 여기서는 간단히 건너뛰거나 삼각화 필요
+            continue;
+        }
+
+        for (int k = 0; k < 3; ++k) // 폴리곤의 각 정점 순회 (0, 1, 2)
+        {
+            int cpIndex = mesh->GetPolygonVertex(p, k); // 컨트롤 포인트 인덱스
+            if (cpIndex < 0 || cpIndex >= cpCount) continue; // 유효하지 않은 인덱스
+
+            // 인덱스 버퍼 채우기
+            outData.Indices.Add(cpIndex);
+
+            // --- UV 추출 ---
+            if (hasUVs)
+            {
+                int uvIndex = -1;
+                // UV가 컨트롤 포인트별인지 폴리곤 정점별인지 확인
+                if (uvElement->GetMappingMode() == FbxLayerElement::eByControlPoint)
+                {
+                    // 참조 방식 확인 (Direct 또는 IndexToDirect)
+                    if (uvElement->GetReferenceMode() == FbxLayerElement::eDirect)
+                        uvIndex = cpIndex;
+                    else if (uvElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+                        uvIndex = uvElement->GetIndexArray().GetAt(cpIndex);
+                }
+                else if (uvElement->GetMappingMode() == FbxLayerElement::eByPolygonVertex)
+                {
+                    int polygonVertexIndex = p * 3 + k; // 현재 폴리곤 정점의 인덱스
+                    // 참조 방식 확인
+                    if (uvElement->GetReferenceMode() == FbxLayerElement::eDirect)
+                        uvIndex = polygonVertexIndex;
+                    else if (uvElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+                        uvIndex = uvElement->GetIndexArray().GetAt(polygonVertexIndex);
+                }
+
+                if (uvIndex != -1)
+                {
+                    FbxVector2 uv = uvElement->GetDirectArray().GetAt(uvIndex);
+                    // FBX UV는 Y가 반전될 수 있으므로 엔진에 맞게 조정 (texture->SamplerState 설정과 관련)
+                    // 예: outData.Vertices[cpIndex].UV = FVector2D(uv[0], 1.0 - uv[1]);
+                    outData.Vertices[cpIndex].UV = FVector2D(uv[0], uv[1]);
+                    // 참고: 동일한 컨트롤 포인트가 다른 UV를 가질 경우 마지막 값으로 덮어쓰게 됨.
+                    // 완벽한 처리를 위해서는 정점 분리(duplication) 필요.
+                }
+            }
+
+            // --- 노멀 추출 (UV와 유사한 로직) ---
+            if (hasNormals)
+            {
+                int normalIndex = -1;
+                if (normalElement->GetMappingMode() == FbxLayerElement::eByControlPoint)
+                {
+                    if (normalElement->GetReferenceMode() == FbxLayerElement::eDirect)
+                        normalIndex = cpIndex;
+                    else if (normalElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+                        normalIndex = normalElement->GetIndexArray().GetAt(cpIndex);
+                }
+                else if (normalElement->GetMappingMode() == FbxLayerElement::eByPolygonVertex)
+                {
+                    int polygonVertexIndex = p * 3 + k;
+                    if (normalElement->GetReferenceMode() == FbxLayerElement::eDirect)
+                        normalIndex = polygonVertexIndex;
+                    else if (normalElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+                        normalIndex = normalElement->GetIndexArray().GetAt(polygonVertexIndex);
+                }
+
+                if (normalIndex != -1)
+                {
+                    FbxVector4 normal = normalElement->GetDirectArray().GetAt(normalIndex);
+                    // 좌표계 변환 필요시 수행
+                    outData.Vertices[cpIndex].Normal = FVector(normal[0], normal[1], normal[2]);
+                    // 참고: UV와 마찬가지로 덮어쓰기 문제 가능성 있음
+                }
+            }
+
+            // TODO: --- 탄젠트 추출 (필요하고 FBX에 데이터가 있다면) ---
+            // if (hasTangents) { ... }
         }
     }
+
 
     // 5) 본 + 스킨 정보 수집
     for (int d = 0; d < mesh->GetDeformerCount(FbxDeformer::eSkin); ++d)
@@ -245,11 +342,11 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
                 outPath = std::wstring(fp.begin(), fp.end());
                 matInfo.TextureFlag |= flag;
             };
-            LoadTex(FbxSurfaceMaterial::sDiffuse,  matInfo.DiffuseTextureName,  matInfo.DiffuseTexturePath,  1);
-            LoadTex(FbxSurfaceMaterial::sAmbient,  matInfo.AmbientTextureName,  matInfo.AmbientTexturePath,  2);
-            LoadTex(FbxSurfaceMaterial::sSpecular, matInfo.SpecularTextureName, matInfo.SpecularTexturePath, 4);
-            LoadTex("NormalMap",                   matInfo.BumpTextureName,     matInfo.BumpTexturePath,     8);
-            LoadTex(FbxSurfaceMaterial::sTransparencyFactor, matInfo.AlphaTextureName, matInfo.AlphaTexturePath, 16);
+            LoadTex(FbxSurfaceMaterial::sDiffuse,  matInfo.DiffuseTextureName,  matInfo.DiffuseTexturePath,  1 << 1);
+            LoadTex(FbxSurfaceMaterial::sAmbient,  matInfo.AmbientTextureName,  matInfo.AmbientTexturePath,  1 << 4);
+            LoadTex(FbxSurfaceMaterial::sSpecular, matInfo.SpecularTextureName, matInfo.SpecularTexturePath, 1 << 3);
+            LoadTex("NormalMap",                   matInfo.BumpTextureName,     matInfo.BumpTexturePath,     1 << 2);
+            LoadTex(FbxSurfaceMaterial::sTransparencyFactor, matInfo.AlphaTextureName, matInfo.AlphaTexturePath, 1 << 5);
 
             outData.Materials.Add(matInfo);
         }
