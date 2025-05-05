@@ -131,7 +131,14 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     double finalScaleFactor = sourceUnit.GetScaleFactor() * EngineUnitScaleFactor;
     // 1) 메시 얻기
     FbxMesh* mesh = node->GetMesh();
-    if (!mesh) return;
+    if (!mesh)
+    {
+        for (int i = 0; i < node->GetChildCount(); i++)
+        {
+            ExtractSkeletalMeshData(node->GetChild(i), outData);
+        }
+        return;
+    }
 
     // 2) 컨트롤 포인트 버텍스 초기화
     int cpCount = mesh->GetControlPointsCount();
@@ -867,6 +874,152 @@ void FFBXManager::UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData, ID3D11Dev
     }
 }
 
+void FFBXManager::ProcessNodeRecursively(FbxNode* node, FBX::FImportSceneData& OutSceneData, int32 parentNodeIndex, const FMatrix& parentWorldTransform, const FMatrix& conversionMatrix, bool bFlipWinding)
+{
+    if (!node)
+        return;
+
+    using namespace FBX;
+    // 1. 현재 Node에 대한 Node Info를 만든다
+    FNodeInfo currentNodeInfo;
+    currentNodeInfo.Name = FString(node->GetName());
+    currentNodeInfo.ParentIndex = parentNodeIndex;
+    currentNodeInfo.TempFbxNodePtr = node;
+
+    // 엔진 Space에서의 로컬, 월드 트랜스폼을 구함
+    currentNodeInfo.LocalTransform = GetNodeLocalTransformConverted(node, conversionMatrix);
+    currentNodeInfo.WorldTransform = parentWorldTransform * currentNodeInfo.LocalTransform;
+
+    // 노드를 하이라키에 먼저 넣고, 인덱스 받아옴
+    int currentNodeIndex = OutSceneData.NodeHierarchy.Add(currentNodeInfo);
+    OutSceneData.FbxNodeToIndexMap.Add(node, currentNodeIndex);
+
+    // 2. 노드들의 Attribute 처리
+    FbxNodeAttribute* attribute = node->GetNodeAttribute();
+    int attributeDataIndex = -1;
+    FbxNodeAttribute::EType attributeType = FbxNodeAttribute::eUnknown;
+
+    if (attribute)
+    {
+        attributeType = attribute->GetAttributeType();
+        OutSceneData.NodeHierarchy[currentNodeIndex].AttributeType = attributeType; // Update type in stored node info
+
+        switch (attributeType)
+        {
+        case FbxNodeAttribute::eMesh:
+        {
+            FbxMesh* mesh = static_cast<FbxMesh*>(attribute);
+            FMeshData meshData;
+            ExtractMeshData(node, mesh, meshData, currentNodeInfo.WorldTransform, conversionMatrix, bFlipWinding);
+            if (!meshData.Vertices.IsEmpty()) 
+            { // Check if data was actually extracted
+                attributeDataIndex = OutSceneData.MeshDatas.Add(meshData);
+            }
+            break;
+        }
+        case FbxNodeAttribute::eSkeleton:
+        {
+            // 스켈레톤 처리는 종종 메쉬 노드에서 발견되는 Skin/Cluster 정보와 밀접하게 연결됨.
+            // 여기서는 단순히 이 노드가 스켈레톤 속성을 가졌다는 사실과 변환 정보 정도만 기록할 수 있음.
+            // 실제 본(bone) 계층 구조 구축은 나중에 FbxSkin/FbxCluster 처리 단계 또는 ExtractMeshData 내에서 수행될 수 있음.
+            // 현재로서는, 참조가 필요한 경우 별도의 본 리스트에 추가한다고 가정.
+            FbxSkeleton* skeleton = static_cast<FbxSkeleton*>(attribute);
+            // 예시: ExtractSkeletonData(node, skeleton, OutSceneData, currentNodeIndex);
+            // 이 함수는 OutSceneData.SkeletonBones에 정보를 추가하고 나중에 부모 링크 등을 업데이트 할 수 있음.
+            // 단순화를 위해, 여기서는 직접 처리를 건너뛰고 스키닝 정보에 의존할 수도 있음.
+            UE_LOG(LogLevel::Display, "노드 %s는 스켈레톤입니다", *currentNodeInfo.Name);
+            break;
+        }
+        case FbxNodeAttribute::eLight: // 라이트 속성인 경우
+        {
+            FbxLight* light = static_cast<FbxLight*>(attribute);
+            FLightData lightData;
+            ExtractLightData(node, light, lightData, currentNodeInfo.WorldTransform, conversionMatrix);
+            attributeDataIndex = OutSceneData.LightDatas.Add(lightData); // 라이트 데이터 배열에 추가하고 인덱스 저장
+            break;
+        }
+        case FbxNodeAttribute::eCamera: // 카메라 속성인 경우
+        {
+            FbxCamera* camera = static_cast<FbxCamera*>(attribute);
+            FCameraData cameraData;
+            ExtractCameraData(node, camera, cameraData, currentNodeInfo.WorldTransform, conversionMatrix);
+            attributeDataIndex = OutSceneData.CameraDatas.Add(cameraData); // 카메라 데이터 배열에 추가하고 인덱스 저장
+            break;
+        }
+        case FbxNodeAttribute::eNull: // Null 속성인 경우 (더미 노드)
+        {
+            UE_LOG(LogLevel::Warning, "노드 %s는 Null입니다", *currentNodeInfo.Name);
+            // 종종 지오메트리/스켈레톤 속성 없이 그룹 노드나 본 조인트(뼈대 마디)로 사용됨
+            break;
+        }
+        // 필요한 경우 다른 타입(eLODGroup, eMarker 등)에 대한 케이스 추가
+        default: // 처리되지 않은 다른 속성 타입
+            UE_LOG(LogLevel::Warning, "노드 %s는 처리되지 않은 속성 타입을 가집니다: %d", *currentNodeInfo.Name, attributeType);
+            break;
+        }
+    }
+
+    // 3. 자식 노드 재귀처리
+    for (int i = 0; i < node->GetChildCount(); ++i) 
+    {
+        // 자식 노드에 대해 재귀 호출
+        ProcessNodeRecursively(
+            node->GetChild(i),          
+            OutSceneData,               
+            currentNodeIndex,           
+            currentNodeInfo.WorldTransform, 
+            conversionMatrix,           
+            bFlipWinding               
+        );
+    }
+
+}
+
+void FFBXManager::ExtractMeshData(FbxNode* node, FbxMesh* mesh, FBX::FMeshData& outMeshData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix, bool bFlipWinding)
+{
+}
+
+void FFBXManager::ExtractSkeletonData(FbxNode* node, FbxSkeleton* skeleton, FBX::FImportSceneData& OutSceneData, int32 nodeIndex)
+{
+}
+
+void FFBXManager::ExtractLightData(FbxNode* node, FbxLight* light, FBX::FLightData& outLightData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix)
+{
+}
+
+void FFBXManager::ExtractCameraData(FbxNode* node, FbxCamera* camera, FBX::FCameraData& outCameraData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix)
+{
+}
+
+FMatrix FFBXManager::GetNodeLocalTransformConverted(FbxNode* node, const FMatrix& conversionMatrix)
+{
+    FbxAMatrix fbxLocalMatrix = node->EvaluateLocalTransform();
+    FMatrix engineLocalMatrix = ConvertFbxMatrixToEngineMatrix(fbxLocalMatrix);
+
+    // Apply coordinate system conversion: M_engine = C * M_fbx * C_inv
+    // If C is orthogonal (rotation/reflection only), C_inv = C_transpose
+    // For simplicity assuming conversionMatrix.Inverse() exists and handles it.
+    // Note: This conversion might need refinement based on how C affects transforms vs vectors.
+    // Often, just converting the Translation, Rotation, Scale components separately is more robust.
+    // T = C * T_fbx
+    // R = C * R_fbx * C_inv
+    // S = S_fbx (scaling needs careful handling with non-uniform scaling and C)
+    // For now, using the matrix multiplication approach (verify results):
+    return conversionMatrix * engineLocalMatrix * FMatrix::Inverse(conversionMatrix); // Or Transpose() if appropriate
+}
+
+FMatrix FFBXManager::ConvertFbxMatrixToEngineMatrix(const FbxAMatrix& fbxMatrix)
+{
+    FMatrix engineMatrix;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            // Assuming Engine Matrix is Column-Major, FBX is Row-Major
+            engineMatrix.M[j][i] = static_cast<float>(fbxMatrix[i][j]);
+        }
+    }
+    return engineMatrix;
+}
+
 FMatrix FFBXManager::GetConversionMatrix(const FbxAxisSystem& sourceAxisSystem, const FbxAxisSystem& targetAxisSystem)
 {
     FbxAMatrix sourceMatrix;
@@ -937,5 +1090,9 @@ void FFBXManager::BuildBasisMatrix(const FbxAxisSystem& system, FbxAMatrix& outM
     invBasisMatrix.SetRow(2, FbxVector4(axisZ.DotProduct(rightVec), axisZ.DotProduct(upVec), axisZ.DotProduct(forwardVec)));
     invBasisMatrix.SetRow(3, FbxVector4(0, 0, 0, 1)); // Translation 없음
     outMatrix = invBasisMatrix.Inverse(); // 더 안전하게 Inverse 사용
+}
+
+void FFBXManager::LoadFbxScene(const FString& FbxFilePath, FBX::FImportSceneData& OutSceneData)
+{
 }
 
