@@ -1,6 +1,6 @@
 #include "Cube.h"
 
-#include "Components/SkeletalMeshCompnent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/Shapes/BoxComponent.h"
@@ -12,8 +12,6 @@
 ACube::ACube()
 {
     StaticMeshComponent->SetStaticMesh(FObjManager::GetStaticMesh(L"Contents/Reference/Reference.obj"));
-    test = AddComponent<USkeletalMeshCompnent>();
-    test->SetupAttachment(RootComponent);
     // TODO 임시 코드임. (Class Table에 생성되지 않으면 안넣어짐.)
     auto BoxComponent = AddComponent<UBoxComponent>();
     BoxComponent->DestroyComponent();

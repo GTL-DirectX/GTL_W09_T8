@@ -29,6 +29,11 @@
 #include "Games/LastWar/Core/Spawner.h"
 #include "ImGUI/imgui.h"
 
+#include "Editor/ViewerEditor/ViewerEditor.h"
+#include <Engine/SkeletalMeshActor.h>
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/Resource/FBXManager.h"
+
 void ControlEditorPanel::Render()
 {
     /* Pre Setup */
@@ -36,29 +41,16 @@ void ControlEditorPanel::Render()
     ImFont* IconFont = IO.Fonts->Fonts[FEATHER_FONT];
     constexpr ImVec2 IconSize = ImVec2(32, 32);
 
-    const float PanelWidth = (Width) * 0.8f;
-    constexpr float PanelHeight = 45.0f;
-
-    constexpr float PanelPosX = 1.0f;
-    constexpr float PanelPosY = 1.0f;
-
-    constexpr ImVec2 MinSize(300, 50);
-    constexpr ImVec2 MaxSize(FLT_MAX, 50);
-
-    /* Min, Max Size */
-    ImGui::SetNextWindowSizeConstraints(MinSize, MaxSize);
-
-    /* Panel Position */
-    ImGui::SetNextWindowPos(ImVec2(PanelPosX, PanelPosY), ImGuiCond_Always);
-
-    /* Panel Size */
-    ImGui::SetNextWindowSize(ImVec2(PanelWidth, PanelHeight), ImGuiCond_Always);
-
     /* Panel Flags */
-    constexpr ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
+    ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_None;
 
     /* Render Start */
-    ImGui::Begin("Control Panel", nullptr, PanelFlags);
+    if (!ImGui::Begin("Control Panel", nullptr, PanelFlags))
+    {
+        // Early out if collapsed or not visible
+        ImGui::End();
+        return;
+    }
 
     CreateMenuButton(IconSize, IconFont);
     ImGui::SameLine();
@@ -66,6 +58,7 @@ void ControlEditorPanel::Render()
     ImGui::SameLine();
     CreateModifyButton(IconSize, IconFont);
     ImGui::SameLine();
+    CreateViewerButton();
     ImGui::SameLine();
     CreateLightSpawnButton(IconSize, IconFont);
     ImGui::SameLine();
@@ -73,12 +66,17 @@ void ControlEditorPanel::Render()
         ImGui::PushFont(IconFont);
         CreatePIEButton(IconSize, IconFont);
         ImGui::SameLine();
-        /* Get Window Content Region */
-        const float ContentWidth = ImGui::GetWindowContentRegionMax().x;
-        /* Move Cursor X Position */
-        ImGui::SetCursorPosX(ContentWidth - (IconSize.x * 3.0f + 16.0f));
-        CreateSRTButton(IconSize);
-        ImGui::PopFont();
+        const float srtButtonsTotalWidth = (IconSize.x * 3.0f) + (ImGui::GetStyle().ItemSpacing.x * 2.0f);
+        float availableWidth = ImGui::GetContentRegionAvail().x;
+        float buttonsWidth = (IconSize.x * 5.0f) + (ImGui::GetStyle().ItemSpacing.x * 4.0f);
+        float spaceToLeave = availableWidth - buttonsWidth;
+        if (spaceToLeave > 0.0f) {
+            ImGui::Dummy(ImVec2(spaceToLeave, 0.0f));
+            ImGui::SameLine();
+            CreateSRTButton(IconSize);
+
+            ImGui::PopFont();
+        }
     }
 
     ImGui::End();
@@ -95,83 +93,81 @@ void ControlEditorPanel::CreateMenuButton(const ImVec2 ButtonSize, ImFont* IconF
 
     if (bOpenMenu)
     {
-        ImGui::SetNextWindowPos(ImVec2(10, 55), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(135, 170), ImGuiCond_Always);
-
-        ImGui::Begin("Menu", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-
-        if (ImGui::MenuItem("New Level"))
+        ImGuiWindowFlags menuFlags = ImGuiWindowFlags_None; 
+        if (ImGui::Begin("Menu", &bOpenMenu, menuFlags))
         {
-            if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
+            if (ImGui::MenuItem("New Level"))
             {
-                EditorEngine->NewLevel();
-            }
-        }
-
-        if (ImGui::MenuItem("Load Level"))
-        {
-            char const* lFilterPatterns[1] = { "*.scene" };
-            const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
-
-            if (FileName == nullptr)
-            {
-                tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
-                ImGui::End();
-                return;
-            }
-            if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
-            {
-                EditorEngine->NewLevel();
-                EditorEngine->LoadLevel(FileName);
-            }
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::MenuItem("Save Level"))
-        {
-            char const* lFilterPatterns[1] = { "*.scene" };
-            const char* FileName = tinyfd_saveFileDialog("Save Scene File", "", 1, lFilterPatterns, "Scene(.scene) file");
-
-            if (FileName == nullptr)
-            {
-                ImGui::End();
-                return;
-            }
-            if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
-            {
-                EditorEngine->SaveLevel(FileName);
-                EditorEngine->NewLevel();
-                EditorEngine->LoadLevel(FileName);
-            }
-
-            tinyfd_messageBox("알림", "저장되었습니다.", "ok", "info", 1);
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::Button("ImGui데모"))
-        {
-            bShowImGuiDemoWindow = !bShowImGuiDemoWindow;
-        }
-
-        if (bShowImGuiDemoWindow)
-        {
-            ImGui::ShowDemoWindow(&bShowImGuiDemoWindow); // 창이 닫힐 때 상태를 업데이트
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::BeginMenu("Import"))
-        {
-            if (ImGui::MenuItem("Wavefront (.obj)"))
-            {
-                char const* lFilterPatterns[1] = { "*.obj" };
-                const char* FileName = tinyfd_openFileDialog("Open OBJ File", "", 1, lFilterPatterns, "Wavefront(.obj) file", 0);
-
-                if (FileName != nullptr)
+                if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
                 {
-                    std::cout << FileName << '\n';
+                    EditorEngine->NewLevel();
+                }
+            }
+
+            if (ImGui::MenuItem("Load Level"))
+            {
+                char const* lFilterPatterns[1] = { "*.scene" };
+                const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
+
+                if (FileName == nullptr)
+                {
+                    tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
+                    ImGui::End();
+                    return;
+                }
+                if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
+                {
+                    EditorEngine->NewLevel();
+                    EditorEngine->LoadLevel(FileName);
+                }
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Save Level"))
+            {
+                char const* lFilterPatterns[1] = { "*.scene" };
+                const char* FileName = tinyfd_saveFileDialog("Save Scene File", "", 1, lFilterPatterns, "Scene(.scene) file");
+
+                if (FileName == nullptr)
+                {
+                    ImGui::End();
+                    return;
+                }
+                if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine))
+                {
+                    EditorEngine->SaveLevel(FileName);
+                    EditorEngine->NewLevel();
+                    EditorEngine->LoadLevel(FileName);
+                }
+
+                tinyfd_messageBox("알림", "저장되었습니다.", "ok", "info", 1);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::Button("ImGui데모"))
+            {
+                bShowImGuiDemoWindow = !bShowImGuiDemoWindow;
+            }
+
+            if (bShowImGuiDemoWindow)
+            {
+                ImGui::ShowDemoWindow(&bShowImGuiDemoWindow); // 창이 닫힐 때 상태를 업데이트
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::BeginMenu("Import"))
+            {
+                if (ImGui::MenuItem("Wavefront (.obj)"))
+                {
+                    char const* lFilterPatterns[1] = { "*.obj" };
+                    const char* FileName = tinyfd_openFileDialog("Open OBJ File", "", 1, lFilterPatterns, "Wavefront(.obj) file", 0);
+
+                    if (FileName != nullptr)
+                    {
+                        std::cout << FileName << '\n';
 
                     if (FObjManager::CreateStaticMesh(FileName) == nullptr)
                     {
@@ -180,49 +176,51 @@ void ControlEditorPanel::CreateMenuButton(const ImVec2 ButtonSize, ImFont* IconF
                 }
             }
 
-            ImGui::EndMenu();
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::MenuItem("Quit"))
-        {
-            ImGui::OpenPopup("프로그램 종료");
-        }
-
-        const ImVec2 Center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(Center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-        if (ImGui::BeginPopupModal("프로그램 종료", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-        {
-            ImGui::Text("정말 프로그램을 종료하시겠습니까?");
+                ImGui::EndMenu();
+            }
 
             ImGui::Separator();
 
-            const float ContentWidth = ImGui::GetWindowContentRegionMax().x;
-            /* Move Cursor X Position */
-            ImGui::SetCursorPosX(ContentWidth - (160.f + 10.0f));
-            if (ImGui::Button("OK", ImVec2(80, 0)))
+            if (ImGui::MenuItem("Quit"))
             {
-                PostQuitMessage(0);
+                ImGui::OpenPopup("프로그램 종료");
             }
-            ImGui::SameLine();
-            ImGui::SetItemDefaultFocus();
-            ImGui::PushID("CancelButtonWithQuitWindow");
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ImColor::HSV(0.0f, 1.0f, 1.0f)));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(ImColor::HSV(0.0f, 0.9f, 1.0f)));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(ImColor::HSV(0.0f, 1.0f, 1.0f)));
-            if (ImGui::Button("Cancel", ImVec2(80, 0)))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::PopStyleColor(3);
-            ImGui::PopID();
 
-            ImGui::EndPopup();
+            const ImVec2 Center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(Center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+            if (ImGui::BeginPopupModal("프로그램 종료", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("정말 프로그램을 종료하시겠습니까?");
+
+                ImGui::Separator();
+
+                const float ContentWidth = ImGui::GetWindowContentRegionMax().x;
+                /* Move Cursor X Position */
+                ImGui::SetCursorPosX(ContentWidth - (160.f + 10.0f));
+                if (ImGui::Button("OK", ImVec2(80, 0)))
+                {
+                    PostQuitMessage(0);
+                }
+                ImGui::SameLine();
+                ImGui::SetItemDefaultFocus();
+                ImGui::PushID("CancelButtonWithQuitWindow");
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ImColor::HSV(0.0f, 1.0f, 1.0f)));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(ImColor::HSV(0.0f, 0.9f, 1.0f)));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(ImColor::HSV(0.0f, 1.0f, 1.0f)));
+                if (ImGui::Button("Cancel", ImVec2(80, 0)))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::PopStyleColor(3);
+                ImGui::PopID();
+
+                ImGui::EndPopup();
+            }
+
+            ImGui::End();
         }
 
-        ImGui::End();
     }
 }
 
@@ -300,7 +298,9 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
             { .Label= "Text",      .OBJ= OBJ_TEXT },
             { .Label= "Fireball",  .OBJ = OBJ_FIREBALL},
             { .Label= "Fog",       .OBJ= OBJ_FOG },
-            { .Label = "Spawner",  .OBJ = OBJ_Spawner}
+            { .Label = "Spawner",  .OBJ = OBJ_Spawner},
+            { .Label = "SkeletalMeshActor",  .OBJ = OBJ_SKELETALMESHACTOR}
+
         };
 
         for (const auto& primitive : primitives)
@@ -394,6 +394,19 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                 {
                     SpawnedActor = World->SpawnActor<ASpawnerActor>();
                     SpawnedActor->SetActorLabel(TEXT("OBJ_Spawner"));
+                    break;
+                }
+                case OBJ_SKELETALMESHACTOR:
+                {
+                    SpawnedActor = World->SpawnActor<ASkeletalMeshActor>();
+                    SpawnedActor->SetActorLabel(TEXT("OBJ_SKELETALMESHACTOR"));
+                    USkeletalMeshComponent* SkeletalMeshComponent = SpawnedActor->GetComponentByClass<USkeletalMeshComponent>();
+                    if (SkeletalMeshComponent)
+                    {
+                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\character.fbx");
+                        SkeletalMeshComponent->SetSkeletalMesh(SkeletalMesh);
+                    }
+                    break;
                 }
                 case OBJ_TRIANGLE:
                 case OBJ_CAMERA:
@@ -413,7 +426,15 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
         ImGui::EndPopup();
     }
 }
+void ControlEditorPanel::CreateViewerButton()
+{
+    if (ImGui::Button("SkeletalMesh Viewer"))
+    {
+        bShowSkeletalMeshViewer = true;
+    }
 
+    ViewerEditor::RenderViewerWindow(bShowSkeletalMeshViewer);
+}
 void ControlEditorPanel::CreateFlagButton()
 {
     const std::shared_ptr<FEditorViewportClient> ActiveViewport = GEngineLoop.GetLevelEditor()->GetActiveViewportClient();
@@ -522,12 +543,6 @@ void ControlEditorPanel::CreatePIEButton(const ImVec2 ButtonSize, ImFont* IconFo
     {
         return;
     }
-
-    const ImVec2 WindowSize = ImGui::GetIO().DisplaySize;
-
-    const float CenterX = (WindowSize.x - ButtonSize.x) / 2.5f;
-
-    ImGui::SetCursorScreenPos(ImVec2(CenterX - 40.0f, 10.0f));
     
     if (ImGui::Button("\ue9a8", ButtonSize)) // Play
     {
@@ -535,7 +550,8 @@ void ControlEditorPanel::CreatePIEButton(const ImVec2 ButtonSize, ImFont* IconFo
         Engine->StartPIE();
     }
 
-    ImGui::SetCursorScreenPos(ImVec2(CenterX - 10.0f, 10.0f));
+    ImGui::SameLine();
+
     if (ImGui::Button("\ue9e4", ButtonSize)) // Stop
     {
         UE_LOG(LogLevel::Display, TEXT("Stop Button Clicked"));
@@ -604,11 +620,6 @@ void ControlEditorPanel::OnResize(const HWND hWnd)
 void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFont* IconFont)
 {
     UWorld* World = GEngine->ActiveWorld;
-    const ImVec2 WindowSize = ImGui::GetIO().DisplaySize;
-
-    const float CenterX = (WindowSize.x - InButtonSize.x) / 2.5f;
-
-    ImGui::SetCursorScreenPos(ImVec2(CenterX + 40.0f, 10.0f));
     const char* Text = "Light";
     const ImVec2 TextSize = ImGui::CalcTextSize(Text);
     const ImVec2 Padding = ImGui::GetStyle().FramePadding;
@@ -617,6 +628,7 @@ void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFon
         TextSize.y + Padding.y * 2.0f
     );
     ButtonSize.y = InButtonSize.y;
+
     if (ImGui::Button("Light", ButtonSize))
     {
         ImGui::OpenPopup("LightGeneratorControl");
@@ -630,7 +642,7 @@ void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFon
             int Mode;
         };
 
-        static constexpr LightGeneratorMode modes[] = 
+        static constexpr LightGeneratorMode modes[] =
         {
             {.Label = "Generate", .Mode = ELightGridGenerator::Generate },
             {.Label = "Delete", .Mode = ELightGridGenerator::Delete },
@@ -641,17 +653,20 @@ void ControlEditorPanel::CreateLightSpawnButton(const ImVec2 InButtonSize, ImFon
         {
             if (ImGui::Selectable(Label))
             {
-                switch (Mode)
+                if (World)
                 {
-                case ELightGridGenerator::Generate:
-                    LightGridGenerator.GenerateLight(World);
-                    break;
-                case ELightGridGenerator::Delete:
-                    LightGridGenerator.DeleteLight(World);
-                    break;
-                case ELightGridGenerator::Reset:
-                    LightGridGenerator.Reset(World);
-                    break;
+                    switch (Mode)
+                    {
+                    case ELightGridGenerator::Generate:
+                        LightGridGenerator.GenerateLight(World);
+                        break;
+                    case ELightGridGenerator::Delete:
+                        LightGridGenerator.DeleteLight(World);
+                        break;
+                    case ELightGridGenerator::Reset:
+                        LightGridGenerator.Reset(World);
+                        break;
+                    }
                 }
             }
         }

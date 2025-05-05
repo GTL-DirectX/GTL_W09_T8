@@ -2,7 +2,7 @@
 
 #include "Classes/Engine/StaticMeshActor.h"
 
-class USkeletalMeshCompnent;
+class USkeletalMeshComponent;
 
 class ACube : public AStaticMeshActor
 {
@@ -10,7 +10,5 @@ class ACube : public AStaticMeshActor
 
 public:
     ACube();
-
-    USkeletalMeshCompnent* test;
 };
 

@@ -28,6 +28,15 @@ USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
     FSkeletalMeshRenderData* RenderData = new FSkeletalMeshRenderData();
     LoadFbx(FbxFilePath, *RenderData);
     NewSkeletalMesh->SetRenderData(RenderData);
+
+    // Material
+    for (auto& MaterialInfo : RenderData->Materials)
+    {
+        UMaterial* Material = UMaterial::CreateMaterial(MaterialInfo);
+
+        NewSkeletalMesh->AddMaterial(Material);
+    }
+
     return NewSkeletalMesh;
 }
 
@@ -96,14 +105,18 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
                 else
                     std::cout << "Parent Idx " << OutRenderData.ParentBoneIndices[i] << "  Root" <<std::endl;
             }
-            // for (int i=0;i<OutRenderData.BoneNames.Num();i++)
+            // for (int i=0;i<OutRenderData.Materials.Num();i++)
             // {
-            //     std::cout << "Currnet Bone :" << GetData(OutRenderData.BoneNames[i]) << std::endl;
-            //     if (OutRenderData.ParentBoneIndices[i] != -1)
-            //         std::cout << "Parent Idx : " << OutRenderData.ParentBoneIndices[i] << ", Parent Name : " << GetData(OutRenderData.BoneNames[OutRenderData.ParentBoneIndices[i]]) << std::endl;
-            //     else
-            //         std::cout << "Parent Idx " << OutRenderData.ParentBoneIndices[i] << "  Root" <<std::endl;
+            //     std::wcout << OutRenderData.Materials[i].DiffuseTexturePath << std::endl;
+            //     std::wcout << OutRenderData.Materials[i].SpecularTexturePath << std::endl;
+            //     std::wcout << OutRenderData.Materials[i].AmbientTexturePath<< std::endl;
+            //     std::wcout << OutRenderData.Materials[i].BumpTexturePath << std::endl;
             // }
+            for (int i=0;i<OutRenderData.ReferencePose.Num();i++)
+            {
+                std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
+                OutRenderData.LocalBindPose[i].PrintMatirx();
+            }
         }
     }
 }

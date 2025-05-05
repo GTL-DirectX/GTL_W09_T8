@@ -20,6 +20,10 @@ private:
     static void CreateSRTButton(ImVec2 ButtonSize);
     void CreateLightSpawnButton(ImVec2 InButtonSize, ImFont* IconFont);
 
+    // Begin Test
+    void CreateViewerButton();
+    // End Test
+
 private:
     static uint64 ConvertSelectionToFlags(const bool Selected[]);
     
@@ -27,6 +31,7 @@ private:
     float Width = 300, Height = 100;
     bool bOpenMenu = false;
     bool bShowImGuiDemoWindow = false; // 데모 창 표시 여부를 관리하는 변수
+    bool bShowSkeletalMeshViewer = false;
 
     FLightGridGenerator LightGridGenerator;
 };

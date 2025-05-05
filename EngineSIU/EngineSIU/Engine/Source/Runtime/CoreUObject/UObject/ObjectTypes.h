@@ -17,6 +17,7 @@ enum OBJECTS : uint8
     OBJ_PLAYER,
     OBJ_FOG,
     OBJ_Spawner,
+    OBJ_SKELETALMESHACTOR,
     OBJ_END
 };
 

@@ -7,8 +7,7 @@
 #include "Container/Map.h"
 
 #include "Rendering/Mesh/SkeletalMeshRenderData.h"
-
-class USkeletalMesh;
+#include "Rendering/Mesh/SkeletalMesh.h"
 
 // FBX SDK forward declarations to avoid include issues
 class FFBXManager
@@ -48,6 +47,13 @@ public:
         ID3D11Buffer*& OutIB);
     void UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData,
                                         ID3D11DeviceContext* Context);
+
+    FMatrix GetConversionMatrix(
+        const FbxAxisSystem& sourceAxisSystem,
+        const FbxAxisSystem& targetAxisSystem);
+
+    void BuildBasisMatrix(const FbxAxisSystem& system, FbxAMatrix& outMatrix);
+
 private:
     // 생성/소멸은 외부 호출을 막기 위해 private
     FFBXManager() = default;

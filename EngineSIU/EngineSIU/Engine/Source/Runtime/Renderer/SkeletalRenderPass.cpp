@@ -6,7 +6,7 @@
 #include "ShadowManager.h"
 #include "UnrealClient.h"
 #include "UObject/UObjectIterator.h"
-#include "Components/SkeletalMeshCompnent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "ViewportClient.h"
 #include "Engine/EditorEngine.h"
 #include "ShowFlag.h"
@@ -43,7 +43,7 @@ void FSkeletalRenderPass::InitializeShadowManager(class FShadowManager* InShadow
 
 void FSkeletalRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& Viewport)
 {
-    for (const auto iter : TObjectRange<USkeletalMeshCompnent>())
+    for (const auto iter : TObjectRange<USkeletalMeshComponent>())
     {
         if (iter->GetWorld() == Viewport->GetWorld())
             SkeletalMeshComponents.Add(iter);
@@ -52,9 +52,9 @@ void FSkeletalRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient
 
 void FSkeletalRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewportClient>& Viewport)
 {
-    for (USkeletalMeshCompnent* Comp : SkeletalMeshComponents)
+    for (USkeletalMeshComponent* Comp : SkeletalMeshComponents)
     {
-        if (!Comp)
+        if (!Comp || Comp->GetSkeletalMesh() == nullptr)
             continue;
 
         FSkeletalMeshRenderData* RenderData = Comp->GetSkeletalMesh()->GetRenderData();
@@ -64,12 +64,16 @@ void FSkeletalRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewpor
             continue;
         }
 
-        UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
         
         FMatrix WorldMatrix = Comp->GetWorldMatrix();
         FVector4 UUIDColor = Comp->EncodeUUID() / 255.0f;
 
         UpdateObjectConstant(WorldMatrix, UUIDColor, false);
+        TArray<FStaticMaterial*> Materials = Comp->GetSkeletalMesh()->GetMaterials();
+        for (int MaterialIndex = 0; MaterialIndex < Materials.Num(); MaterialIndex++)
+        {
+            MaterialUtils::UpdateMaterial(BufferManager, Graphics, Materials[MaterialIndex]->Material->GetMaterialInfo());
+        }
 
         RenderPrimitive(RenderData->VertexBuffer, RenderData->Vertices.Num(), RenderData->IndexBuffer, RenderData->Indices.Num());
 
@@ -199,19 +203,19 @@ void FSkeletalRenderPass::PrepareRenderState(const std::shared_ptr<FViewportClie
         Graphics->DeviceContext->RSSetState(Graphics->RasterizerSolidBack);
     }
 
-    // Pixel Shader
-    if (ViewMode == EViewModeIndex::VMI_SceneDepth)
-    {
-        Graphics->DeviceContext->PSSetShader(DebugDepthShader, nullptr, 0);
-    }
-    else if (ViewMode == EViewModeIndex::VMI_WorldNormal)
-    {
-        Graphics->DeviceContext->PSSetShader(DebugWorldNormalShader, nullptr, 0);
-    }
-    else
-    {
-        Graphics->DeviceContext->PSSetShader(PixelShader, nullptr, 0);
-    }
+    //// Pixel Shader -> StaticMeshRender 패스의 쉐이더 그대로 받아서 사용한다
+    //if (ViewMode == EViewModeIndex::VMI_SceneDepth)
+    //{
+    //    Graphics->DeviceContext->PSSetShader(DebugDepthShader, nullptr, 0);
+    //}
+    //else if (ViewMode == EViewModeIndex::VMI_WorldNormal)
+    //{
+    //    Graphics->DeviceContext->PSSetShader(DebugWorldNormalShader, nullptr, 0);
+    //}
+    //else
+    //{
+    //    Graphics->DeviceContext->PSSetShader(PixelShader, nullptr, 0);
+    //}
 }
 
 
@@ -247,52 +251,53 @@ void FSkeletalRenderPass::ReleaseShader()
 
 void FSkeletalRenderPass::CreateShader()
 {
-    // Begin Debug Shaders
-    HRESULT hr = ShaderManager->AddPixelShader(L"StaticMeshPixelShaderDepth", L"Shaders/StaticMeshPixelShaderDepth.hlsl", "mainPS");
-    if (FAILED(hr))
-    {
-        return;
-    }
-    hr = ShaderManager->AddPixelShader(L"StaticMeshPixelShaderWorldNormal", L"Shaders/StaticMeshPixelShaderWorldNormal.hlsl", "mainPS");
-    if (FAILED(hr))
-    {
-        return;
-    }
-    // End Debug Shaders
+    // !TODO : 나중에 SkeletalMesh 용 Shader 작성해서 사용
+    //// Begin Debug Shaders
+    //HRESULT hr = ShaderManager->AddPixelShader(L"StaticMeshPixelShaderDepth", L"Shaders/StaticMeshPixelShaderDepth.hlsl", "mainPS");
+    //if (FAILED(hr))
+    //{
+    //    return;
+    //}
+    //hr = ShaderManager->AddPixelShader(L"StaticMeshPixelShaderWorldNormal", L"Shaders/StaticMeshPixelShaderWorldNormal.hlsl", "mainPS");
+    //if (FAILED(hr))
+    //{
+    //    return;
+    //}
+    //// End Debug Shaders
 
-    #pragma region UberShader
-    D3D_SHADER_MACRO DefinesGouraud[] =
-    {
-        { GOURAUD, "1" },
-        { nullptr, nullptr }
-    };
-    hr = ShaderManager->AddPixelShader(L"GOURAUD_StaticMeshPixelShader", L"Shaders/StaticMeshPixelShader.hlsl", "mainPS", DefinesGouraud);
-    if (FAILED(hr))
-    {
-        return;
-    }
-        
-    D3D_SHADER_MACRO DefinesLambert[] =
-    {
-        { LAMBERT, "1" },
-        { nullptr, nullptr }
-    };
-    hr = ShaderManager->AddPixelShader(L"LAMBERT_StaticMeshPixelShader", L"Shaders/StaticMeshPixelShader.hlsl", "mainPS", DefinesLambert);
-    if (FAILED(hr))
-    {
-        return;
-    }
-        
-    D3D_SHADER_MACRO DefinesBlinnPhong[] =
-    {
-        { PHONG, "1" },
-        { nullptr, nullptr }
-    };
-    hr = ShaderManager->AddPixelShader(L"PHONG_StaticMeshPixelShader", L"Shaders/StaticMeshPixelShader.hlsl", "mainPS", DefinesBlinnPhong);
-    if (FAILED(hr))
-    {
-        return;
-    }
+    //#pragma region UberShader
+    //D3D_SHADER_MACRO DefinesGouraud[] =
+    //{
+    //    { GOURAUD, "1" },
+    //    { nullptr, nullptr }
+    //};
+    //hr = ShaderManager->AddPixelShader(L"GOURAUD_StaticMeshPixelShader", L"Shaders/StaticMeshPixelShader.hlsl", "mainPS", DefinesGouraud);
+    //if (FAILED(hr))
+    //{
+    //    return;
+    //}
+    //    
+    //D3D_SHADER_MACRO DefinesLambert[] =
+    //{
+    //    { LAMBERT, "1" },
+    //    { nullptr, nullptr }
+    //};
+    //hr = ShaderManager->AddPixelShader(L"LAMBERT_StaticMeshPixelShader", L"Shaders/StaticMeshPixelShader.hlsl", "mainPS", DefinesLambert);
+    //if (FAILED(hr))
+    //{
+    //    return;
+    //}
+    //    
+    //D3D_SHADER_MACRO DefinesBlinnPhong[] =
+    //{
+    //    { PHONG, "1" },
+    //    { nullptr, nullptr }
+    //};
+    //hr = ShaderManager->AddPixelShader(L"PHONG_StaticMeshPixelShader", L"Shaders/StaticMeshPixelShader.hlsl", "mainPS", DefinesBlinnPhong);
+    //if (FAILED(hr))
+    //{
+    //    return;
+    //}
         
     #pragma endregion UberShader
         
