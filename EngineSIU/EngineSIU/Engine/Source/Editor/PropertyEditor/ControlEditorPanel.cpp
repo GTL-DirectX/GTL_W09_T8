@@ -44,6 +44,8 @@ void ControlEditorPanel::Render()
     /* Panel Flags */
     ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_None;
 
+    ImGui::SetNextWindowSizeConstraints(ImVec2(0, 72), ImVec2(FLT_MAX, FLT_MAX));
+
     /* Render Start */
     if (!ImGui::Begin("Control Panel", nullptr, PanelFlags))
     {

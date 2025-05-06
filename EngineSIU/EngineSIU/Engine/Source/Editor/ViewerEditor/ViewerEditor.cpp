@@ -147,7 +147,6 @@ void ViewerEditor::DrawBoneHierarchyRecursive(int BoneIndex, const TArray<FStrin
         ImGui::TreePop();
     }
 }
-
 void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
 {
     if (!bShowWindow)
@@ -158,7 +157,6 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
         }
         return;
     }
-
     if (!bIsInitialized)
     {
         InitializeViewerResources();
@@ -167,45 +165,71 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
             return;
         }
     }
-
     if (ImGui::Begin("SkeletalMesh Viewer", &bShowWindow))
     {
+        ImGui::Columns(2, "ViewerColumns", true);
+
         if (ViewerViewportClient && ViewerViewportClient->GetViewportResource())
         {
-            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-            float width = FMath::Max(1.0f, contentRegion.x);
-            float height = FMath::Max(1.0f, contentRegion.y);
+            ImVec2 ContentRegion = ImGui::GetContentRegionAvail();
 
             ID3D11ShaderResourceView* SRV = ViewerViewportClient->GetViewportResource()->GetRenderTarget(EResourceType::ERT_Compositing)->SRV;
             if (SRV)
             {
-                ImGui::Image(reinterpret_cast<ImTextureID>(SRV), ImVec2(width, height));
+                D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc;
+                SRV->GetDesc(&SrvDesc);
+                D3D11_TEXTURE2D_DESC TexDesc;
+
+                ID3D11Resource* Resource;
+                SRV->GetResource(&Resource);
+                ID3D11Texture2D* Texture = static_cast<ID3D11Texture2D*>(Resource);
+                Texture->GetDesc(&TexDesc);
+                Resource->Release();
+
+                float originalWidth = static_cast<float>(TexDesc.Width);
+                float originalHeight = static_cast<float>(TexDesc.Height);
+                float OriginalAspect = originalWidth / originalHeight;
+
+                float AvailableWidth = ContentRegion.x;
+                float AvailableHeight = ContentRegion.y;
+
+                float DisplayWidth, DisplayHeight;
+
+                if (AvailableWidth / AvailableHeight > OriginalAspect)
+                {
+                    DisplayHeight = AvailableHeight;
+                    DisplayWidth = DisplayHeight * OriginalAspect;
+                }
+                else
+                {
+                    DisplayWidth = AvailableWidth;
+                    DisplayHeight = DisplayWidth / OriginalAspect;
+                }
+
+                float OffsetX = (AvailableWidth - DisplayWidth) * 0.5f;
+                float OffsetY = (AvailableHeight - DisplayHeight) * 0.5f;
+
+                ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + OffsetX, ImGui::GetCursorPosY() + OffsetY));
+                ImGui::Image(reinterpret_cast<ImTextureID>(SRV), ImVec2(DisplayWidth, DisplayHeight));
             }
         }
 
-        //여기에 skeletal mesh property가 들어갈 예정
-        // 1. 그 SkeletalMesh 고르는 것
+        ImGui::NextColumn();
 
-        // 임시로 파일 경로로 해놨음.
-        // 원래 DisplayName이 있었던 것 같은데
         FString PreviewName = SelectedSkeletalMesh ? SelectedSkeletalMesh->GetRenderData()->FilePath : TEXT("None");
-
         if (ImGui::BeginCombo("Skeletal Mesh", GetData(PreviewName)))
         {
             if (ImGui::Selectable(TEXT("None"), SelectedSkeletalMesh == nullptr))
             {
                 SelectedSkeletalMesh = nullptr;
             }
-
             // 지금 registry해놓은게 없어서 일단 테스트 코드로 수행.
-
             ImGui::EndCombo();
         }
 
         if (SelectedSkeletalMesh)
         {
             FSkeletalMeshRenderData* RenderData = SelectedSkeletalMesh->GetRenderData();
-
             if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 int BoneCount = RenderData->BoneNames.Num();
@@ -219,7 +243,6 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
                         Children[ParentIndex].Add(i);
                     }
                 }
-
                 for (int i = 0; i < BoneCount; ++i)
                 {
                     if (RenderData->ParentBoneIndices[i] < 0)
@@ -230,6 +253,7 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
             }
         }
 
+        ImGui::Columns(1);
     }
     ImGui::End();
 }
