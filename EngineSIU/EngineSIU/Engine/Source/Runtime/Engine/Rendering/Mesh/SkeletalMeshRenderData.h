@@ -45,6 +45,7 @@ struct FBone
 
 struct FSkeletalMeshRenderData
 {
+    FString ObjectName;
     FString FilePath;
 
     // 버텍스 & 인덱스

@@ -45,8 +45,11 @@ public:
         const TArray<UINT>& Indices,
         ID3D11Buffer*& OutVB,
         ID3D11Buffer*& OutIB);
-    void UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData,
-                                        ID3D11DeviceContext* Context);
+    void UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData, ID3D11DeviceContext* Context);
+
+public:
+    bool SaveSkeletalMeshToBinary(const FWString& FilePath, const FSkeletalMeshRenderData& StaticMesh);
+    bool LoadSkeletalMeshFromBinary(const FWString& FilePath, FSkeletalMeshRenderData& OutStaticMesh);
 
 
 
