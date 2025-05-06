@@ -483,6 +483,39 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
         ImGui::TreePop();
     }
     ImGui::PopStyleColor();
+    int   transBoneIdx = SkeletalMeshComp->transboneidx;
+
+    // 1) 본 인덱스 입력
+    ImGui::InputInt("Bone Index", &transBoneIdx);
+    SkeletalMeshComp->transboneidx = transBoneIdx;
+
+    static float loc[3]       = { 0.0f, 0.0f, 0.0f };
+    static float rot[3]       = { 0.0f, 0.0f, 0.0f }; // Pitch, Yaw, Roll 순
+    static float scale[3]     = { 1.0f, 1.0f, 1.0f };
+    // 2) 위치 입력 (X, Y, Z)
+    ImGui::InputFloat3("Delta Location", loc);
+
+    // 3) 회전 입력 (Pitch, Yaw, Roll)
+    ImGui::InputFloat3("Delta Rotation (P,Y,R)", rot);
+
+    // 4) 스케일 입력 (X, Y, Z)
+    ImGui::InputFloat3("Delta Scale", scale);
+
+    // 5) Apply 버튼
+    if (ImGui::Button("Apply Offset"))
+    {
+        FVector    deltaLoc   = FVector(loc[0], loc[1], loc[2]);
+        FRotator   deltaRot   = FRotator(rot[0], rot[1], rot[2]);
+        FVector    deltaScale = FVector(scale[0], scale[1], scale[2]);
+
+        // 실제 적용
+        SkeletalMeshComp->GetSkeletalMesh()->GetRenderData()->ApplyBoneOffsetAndRebuild(
+            transBoneIdx,
+            deltaLoc,
+            deltaRot,
+            deltaScale
+        );
+    }
 }
 
 void PropertyEditorPanel::RenderForAmbientLightComponent(UAmbientLightComponent* LightComponent) const

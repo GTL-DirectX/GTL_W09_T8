@@ -25,6 +25,7 @@ public:
     virtual void SetSkeletalMesh(USkeletalMesh* InSkeletalMesh);
     virtual USkeletalMesh* GetSkeletalMesh() const;
 
+    int32 transboneidx =0;
 private:
     USkeletalMesh* SkeletalMeshAsset = nullptr;
 };

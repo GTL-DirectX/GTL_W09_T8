@@ -171,7 +171,7 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
 
     // 이 엔진의 좌표계 정의
     const FbxAxisSystem EngineAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eLeftHanded); // Z-up, X-fwd(ParityOdd), LH
-    const float EngineUnitScaleFactor = 0.01f; // 엔진 단위가 미터라고 가정 (cm -> m)
+    const float EngineUnitScaleFactor = 1.0f; // 엔진 단위가 미터라고 가정 (cm -> m)
 
     FMatrix conversionMatrix = GetConversionMatrix(sourceAxisSystem, EngineAxisSystem);
     float conversionMatrixDet = conversionMatrix.Determinant3x3();
