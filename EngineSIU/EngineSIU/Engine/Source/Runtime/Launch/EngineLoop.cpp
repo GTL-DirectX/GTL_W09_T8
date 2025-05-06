@@ -102,6 +102,7 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     GEngine->Init();
     LevelEditor->Initialize(ClientWidth, ClientHeight, GEngine);
 
+    FFBXManager::Get().PreloadAllFbxFiles(TEXT("Contents\\Fbx"));
     LastWarGameUI->Initialize();
     UpdateUI();
 

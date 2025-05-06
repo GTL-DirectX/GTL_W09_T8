@@ -46,7 +46,7 @@ void USkeletalMeshComponent::SetProperties(const TMap<FString, FString>& InPrope
         {
             // 경로 문자열로 UStaticMesh 에셋 로드 시도
 
-            if (USkeletalMesh* MeshToSet = FFBXManager::Get().LoadSkeletalMesh(*TempStr))
+            if (USkeletalMesh* MeshToSet = FFBXManager::Get().LoadFbx(*TempStr))
             {
                 SetSkeletalMesh(MeshToSet); // 성공 시 메시 설정
                 UE_LOG(LogLevel::Display, TEXT("Set SkeletalMesh '%s' for %s"), **TempStr, *GetName());

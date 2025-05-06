@@ -403,7 +403,10 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                     USkeletalMeshComponent* SkeletalMeshComponent = SpawnedActor->GetComponentByClass<USkeletalMeshComponent>();
                     if (SkeletalMeshComponent)
                     {
-                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\SKM_Quinn_Simple.fbx");
+                        // !TODO : 다음과 같은 플로우로 변경
+                        // 1. 엔진 시작 시 Contents/SkeletalMesh의 skm형식의 바이너리파일을 모두 로드
+                        // 2. 로드된 바이너리파일의 이름으로 FFbxManager에서 찾아오기
+                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadFbx("Contents\\fbx\\character.fbx");
                         SkeletalMeshComponent->SetSkeletalMesh(SkeletalMesh);
                     }
                     break;

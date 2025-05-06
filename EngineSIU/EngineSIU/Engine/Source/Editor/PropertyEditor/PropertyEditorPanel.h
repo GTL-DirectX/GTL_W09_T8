@@ -20,6 +20,7 @@ class UProjectileMovementComponent;
 class UTextComponent;
 class UHeightFogComponent;
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
 
 // 헬퍼 함수 예시
 template<typename Getter, typename Setter>
@@ -42,8 +43,10 @@ private:
 
     /* Static Mesh Settings */
     void RenderForStaticMesh(UStaticMeshComponent* StaticMeshComp) const;
+    void RenderForSkeletalMesh(USkeletalMeshComponent* SkeletalMeshComp) const;
     /* Materials Settings */
     void RenderForMaterial(UStaticMeshComponent* StaticMeshComp);
+    void RenderForMaterial(USkeletalMeshComponent* SkeletalMeshComp);
     void RenderMaterialView(UMaterial* Material);
     void RenderCreateMaterialView();
 
@@ -76,6 +79,7 @@ private:
     int SelectedMaterialIndex = -1;
     int CurMaterialIndex = -1;
     UStaticMeshComponent* SelectedStaticMeshComp = nullptr;
+    USkeletalMeshComponent* SelectedSkeletalMeshComp = nullptr;
     FObjMaterialInfo tempMaterialInfo;
     bool IsCreateMaterial;
 

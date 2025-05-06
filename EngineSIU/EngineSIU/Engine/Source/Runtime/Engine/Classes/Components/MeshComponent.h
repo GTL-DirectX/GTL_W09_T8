@@ -12,6 +12,9 @@ public:
 
     virtual void GetProperties(TMap<FString, FString>& OutProperties) const override;
     virtual void SetProperties(const TMap<FString, FString>& InProperties) override;
+
+    void SetselectedSubMeshIndex(const int& value) { selectedSubMeshIndex = value; }
+    int GetselectedSubMeshIndex() const { return selectedSubMeshIndex; };
     
 #pragma region Material
     virtual uint32 GetNumMaterials() const { return 0; }
@@ -27,5 +30,8 @@ protected:
     TArray<UMaterial*> OverrideMaterials;
 public:
     TArray<UMaterial*>& GetOverrideMaterials() { return OverrideMaterials; }
+
+protected:
+    int selectedSubMeshIndex = -1;
 };
 

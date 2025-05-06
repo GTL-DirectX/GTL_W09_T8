@@ -18,7 +18,7 @@
 // 전역 인스턴스 정의
 FFBXManager* GFBXManager = nullptr;
 
-USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
+USkeletalMesh* FFBXManager::LoadFbx(const FString& FbxFilePath)
 {
     // SkeletalMesh가 이미 로드되어 있는지 확인
     if (SkeletalMeshMap.Contains(FbxFilePath))
@@ -39,7 +39,7 @@ USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
     if (!LoadSkeletalMeshFromBinary(BinaryPath, *RenderData))
     {
         // 바이너리 없으면 FBX 로드
-        LoadFbx(FbxFilePath, *RenderData);
+        LoadSkeletalMeshRenderData(FbxFilePath, *RenderData);
         SaveSkeletalMeshToBinary(BinaryPath, *RenderData);
     }
 
@@ -51,6 +51,7 @@ USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
     {
         UMaterial* Material = UMaterial::CreateMaterial(MaterialInfo);
 
+       
         NewSkeletalMesh->AddMaterial(Material);
     }
 
@@ -88,6 +89,26 @@ void FFBXManager::Initialize()
     Importer = FbxImporter::Create(SdkManager, "");
 }
 
+void FFBXManager::PreloadAllFbxFiles(const FString& DirectoryPath)
+{
+    // 경로에 존재하는 모든 fbx확장자를 로드함
+    std::filesystem::path path(DirectoryPath.ToWideString());
+    if (!std::filesystem::exists(path))
+    {
+        assert(0 && "Directory Not Found");
+        return;
+    }
+
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(path))
+    {
+        if (entry.path().extension() == L".fbx" || entry.path().extension() == L".FBX")
+        {
+            FString FbxFilePath = entry.path().string();
+            LoadFbx(FbxFilePath);
+        }
+    }
+}
+
 void FFBXManager::Release()
 {
     if (Scene)      Scene->Destroy();
@@ -97,11 +118,12 @@ void FFBXManager::Release()
     SkeletalMeshMap.Empty();
 }
 
-void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
+void FFBXManager::LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
 {
     if (!std::filesystem::exists(FbxFilePath.ToWideString()))
     {
-        assert(0 && "FBX File Not Found");
+        UE_LOG(LogLevel::Error, TEXT("FBX File Not Found"));
+        return;
     }
 
     // FBX 파일 열기

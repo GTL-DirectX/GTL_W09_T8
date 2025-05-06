@@ -24,13 +24,15 @@ public:
         return Instance;
     }
 
-    USkeletalMesh* LoadSkeletalMesh(const FString& FbxFilePath);
+    USkeletalMesh* LoadFbx(const FString& FbxFilePath);
 
     // SDK 초기화
     void Initialize();
 
+    void PreloadAllFbxFiles(const FString& DirectoryPath);
+
     // FBX 파일 로드 및 씬 셋업 (파일 경로: const char*)
-    void LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData);
+    void LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData);
     void Release();
     // 씬에서 노드 데이터 출력 (예시)
     void ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData);

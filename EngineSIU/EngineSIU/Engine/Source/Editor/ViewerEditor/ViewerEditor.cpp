@@ -54,7 +54,7 @@ void ViewerEditor::InitializeViewerResources()
     UDirectionalLightComponent* LightComp=LightActor->GetComponentByClass<UDirectionalLightComponent>();
     LightComp->SetRelativeRotation(FRotator(0.f, 180.f,0.f));
 
-    SelectedSkeletalMesh = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\character.fbx");
+    SelectedSkeletalMesh = FFBXManager::Get().LoadFbx("Contents\\fbx\\character.fbx");
     SkeletalMeshComp->SetSkeletalMesh(SelectedSkeletalMesh);
     if (SelectedActor)
     {
