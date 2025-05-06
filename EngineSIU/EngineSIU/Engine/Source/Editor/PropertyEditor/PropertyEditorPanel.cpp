@@ -1446,7 +1446,7 @@ void PropertyEditorPanel::RenderForCurve(FString& CurvePath) const
             {
                 if (!bIsExist)
                 {
-                    UAssetManager::Get().LoadObjFiles();
+                    UAssetManager::Get().LoadContentsFiles();
                 }
                 // Linear
                 // Cubic Hermite?

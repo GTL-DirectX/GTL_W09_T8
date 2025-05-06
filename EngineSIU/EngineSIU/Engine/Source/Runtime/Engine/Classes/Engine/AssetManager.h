@@ -47,5 +47,5 @@ public:
     const TMap<FName, FAssetInfo>& GetAssetRegistry();
 
 public:
-    void LoadObjFiles();
+    void LoadContentsFiles();
 };

@@ -29,8 +29,6 @@ public:
     // SDK 초기화
     void Initialize();
 
-    void PreloadAllFbxFiles(const FString& DirectoryPath);
-
     // FBX 파일 로드 및 씬 셋업 (파일 경로: const char*)
     void LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData);
     void Release();

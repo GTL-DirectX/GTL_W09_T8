@@ -89,26 +89,6 @@ void FFBXManager::Initialize()
     Importer = FbxImporter::Create(SdkManager, "");
 }
 
-void FFBXManager::PreloadAllFbxFiles(const FString& DirectoryPath)
-{
-    // 경로에 존재하는 모든 fbx확장자를 로드함
-    std::filesystem::path path(DirectoryPath.ToWideString());
-    if (!std::filesystem::exists(path))
-    {
-        assert(0 && "Directory Not Found");
-        return;
-    }
-
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(path))
-    {
-        if (entry.path().extension() == L".fbx" || entry.path().extension() == L".FBX")
-        {
-            FString FbxFilePath = entry.path().string();
-            LoadFbx(FbxFilePath);
-        }
-    }
-}
-
 void FFBXManager::Release()
 {
     if (Scene)      Scene->Destroy();
