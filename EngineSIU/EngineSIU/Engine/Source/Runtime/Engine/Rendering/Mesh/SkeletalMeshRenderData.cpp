@@ -9,18 +9,13 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
         UE_LOG(LogLevel::Error, "Not Valid Bone Index");
         return;
     }
-    FVector Pivot = FVector(LocalBindPose[BoneIndex].M[3][0],LocalBindPose[BoneIndex].M[3][1],LocalBindPose[BoneIndex].M[3][2]);
-    UE_LOG(LogLevel::Warning, "Pivot: %f", Pivot);
     // 델타 행렬 (Scale -> Rot -> Trans)
     FMatrix Mscale = FMatrix::CreateScaleMatrix(1,1,1);
     FMatrix Mrot   = FMatrix::CreateRotationMatrix(DeltaRot.Roll,DeltaRot.Pitch,DeltaRot.Yaw);
-    FMatrix Mtrans = FMatrix::CreateTranslationMatrix(DeltaLoc);
-    
-    FMatrix ToPivot    = FMatrix::CreateTranslationMatrix(-Pivot);
-    FMatrix FromPivot  = FMatrix::CreateTranslationMatrix(Pivot);
-    FMatrix DeltaM     = FromPivot * Mtrans * Mrot * Mscale * ToPivot;
+    FMatrix DeltaM = FMatrix::CreateTranslationMatrix(DeltaLoc);
+    DeltaM = DeltaM * Mrot * Mscale;
     // 1) 로컬 바인드 포즈 적용
-    LocalBindPose[BoneIndex] = DeltaM * LocalBindPose[BoneIndex];
+    LocalBindPose[BoneIndex] =  LocalBindPose[BoneIndex]* DeltaM;
     // 2) 글로벌 ReferencePose 재계산
     UpdateReferencePoseFromLoacl();
     // 3) BoneTransforms 동기화

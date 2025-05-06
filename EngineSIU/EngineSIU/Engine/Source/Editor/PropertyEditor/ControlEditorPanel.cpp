@@ -403,7 +403,7 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                     USkeletalMeshComponent* SkeletalMeshComponent = SpawnedActor->GetComponentByClass<USkeletalMeshComponent>();
                     if (SkeletalMeshComponent)
                     {
-                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\character.fbx");
+                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\Person.fbx");
                         SkeletalMeshComponent->SetSkeletalMesh(SkeletalMesh);
                     }
                     break;

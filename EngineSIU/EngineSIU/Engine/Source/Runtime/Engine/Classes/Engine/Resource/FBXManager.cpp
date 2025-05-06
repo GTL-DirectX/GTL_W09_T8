@@ -118,7 +118,7 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
 
     // 이 엔진의 좌표계 정의
     const FbxAxisSystem EngineAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eLeftHanded); // Z-up, X-fwd(ParityOdd), LH
-    const float EngineUnitScaleFactor = 0.01f; // 엔진 단위가 미터라고 가정 (cm -> m)
+    const float EngineUnitScaleFactor = 1.0f; // 엔진 단위가 미터라고 가정 (cm -> m)
 
     FMatrix conversionMatrix = GetConversionMatrix(sourceAxisSystem, EngineAxisSystem);
     float conversionMatrixDet = conversionMatrix.Determinant3x3();
@@ -349,9 +349,8 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
         outData.ParentBoneIndices.Add(parentIdx);
 
         // bind-pose matrix
-        // FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
-        // FMatrix UE_M = conversionMatrix *  * ConvMatInv;
-        outData.ReferencePose.Add(ClusterBindPose[boneNode]);
+        FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
+        outData.ReferencePose.Add( ClusterBindPose[boneNode]);
         outData.SkinningMatrix.Add(ClusterSkinPose[boneNode]);
     }
 
@@ -509,35 +508,6 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
         else
             outData.LocalBindPose[i] = G;
     }
-    
-    
-    // {
-    //     int32 BoneCount = SortedBones.Num();
-    //     outData.LocalBindPose.SetNum(BoneCount);
-    //
-    //     // bind-pose 타임으로 0프레임(혹은 T0) 사용
-    //     FbxTime evalTime = FBXSDK_TIME_ZERO;
-    //
-    //     for (int32 i = 0; i < BoneCount; ++i)
-    //     {
-    //         FbxNode* boneNode = SortedBones[i];
-    //
-    //         // 1) FBX 로컬 바인드 포즈 매트릭스 얻기
-    //         FbxAMatrix  fbxLocal = boneNode->EvaluateLocalTransform(evalTime);
-    //         // (필요시 애니메이션 레이어 인자로 넘겨줄 수도 있음)
-    //
-    //         // 2) FBX 좌표계 → 언리얼 좌표계 변환
-    //         //    (sourceAxisSystem, conversionMatrix 은 함수 상단에서 이미 구해두셨죠)
-    //         FMatrix RawMat = ConvertToFMatrix(fbxLocal);
-    //         FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
-    //         FMatrix UE_M = conversionMatrix * RawMat * ConvMatInv;
-    //
-    //         outData.LocalBindPose[i] = UE_M;
-    //     }
-    // }
-    // const int32 BoneCount = outData.LocalBindPose.Num();
-    // outData.OrigineReferencePose.SetNum(BoneCount); // 원본 백업
-    // outData.UpdateReferencePoseFromLoacl();
 
     // 11) 원본 데이터 보관
     outData.OrigineVertices          = outData.Vertices;
