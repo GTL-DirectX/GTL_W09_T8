@@ -2,9 +2,6 @@
 
 #include "Define.h"
 
-// 이걸로 가져오는게 맞는지 고민이긴 함.
-#include "Engine/Rendering/Mesh/SkeletalMeshRenderData.h"
-
 class UWorld;
 class FEditorViewportClient;
 class FString;
@@ -30,6 +27,6 @@ private:
     static bool bIsInitialized;
     static FString ViewportIdentifier;
 
-
     static bool bShowBones;
+
 };

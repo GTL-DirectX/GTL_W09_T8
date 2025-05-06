@@ -21,14 +21,13 @@
 
 // End Test
 
-// static 멤버 변수 정의 및 초기화
-AActor* ViewerEditor::SelectedActor = nullptr;
-USkeletalMesh* ViewerEditor::SelectedSkeletalMesh = nullptr;
-
 UWorld* ViewerEditor::ViewerWorld = nullptr;
 FEditorViewportClient* ViewerEditor::ViewerViewportClient = nullptr;
 bool ViewerEditor::bIsInitialized = false;
 FString ViewerEditor::ViewportIdentifier = TEXT("SkeletalMeshViewerViewport");
+AActor* ViewerEditor::SelectedActor = nullptr;
+USkeletalMesh* ViewerEditor::SelectedSkeletalMesh = nullptr;
+bool ViewerEditor::bShowBones = false;
 
 void ViewerEditor::InitializeViewerResources()
 {
@@ -46,7 +45,6 @@ void ViewerEditor::InitializeViewerResources()
     ViewerWorld->InitializeNewWorld();
     ViewerWorld->WorldType = EWorldType::EditorPreview;
 
-    // Begin Test
     SelectedActor = ViewerWorld->SpawnActor<AActor>();
     USkeletalMeshComponent* SkeletalMeshComp = SelectedActor->AddComponent<USkeletalMeshComponent>();
 
@@ -54,19 +52,21 @@ void ViewerEditor::InitializeViewerResources()
     UDirectionalLightComponent* LightComp=LightActor->GetComponentByClass<UDirectionalLightComponent>();
     LightComp->SetRelativeRotation(FRotator(0.f, 180.f,0.f));
 
+    // FIX-ME
     SelectedSkeletalMesh = FFBXManager::Get().LoadSkeletalMesh("C:\\Users\\Jungle\\Desktop\\character.fbx");
+
     SkeletalMeshComp->SetSkeletalMesh(SelectedSkeletalMesh);
     if (SelectedActor)
     {
         SelectedActor->SetActorLabel(TEXT("Viewer_SkeletalMesh"));
     }
 
+    // FIX-ME
     ViewerViewportClient = GEngineLoop.GetLevelEditor()->AddWindowViewportClient(
         ViewportIdentifier,
         ViewerWorld,
         FRect(100, 100, 800, 800)
     );
-    // End Test
 
     if (!ViewerViewportClient)
     {
@@ -223,7 +223,7 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
             {
                 SelectedSkeletalMesh = nullptr;
             }
-            // 지금 registry해놓은게 없어서 일단 테스트 코드로 수행.
+            // FIX-ME
             ImGui::EndCombo();
         }
 
@@ -232,6 +232,8 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
             FSkeletalMeshRenderData* RenderData = SelectedSkeletalMesh->GetRenderData();
             if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
             {
+                ImGui::Checkbox("Show Bones", &bShowBones);
+
                 int BoneCount = RenderData->BoneNames.Num();
                 TArray<TArray<int>> Children;
                 Children.SetNum(BoneCount);
