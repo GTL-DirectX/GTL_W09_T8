@@ -45,6 +45,7 @@ struct FBone
 
 struct FSkeletalMeshRenderData
 {
+    FString ObjectName;
     FString FilePath;
 
     // 버텍스 & 인덱스
@@ -79,7 +80,7 @@ struct FSkeletalMeshRenderData
     {
         int32 BoneCount = LocalBindPose.Num();
         ReferencePose.SetNum(BoneCount);
-
+        
         // 루트부터 자식 순으로 순회해야 하므로, 
         // ParentBoneIndices 가 항상 부모 인덱스 < 자식 인덱스 관계를 보장하도록
         // 본들이 정렬되어 있다고 가정합니다.
@@ -87,7 +88,7 @@ struct FSkeletalMeshRenderData
         {
             const FMatrix& LocalMatrix = LocalBindPose[i];
             int32 ParentIndex = ParentBoneIndices[i];
-
+        
             if (ParentIndex >= 0 && ParentIndex < BoneCount)
             {
                 // 부모의 글로벌(Reference) 행렬에 곱해 자식의 글로벌을 구함
@@ -99,6 +100,7 @@ struct FSkeletalMeshRenderData
                 ReferencePose[i] = LocalMatrix;
             }
         }
+
     }
 
     //혹시 문제가 생길걸 대비해서 만들어둔 부모 자식 인덱스 순서 정렬 함수(위상 정렬) 
@@ -174,43 +176,78 @@ struct FSkeletalMeshRenderData
         meshData.ReferencePose    = NewRefPose;
         meshData.LocalBindPose    = NewLocalPose;
     }
-    void UpdateVerticesFromNewBindPose(FSkeletalMeshRenderData& meshData)
+    
+
+    void UpdateVerticesFromNewBindPose()
     {
-        // 1) 델타 행렬 계산 (위 4번)
-        int32 BoneCount = meshData.ReferencePose.Num();
-        TArray<FMatrix> OldGlobal = OrigineReferencePose;
+        int32 BoneCount = ReferencePose.Num();
+        int32 VCount    = Vertices.Num();
+
+        // Delta 행렬 계산
         TArray<FMatrix> Delta; Delta.SetNum(BoneCount);
-        for (int32 bi = 0; bi < BoneCount; ++bi)
+        for (int32 i = 0; i < BoneCount; ++i)
         {
-            Delta[bi] = meshData.ReferencePose[bi] * FMatrix::Inverse(OldGlobal[bi]);
+            Delta[i] = ReferencePose[i] * FMatrix::Inverse(OrigineReferencePose[i]);
         }
 
-        // 2) 버텍스 재계산
-        int32 VCount = meshData.Vertices.Num();
-        for (int32 vi = 0; vi < VCount; ++vi)
+        // 각 버텍스에 대해
+        for (int32 vi = 0; vi < OrigineVertices.Num(); ++vi)
         {
-            const FVector& P0 = meshData.OrigineVertices[vi].Position;
-            const FVector& N0 = meshData.OrigineVertices[vi].Normal;
-            FVector Pnew(0,0,0), Nnew(0,0,0);
+            const auto& src = OrigineVertices[vi];
+            auto&       dst = Vertices[vi];
 
-            const auto& vert = meshData.Vertices[vi];
+            // 1) 가중치 합 계산 및 정규화
+            float WeightSum = 0.0f;
+            for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+                WeightSum += src.BoneWeights[j];
+            
+            // 2) 가중치 정규화 (합이 0이 아니면)
+            float InverseSum = (WeightSum > KINDA_SMALL_NUMBER) ? (1.0f / WeightSum) : 0.0f;
+
+            FVector P(0), N(0), T(0), B(0);
+            
+            // 3) 스키닝 적용
             for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
             {
-                float w = vert.BoneWeights[j];
+                float w = src.BoneWeights[j] * InverseSum;
                 if (w <= 0.0f) continue;
+                int bi = src.BoneIndices[j];
+                const FMatrix& M = Delta[bi];
 
-                int bi = vert.BoneIndices[j];
-                Pnew += Delta[bi].TransformPosition(P0) * w;
-                Nnew += FMatrix::TransformVector(P0,Delta[bi])  * w;
+                P += M.TransformPosition(src.Position) * w;
+                N += FMatrix::TransformVector(src.Normal, M) * w;
+                T += FMatrix::TransformVector(src.Tangent,M) * w;
+                B += FMatrix::TransformVector(src.Bitangent,M) * w;
             }
 
-            meshData.Vertices[vi].Position = Pnew;
-            meshData.Vertices[vi].Normal   = Nnew.GetSafeNormal();
+            // 4) 결과 저장
+            dst.Position  = P;
+            dst.Normal    = N.GetSafeNormal();
+            dst.Tangent   = T.GetSafeNormal();
+            dst.Bitangent = B.GetSafeNormal();
+            dst.UV        = src.UV;
+            
+            // BoneIndices/Weights는 원본 그대로 유지
+            for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+            {
+                dst.BoneIndices[j] = src.BoneIndices[j];
+                dst.BoneWeights[j] = src.BoneWeights[j];
+            }
         }
-
-        // 3) (선택) 바운딩 박스, GPU 버퍼 등도 다시 업데이트
-        // ComputeBounds(meshData.Vertices, meshData.BoundingBoxMin, meshData.BoundingBoxMax);
-        // CreateBuffers(...) 다시 호출 등
     }
+    void ApplyBoneOffsetAndRebuild(
+    int32                   BoneIndex,
+    FVector DeltaLoc, FRotator DeltaRot, FVector DeltaScale);
+
+    void ComputeBounds(
+    const TArray<FSkeletalMeshVertex>& Verts,
+    FVector& OutMin,
+    FVector& OutMax);
+    void CreateBuffers(
+        ID3D11Device* Device,
+        const TArray<FStaticMeshVertex>& Verts,
+        const TArray<UINT>& Indices,
+        ID3D11Buffer*& OutVB,
+        ID3D11Buffer*& OutIB);
 };
 #pragma endregion

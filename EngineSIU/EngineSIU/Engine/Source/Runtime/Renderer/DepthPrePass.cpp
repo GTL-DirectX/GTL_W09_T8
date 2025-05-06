@@ -31,6 +31,7 @@ void FDepthPrePass::Render(const std::shared_ptr<FViewportClient>& Viewport)
 {
     PrepareRenderState(Viewport);
     __super::RenderAllStaticMeshes(Viewport);
+    __super::RenderAllSkeletalMeshes(Viewport);
 
     // 렌더 타겟 해제
     Graphics->DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
@@ -57,11 +58,12 @@ void FDepthPrePass::PrepareRenderState(const std::shared_ptr<FViewportClient>& V
     Graphics->DeviceContext->OMSetRenderTargets(1, &nullRTV, DepthStencilView); // ← 깊이 전용
     */
     
-    VertexShader = ShaderManager->GetVertexShaderByKey(L"StaticMeshVertexShader");
-    InputLayout = ShaderManager->GetInputLayoutByKey(L"StaticMeshVertexShader");
+    // !TODO : Skeletal메시 쉐이더 생기면 두 번 해줘야 함
+    StaticMesh_VertexShader = ShaderManager->GetVertexShaderByKey(L"StaticMeshVertexShader");
+    StaticMesh_InputLayout = ShaderManager->GetInputLayoutByKey(L"StaticMeshVertexShader");
     
-    Graphics->DeviceContext->VSSetShader(VertexShader, nullptr, 0);
-    Graphics->DeviceContext->IASetInputLayout(InputLayout);
+    Graphics->DeviceContext->VSSetShader(StaticMesh_VertexShader, nullptr, 0);
+    Graphics->DeviceContext->IASetInputLayout(StaticMesh_InputLayout);
 
     // 뎁스만 필요하므로, 픽셀 쉐이더는 지정 안함.
     Graphics->DeviceContext->PSSetShader(nullptr, nullptr, 0);

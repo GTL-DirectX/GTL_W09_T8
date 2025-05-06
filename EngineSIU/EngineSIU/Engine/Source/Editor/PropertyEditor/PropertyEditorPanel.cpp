@@ -34,7 +34,11 @@
 #include "Components/Shapes/BoxComponent.h"
 #include "Components/Shapes/CapsuleComponent.h"
 #include "Components/Shapes/SphereComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Rendering/Mesh/SkeletalMesh.h"
 #include "Engine/CurveManager.h"
+#include "Engine/Resource/FBXManager.h"
+#include "Rendering/Material/Material.h"
 
 void PropertyEditorPanel::Render()
 {
@@ -118,6 +122,12 @@ void PropertyEditorPanel::Render()
     {
         RenderForStaticMesh(StaticMeshComponent);
         RenderForMaterial(StaticMeshComponent);
+    }
+
+    if (USkeletalMeshComponent* SkeletalMeshComponent = GetTargetComponent<USkeletalMeshComponent>(SelectedActor, SelectedComponent))
+    {
+        RenderForSkeletalMesh(SkeletalMeshComponent);
+        RenderForMaterial(SkeletalMeshComponent);
     }
 
     if (UHeightFogComponent* FogComponent = GetTargetComponent<UHeightFogComponent>(SelectedActor, SelectedComponent))
@@ -425,6 +435,89 @@ void PropertyEditorPanel::RenderForStaticMesh(UStaticMeshComponent* StaticMeshCo
     ImGui::PopStyleColor();
 }
 
+void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* SkeletalMeshComp) const
+{
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+    if (ImGui::TreeNodeEx("SkeletalMesh", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
+    {
+        ImGui::Text("SkeletalMesh");
+        ImGui::SameLine();
+
+        FString PreviewName;
+        if (SkeletalMeshComp->GetSkeletalMesh())
+        {
+            PreviewName = SkeletalMeshComp->GetSkeletalMesh()->GetRenderData()->ObjectName;
+        }
+        else
+        {
+            PreviewName = TEXT("None");
+        }
+
+        const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
+
+        if (ImGui::BeginCombo("##SkeletalMesh", GetData(PreviewName), ImGuiComboFlags_None))
+        {
+            if (ImGui::Selectable(TEXT("None"), false))
+            {
+                SkeletalMeshComp->SetSkeletalMesh(nullptr);
+            }
+
+            for (const auto& Asset : Assets)
+            {
+                if (Asset.Value.AssetType == EAssetType::SkeletalMesh)
+                {
+                    if (ImGui::Selectable(GetData(Asset.Value.AssetName.ToString()), false))
+                    {
+                        FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
+                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadFbx(MeshName);
+                        if (SkeletalMesh)
+                        {
+                            SkeletalMeshComp->SetSkeletalMesh(SkeletalMesh);
+                        }
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::TreePop();
+    }
+    ImGui::PopStyleColor();
+    int   transBoneIdx = SkeletalMeshComp->transboneidx;
+
+    // 1) 본 인덱스 입력
+    ImGui::InputInt("Bone Index", &transBoneIdx);
+    SkeletalMeshComp->transboneidx = transBoneIdx;
+
+    static float loc[3]       = { 0.0f, 0.0f, 0.0f };
+    static float rot[3]       = { 0.0f, 0.0f, 0.0f }; // Pitch, Yaw, Roll 순
+    static float scale[3]     = { 1.0f, 1.0f, 1.0f };
+    // 2) 위치 입력 (X, Y, Z)
+    ImGui::InputFloat3("Delta Location", loc);
+
+    // 3) 회전 입력 (Pitch, Yaw, Roll)
+    ImGui::InputFloat3("Delta Rotation (P,Y,R)", rot);
+
+    // 4) 스케일 입력 (X, Y, Z)
+    ImGui::InputFloat3("Delta Scale", scale);
+
+    // 5) Apply 버튼
+    if (ImGui::Button("Apply Offset"))
+    {
+        FVector    deltaLoc   = FVector(loc[0], loc[1], loc[2]);
+        FRotator   deltaRot   = FRotator(rot[0], rot[1], rot[2]);
+        FVector    deltaScale = FVector(scale[0], scale[1], scale[2]);
+
+        // 실제 적용
+        SkeletalMeshComp->GetSkeletalMesh()->GetRenderData()->ApplyBoneOffsetAndRebuild(
+            transBoneIdx,
+            deltaLoc,
+            deltaRot,
+            deltaScale
+        );
+    }
+}
+
 void PropertyEditorPanel::RenderForAmbientLightComponent(UAmbientLightComponent* LightComponent) const
 {
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -730,7 +823,7 @@ void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp
                 {
                     std::cout << GetData(StaticMeshComp->GetMaterialSlotNames()[i].ToString()) << '\n';
                     SelectedMaterialIndex = i;
-                    SelectedStaticMeshComp = StaticMeshComp;
+                    SelectedMeshComp = StaticMeshComp;
                 }
             }
         }
@@ -753,7 +846,7 @@ void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp
                 if (ImGui::IsMouseDoubleClicked(0))
                 {
                     StaticMeshComp->SetselectedSubMeshIndex(i);
-                    SelectedStaticMeshComp = StaticMeshComp;
+                    SelectedMeshComp = StaticMeshComp;
                 }
             }
         }
@@ -771,7 +864,74 @@ void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp
 
     if (SelectedMaterialIndex != -1)
     {
-        RenderMaterialView(SelectedStaticMeshComp->GetMaterial(SelectedMaterialIndex));
+        RenderMaterialView(SelectedMeshComp->GetMaterial(SelectedMaterialIndex));
+    }
+    if (IsCreateMaterial) {
+        RenderCreateMaterialView();
+    }
+}
+
+void PropertyEditorPanel::RenderForMaterial(USkeletalMeshComponent* SkeletalMeshComp)
+{
+    if (SkeletalMeshComp->GetSkeletalMesh() == nullptr)
+    {
+        return;
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+    if (ImGui::TreeNodeEx("Materials", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
+    {
+        for (uint32 i = 0; i < SkeletalMeshComp->GetNumMaterials(); ++i)
+        {
+            if (ImGui::Selectable(GetData(SkeletalMeshComp->GetMaterialSlotNames()[i].ToString()), false, ImGuiSelectableFlags_AllowDoubleClick))
+            {
+                if (ImGui::IsMouseDoubleClicked(0))
+                {
+                    std::cout << GetData(SkeletalMeshComp->GetMaterialSlotNames()[i].ToString()) << '\n';
+                    SelectedMaterialIndex = i;
+                    SelectedMeshComp = SkeletalMeshComp;
+                }
+            }
+        }
+
+        if (ImGui::Button("    +    ")) {
+            IsCreateMaterial = true;
+        }
+
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("SubMeshes", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
+    {
+        auto Subsets = SkeletalMeshComp->GetSkeletalMesh()->GetRenderData()->MaterialSubsets;
+        for (uint32 i = 0; i < Subsets.Num(); ++i)
+        {
+            std::string temp = "subset " + std::to_string(i);
+            if (ImGui::Selectable(temp.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick))
+            {
+                if (ImGui::IsMouseDoubleClicked(0))
+                {
+                    SkeletalMeshComp->SetselectedSubMeshIndex(i);
+                    SelectedMeshComp = SkeletalMeshComp;
+                }
+            }
+        }
+        std::string Temp = "clear subset";
+        if (ImGui::Selectable(Temp.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick))
+        {
+            if (ImGui::IsMouseDoubleClicked(0))
+                SkeletalMeshComp->SetselectedSubMeshIndex(-1);
+        }
+
+        ImGui::TreePop();
+    }
+
+    ImGui::PopStyleColor();
+
+    if (SelectedMaterialIndex != -1)
+    {
+        if(SelectedMeshComp)
+            RenderMaterialView(SelectedMeshComp->GetMaterial(SelectedMaterialIndex));
     }
     if (IsCreateMaterial) {
         RenderCreateMaterialView();
@@ -780,6 +940,9 @@ void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp
 
 void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
 {
+    if (Material == nullptr)
+        return;
+
     ImGui::SetNextWindowSize(ImVec2(380, 400), ImGuiCond_Once);
     ImGui::Begin("Material Viewer", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNav);
 
@@ -861,7 +1024,7 @@ void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
 
     ImGui::Text("Material Slot Name |");
     ImGui::SameLine();
-    ImGui::Text(GetData(SelectedStaticMeshComp->GetMaterialSlotNames()[SelectedMaterialIndex].ToString()));
+    ImGui::Text(GetData(SelectedMeshComp->GetMaterialSlotNames()[SelectedMaterialIndex].ToString()));
 
     ImGui::Text("Override Material |");
     ImGui::SameLine();
@@ -878,13 +1041,13 @@ void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
 
     if (ImGui::Combo("##MaterialDropdown", &CurMaterialIndex, materialChars.data(), UMaterial::GetMaterialNum())) {
         UMaterial* material = UMaterial::GetMaterial(materialChars[CurMaterialIndex]);
-        SelectedStaticMeshComp->SetMaterial(SelectedMaterialIndex, material);
+        SelectedMeshComp->SetMaterial(SelectedMaterialIndex, material);
     }
 
     if (ImGui::Button("Close"))
     {
         SelectedMaterialIndex = -1;
-        SelectedStaticMeshComp = nullptr;
+        SelectedMeshComp = nullptr;
     }
 
     ImGui::End();
@@ -1321,7 +1484,7 @@ void PropertyEditorPanel::RenderForCurve(FString& CurvePath) const
             {
                 if (!bIsExist)
                 {
-                    UAssetManager::Get().LoadObjFiles();
+                    UAssetManager::Get().LoadContentsFiles();
                 }
                 // Linear
                 // Cubic Hermite?

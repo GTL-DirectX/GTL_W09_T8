@@ -33,7 +33,7 @@ private:
     //static functions
 
 public:
-    static UMaterial* CreateMaterial(FObjMaterialInfo materialInfo);
+    static UMaterial* CreateMaterial(const FObjMaterialInfo& materialInfo);
     static UMaterial* GetMaterial(FString name);
     static TMap<FString, UMaterial*>& GetMaterials() { return materialMap; }
     static int GetMaterialNum() { return materialMap.Num(); }

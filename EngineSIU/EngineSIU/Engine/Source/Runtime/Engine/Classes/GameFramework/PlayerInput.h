@@ -55,7 +55,9 @@ public:
     void InputKey(EKeys::Type Key, EInputEvent EventType);
 
     /** 축 이벤트 수신 */
-    void InputAxis(EKeys::Type Key);
+    void InputAxis(EKeys::Type Key, EInputEvent EventType);
+
+    void MouseInput(float DeltaX, float DeltaY);
 
     // SetupInputComponent 시, 매핑 데이터를 InputComponent 에 복사
     void AddActionMappingsTo(TArray<FInputActionKeyMapping>& Out) const;

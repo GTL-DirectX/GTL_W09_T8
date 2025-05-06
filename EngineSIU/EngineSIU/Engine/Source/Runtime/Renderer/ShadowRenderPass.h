@@ -38,20 +38,29 @@ public:
     virtual void Render(const std::shared_ptr<FViewportClient>& Viewport) override;    
     virtual void ClearRenderArr() override;
 
-    void RenderPrimitive(FStaticMeshRenderData* render_data, const TArray<FStaticMaterial*> array, TArray<UMaterial*> materials, int getselected_sub_mesh_index);
+    void RenderPrimitive(FStaticMeshRenderData* render_data, const TArray<FMaterialSlot*> array, TArray<UMaterial*> materials, int getselected_sub_mesh_index);
+    void RenderPrimitive(struct FSkeletalMeshRenderData* render_data, const TArray<FMaterialSlot*> array, TArray<UMaterial*> materials, int getselected_sub_mesh_index);
+
+
     virtual void RenderAllStaticMeshes();
     void RenderAllStaticMeshesForCSM(FCascadeConstantBuffer FCasCadeData);
+    void RenderAllStaticMeshesForPointLight(UPointLightComponent*& PointLight);
+
+    virtual void RenderAllSkeletalMeshes();
+    void RenderAllSkeletalMeshesForCSM(FCascadeConstantBuffer FCasCadeData);
+    void RenderAllSkeletalMeshesForPointLight(UPointLightComponent*& PointLight);
+
     void BindResourcesForSampling();
 
     void UpdateObjectConstant(const FMatrix& WorldMatrix, const FVector4& UUIDColor, bool bIsSelected) const;
 
-    void RenderAllStaticMeshesForPointLight(UPointLightComponent*& PointLight);
 
 
 private:
 
     
     TArray<class UStaticMeshComponent*> StaticMeshComponents;
+    TArray<class USkeletalMeshComponent*> SkeletalMeshComponents;
     TArray<UPointLightComponent*> PointLights;
     TArray<USpotLightComponent*> SpotLights;
     

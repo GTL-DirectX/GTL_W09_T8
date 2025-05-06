@@ -14,7 +14,7 @@ public:
 
     virtual UObject* Duplicate(UObject* InOuter) override;
 
-    const TArray<FStaticMaterial*>& GetMaterials() const { return materials; }
+    const TArray<FMaterialSlot*>& GetMaterials() const { return materials; }
     uint32 GetMaterialIndex(FName MaterialSlotName) const;
     void GetUsedMaterials(TArray<UMaterial*>& Out) const;
     FStaticMeshRenderData* GetRenderData() const { return staticMeshRenderData; }
@@ -29,5 +29,5 @@ public:
 
 private:
     FStaticMeshRenderData* staticMeshRenderData = nullptr;
-    TArray<FStaticMaterial*> materials;
+    TArray<FMaterialSlot*> materials;
 };

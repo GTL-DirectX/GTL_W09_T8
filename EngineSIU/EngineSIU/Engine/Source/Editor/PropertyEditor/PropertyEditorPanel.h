@@ -20,6 +20,9 @@ class UProjectileMovementComponent;
 class UTextComponent;
 class UHeightFogComponent;
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
+class UMeshComponent;
+class UMaterial;
 
 // 헬퍼 함수 예시
 template<typename Getter, typename Setter>
@@ -42,8 +45,10 @@ private:
 
     /* Static Mesh Settings */
     void RenderForStaticMesh(UStaticMeshComponent* StaticMeshComp) const;
+    void RenderForSkeletalMesh(USkeletalMeshComponent* SkeletalMeshComp) const;
     /* Materials Settings */
     void RenderForMaterial(UStaticMeshComponent* StaticMeshComp);
+    void RenderForMaterial(USkeletalMeshComponent* SkeletalMeshComp);
     void RenderMaterialView(UMaterial* Material);
     void RenderCreateMaterialView();
 
@@ -70,14 +75,17 @@ private:
         requires std::derived_from<T, UActorComponent>
     T* GetTargetComponent(AActor* SelectedActor, USceneComponent* SelectedComponent);
 
+
 private:
     float Width = 0, Height = 0;
     /* Material Property */
     int SelectedMaterialIndex = -1;
     int CurMaterialIndex = -1;
-    UStaticMeshComponent* SelectedStaticMeshComp = nullptr;
+    UMeshComponent* SelectedMeshComp = nullptr;
+    //USkeletalMeshComponent* SelectedSkeletalMeshComp = nullptr;
     FObjMaterialInfo tempMaterialInfo;
     bool IsCreateMaterial;
 
     const FString TemplateFilePath = FString("Scripts/LuaTemplate.lua");
+
 };

@@ -17,6 +17,16 @@ UObject* ASkeletalMeshActor::Duplicate(UObject* InOuter)
     return NewActor;
 }
 
+void ASkeletalMeshActor::GetProperties(TMap<FString, FString>& OutProperties) const
+{
+
+}
+
+void ASkeletalMeshActor::SetProperties(const TMap<FString, FString>& InProperties)
+{
+
+}
+
 USkeletalMeshComponent* ASkeletalMeshActor::GetSkeletalMeshComponent() const
 {
     return SkeletalMeshComponent;
