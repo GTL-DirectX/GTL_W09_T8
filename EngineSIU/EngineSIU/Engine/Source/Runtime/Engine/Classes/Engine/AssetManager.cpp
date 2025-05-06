@@ -4,6 +4,7 @@
 #include <filesystem>
 #include "Engine/ObjLoader.h"
 #include "Engine/Resource/FBXManager.h"
+#include "Engine/Resource/TextureManager.h"
 
 bool UAssetManager::IsInitialized()
 {
@@ -32,6 +33,7 @@ UAssetManager* UAssetManager::GetIfInitialized()
 void UAssetManager::InitAssetManager()
 {
     AssetRegistry = std::make_unique<FAssetRegistry>();
+    TextureManager = new FTextureManager();
 
     LoadContentsFiles();
 }

@@ -48,4 +48,9 @@ public:
 
 public:
     void LoadContentsFiles();
+
+
+private:
+    class FTextureManager* TextureManager;
+
 };
