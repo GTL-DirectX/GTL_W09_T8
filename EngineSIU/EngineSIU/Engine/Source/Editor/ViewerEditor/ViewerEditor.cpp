@@ -31,6 +31,7 @@ AActor* ViewerEditor::SelectedActor = nullptr;
 USkeletalMesh* ViewerEditor::SelectedSkeletalMesh = nullptr;
 bool ViewerEditor::bShowBones = false;
 int ViewerEditor::SelectedBone = -1;
+USkeletalMeshComponent* ViewerEditor::SkeletalMeshComponent = nullptr;
 
 void ViewerEditor::InitializeViewerResources()
 {
@@ -49,15 +50,12 @@ void ViewerEditor::InitializeViewerResources()
     ViewerWorld->WorldType = EWorldType::EditorPreview;
 
     SelectedActor = ViewerWorld->SpawnActor<AActor>();
-    USkeletalMeshComponent* SkeletalMeshComp = SelectedActor->AddComponent<USkeletalMeshComponent>();
-
+    SelectedActor->AddComponent<USkeletalMeshComponent>();
+    SkeletalMeshComponent = SelectedActor->GetComponentByClass<USkeletalMeshComponent>();
     ADirectionalLight* LightActor = ViewerWorld->SpawnActor<ADirectionalLight>();
     UDirectionalLightComponent* LightComp=LightActor->GetComponentByClass<UDirectionalLightComponent>();
     LightComp->SetRelativeRotation(FRotator(0.f, 180.f,0.f));
 
-    // FIX-ME
-    SelectedSkeletalMesh = FFBXManager::Get().LoadFbx("Contents\\fbx\\character.fbx");
-    SkeletalMeshComp->SetSkeletalMesh(SelectedSkeletalMesh);
     if (SelectedActor)
     {
         SelectedActor->SetActorLabel(TEXT("Viewer_SkeletalMesh"));
@@ -184,6 +182,14 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
     }
     if (ImGui::Begin("SkeletalMesh Viewer", &bShowWindow))
     {
+        if (SkeletalMeshComponent)
+        {
+            SelectedSkeletalMesh = SkeletalMeshComponent->GetSkeletalMesh();
+        }
+        else
+        {
+            SelectedSkeletalMesh = nullptr;
+        }
         ImGui::Columns(2, "ViewerColumns", true);
 
         if (ViewerViewportClient && ViewerViewportClient->GetViewportResource())
@@ -233,14 +239,41 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
 
         ImGui::NextColumn();
 
-        FString PreviewName = SelectedSkeletalMesh ? SelectedSkeletalMesh->GetRenderData()->FilePath : TEXT("None");
-        if (ImGui::BeginCombo("Skeletal Mesh", GetData(PreviewName)))
+        FString PreviewName;
+
+        if (SelectedSkeletalMesh)
         {
-            if (ImGui::Selectable(TEXT("None"), SelectedSkeletalMesh == nullptr))
+            PreviewName = SelectedSkeletalMesh->GetRenderData()->ObjectName;
+        }
+        else
+        {
+            PreviewName = TEXT("None");
+        }
+
+        const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
+
+        if (ImGui::BeginCombo("##SkeletalMesh", GetData(PreviewName), ImGuiComboFlags_None))
+        {
+            if (ImGui::Selectable(TEXT("None"), false))
             {
-                SelectedSkeletalMesh = nullptr;
+                SkeletalMeshComponent->SetSkeletalMesh(nullptr);
             }
-            // FIX-ME
+
+            for (const auto& Asset : Assets)
+            {
+                if (Asset.Value.AssetType == EAssetType::SkeletalMesh)
+                {
+                    if (ImGui::Selectable(GetData(Asset.Value.AssetName.ToString()), false))
+                    {
+                        FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
+                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadFbx(MeshName);
+                        if (SkeletalMesh)
+                        {
+                            SkeletalMeshComponent->SetSkeletalMesh(SkeletalMesh);
+                        }
+                    }
+                }
+            }
             ImGui::EndCombo();
         }
 
@@ -285,6 +318,7 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
                     ImGui::Indent();
                     ImGui::Text("Index: %d", SelectedBone);
 
+                    // 현재 ReferencePose를 사용해서 하고 있는데 이게 맞는지 다시 한 번 물어봐야 함.
                     const FMatrix& BoneTransform = RenderData->ReferencePose[SelectedBone];
                     FVector Translation = BoneTransform.GetTranslationVector();
                     FRotator Rotation = FMatrix::GetRotationMatrix(BoneTransform).ToQuat().Rotator();

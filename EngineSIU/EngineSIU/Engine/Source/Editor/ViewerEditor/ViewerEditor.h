@@ -8,6 +8,7 @@ class FString;
 class AActor;
 class USkeletalMesh;
 struct FSkeletalMeshRenderData;
+class USkeletalMeshComponent;
 
 class ViewerEditor
 {
@@ -19,6 +20,7 @@ public:
 
     static AActor* SelectedActor;
     static USkeletalMesh* SelectedSkeletalMesh;
+    static USkeletalMeshComponent* SkeletalMeshComponent;
 private:
     static void InitializeViewerResources();
     static void DestroyViewerResources();
