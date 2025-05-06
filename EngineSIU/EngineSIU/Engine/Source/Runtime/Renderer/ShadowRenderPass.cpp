@@ -200,6 +200,7 @@ void FShadowRenderPass::Render(const std::shared_ptr<FViewportClient>& Viewport)
 void FShadowRenderPass::ClearRenderArr()
 {
     StaticMeshComponents.Empty();
+    SkeletalMeshComponents.Empty();
 }
 
 void FShadowRenderPass::SetLightData(const TArray<class UPointLightComponent*>& InPointLights, const TArray<class USpotLightComponent*>& InSpotLights)
@@ -277,14 +278,14 @@ void FShadowRenderPass::RenderPrimitive(FSkeletalMeshRenderData* RenderData, con
 
         BufferManager->UpdateConstantBuffer(TEXT("FSubMeshConstants"), SubMeshData);
 
-        /*if (OverrideMaterials[MaterialIndex] != nullptr)
+        if (!OverrideMaterials.IsEmpty() && OverrideMaterials[MaterialIndex] != nullptr)
         {
             MaterialUtils::UpdateMaterial(BufferManager, Graphics, OverrideMaterials[MaterialIndex]->GetMaterialInfo());
         }
         else
         {
             MaterialUtils::UpdateMaterial(BufferManager, Graphics, Materials[MaterialIndex]->Material->GetMaterialInfo());
-        }*/
+        }
 
         uint32 StartIndex = RenderData->MaterialSubsets[SubMeshIndex].IndexStart;
         uint32 IndexCount = RenderData->MaterialSubsets[SubMeshIndex].IndexCount;
