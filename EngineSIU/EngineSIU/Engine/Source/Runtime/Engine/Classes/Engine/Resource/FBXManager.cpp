@@ -1148,6 +1148,8 @@ bool FFBXManager::LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalM
     OutStaticMesh.LocalBindPose.SetNum(LocalBindPoseCount);
     File.read(reinterpret_cast<char*>(OutStaticMesh.LocalBindPose.GetData()), LocalBindPoseCount * sizeof(FMatrix));
 
+    ComputeBounds(OutStaticMesh.Vertices, OutStaticMesh.BoundingBoxMin, OutStaticMesh.BoundingBoxMax);
+
     File.close();
     return true;
 }
