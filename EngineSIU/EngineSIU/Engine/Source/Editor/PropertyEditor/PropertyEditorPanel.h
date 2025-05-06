@@ -21,6 +21,8 @@ class UTextComponent;
 class UHeightFogComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
+class UMeshComponent;
+class UMaterial;
 
 // 헬퍼 함수 예시
 template<typename Getter, typename Setter>
@@ -78,8 +80,8 @@ private:
     /* Material Property */
     int SelectedMaterialIndex = -1;
     int CurMaterialIndex = -1;
-    UStaticMeshComponent* SelectedStaticMeshComp = nullptr;
-    USkeletalMeshComponent* SelectedSkeletalMeshComp = nullptr;
+    UMeshComponent* SelectedMeshComp = nullptr;
+    //USkeletalMeshComponent* SelectedSkeletalMeshComp = nullptr;
     FObjMaterialInfo tempMaterialInfo;
     bool IsCreateMaterial;
 

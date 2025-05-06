@@ -18,7 +18,10 @@ public:
     void BeginPlay() override;
     void TickComponent(float DeltaTime) override;
     virtual int CheckRayIntersection(const FVector& InRayOrigin, const FVector& InRayDirection, float& OutHitDistance) const override;
-    
+    virtual uint32 GetNumMaterials() const override;
+    virtual TArray<FName> GetMaterialSlotNames() const override;
+    virtual UMaterial* GetMaterial(uint32 ElementIndex) const override;
+
     virtual void SetSkeletalMesh(USkeletalMesh* InSkeletalMesh);
     virtual USkeletalMesh* GetSkeletalMesh() const;
 

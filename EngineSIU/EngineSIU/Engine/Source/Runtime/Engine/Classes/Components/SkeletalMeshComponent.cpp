@@ -136,6 +136,43 @@ int USkeletalMeshComponent::CheckRayIntersection(const FVector& InRayOrigin, con
     return IntersectionNum;
 }
 
+uint32 USkeletalMeshComponent::GetNumMaterials() const
+{
+    if (SkeletalMeshAsset)
+    {
+        return SkeletalMeshAsset->GetMaterials().Num();
+    }
+
+    return 0;
+}
+
+TArray<FName> USkeletalMeshComponent::GetMaterialSlotNames() const
+{
+    TArray<FName> MaterialNames;
+    if (SkeletalMeshAsset == nullptr) return MaterialNames;
+
+    for (const FMaterialSlot* Material : SkeletalMeshAsset->GetMaterials())
+    {
+        MaterialNames.Emplace(Material->MaterialSlotName);
+    }
+
+    return MaterialNames;
+}
+UMaterial* USkeletalMeshComponent::GetMaterial(uint32 ElementIndex) const
+{
+    if (SkeletalMeshAsset != nullptr)
+    {
+        if (OverrideMaterials.IsValidIndex(ElementIndex))
+            return OverrideMaterials[ElementIndex];
+
+        if (SkeletalMeshAsset->GetMaterials().IsValidIndex(ElementIndex))
+        {
+            return SkeletalMeshAsset->GetMaterials()[ElementIndex]->Material;
+        }
+    }
+
+    return nullptr;
+}
 void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 {
     SkeletalMeshAsset = InSkeletalMesh;

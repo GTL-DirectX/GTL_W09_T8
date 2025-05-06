@@ -38,6 +38,7 @@
 #include "Rendering/Mesh/SkeletalMesh.h"
 #include "Engine/CurveManager.h"
 #include "Engine/Resource/FBXManager.h"
+#include "Rendering/Material/Material.h"
 
 void PropertyEditorPanel::Render()
 {
@@ -789,7 +790,7 @@ void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp
                 {
                     std::cout << GetData(StaticMeshComp->GetMaterialSlotNames()[i].ToString()) << '\n';
                     SelectedMaterialIndex = i;
-                    SelectedStaticMeshComp = StaticMeshComp;
+                    SelectedMeshComp = StaticMeshComp;
                 }
             }
         }
@@ -812,7 +813,7 @@ void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp
                 if (ImGui::IsMouseDoubleClicked(0))
                 {
                     StaticMeshComp->SetselectedSubMeshIndex(i);
-                    SelectedStaticMeshComp = StaticMeshComp;
+                    SelectedMeshComp = StaticMeshComp;
                 }
             }
         }
@@ -830,7 +831,7 @@ void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp
 
     if (SelectedMaterialIndex != -1)
     {
-        RenderMaterialView(SelectedStaticMeshComp->GetMaterial(SelectedMaterialIndex));
+        RenderMaterialView(SelectedMeshComp->GetMaterial(SelectedMaterialIndex));
     }
     if (IsCreateMaterial) {
         RenderCreateMaterialView();
@@ -855,7 +856,7 @@ void PropertyEditorPanel::RenderForMaterial(USkeletalMeshComponent* SkeletalMesh
                 {
                     std::cout << GetData(SkeletalMeshComp->GetMaterialSlotNames()[i].ToString()) << '\n';
                     SelectedMaterialIndex = i;
-                    SelectedSkeletalMeshComp = SkeletalMeshComp;
+                    SelectedMeshComp = SkeletalMeshComp;
                 }
             }
         }
@@ -878,7 +879,7 @@ void PropertyEditorPanel::RenderForMaterial(USkeletalMeshComponent* SkeletalMesh
                 if (ImGui::IsMouseDoubleClicked(0))
                 {
                     SkeletalMeshComp->SetselectedSubMeshIndex(i);
-                    SelectedSkeletalMeshComp = SkeletalMeshComp;
+                    SelectedMeshComp = SkeletalMeshComp;
                 }
             }
         }
@@ -896,7 +897,8 @@ void PropertyEditorPanel::RenderForMaterial(USkeletalMeshComponent* SkeletalMesh
 
     if (SelectedMaterialIndex != -1)
     {
-        RenderMaterialView(SelectedStaticMeshComp->GetMaterial(SelectedMaterialIndex));
+        if(SelectedMeshComp)
+            RenderMaterialView(SelectedMeshComp->GetMaterial(SelectedMaterialIndex));
     }
     if (IsCreateMaterial) {
         RenderCreateMaterialView();
@@ -905,6 +907,9 @@ void PropertyEditorPanel::RenderForMaterial(USkeletalMeshComponent* SkeletalMesh
 
 void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
 {
+    if (Material == nullptr)
+        return;
+
     ImGui::SetNextWindowSize(ImVec2(380, 400), ImGuiCond_Once);
     ImGui::Begin("Material Viewer", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNav);
 
@@ -986,7 +991,7 @@ void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
 
     ImGui::Text("Material Slot Name |");
     ImGui::SameLine();
-    ImGui::Text(GetData(SelectedStaticMeshComp->GetMaterialSlotNames()[SelectedMaterialIndex].ToString()));
+    ImGui::Text(GetData(SelectedMeshComp->GetMaterialSlotNames()[SelectedMaterialIndex].ToString()));
 
     ImGui::Text("Override Material |");
     ImGui::SameLine();
@@ -1003,13 +1008,13 @@ void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
 
     if (ImGui::Combo("##MaterialDropdown", &CurMaterialIndex, materialChars.data(), UMaterial::GetMaterialNum())) {
         UMaterial* material = UMaterial::GetMaterial(materialChars[CurMaterialIndex]);
-        SelectedStaticMeshComp->SetMaterial(SelectedMaterialIndex, material);
+        SelectedMeshComp->SetMaterial(SelectedMaterialIndex, material);
     }
 
     if (ImGui::Button("Close"))
     {
         SelectedMaterialIndex = -1;
-        SelectedStaticMeshComp = nullptr;
+        SelectedMeshComp = nullptr;
     }
 
     ImGui::End();
