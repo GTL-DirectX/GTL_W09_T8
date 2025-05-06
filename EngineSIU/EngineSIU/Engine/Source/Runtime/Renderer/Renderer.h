@@ -44,6 +44,8 @@ class FDepthPrePass;
 class FTileLightCullingPass;
 class FGPUTimingManager;
 
+class FMeshRenderPass;
+
 class FFadeRenderPass;
 class FRenderer
 {
@@ -96,10 +98,11 @@ public:
     
     class FShadowRenderPass* ShadowRenderPass;
 
-    FStaticMeshRenderPass* StaticMeshRenderPass = nullptr;
-#pragma region SkeletalMesh
-    FSkeletalRenderPass* SkeletalMeshRenderPass = nullptr;
-#pragma endregion
+    //FStaticMeshRenderPass* StaticMeshRenderPass = nullptr;
+    //FSkeletalRenderPass* SkeletalMeshRenderPass = nullptr;
+
+    FMeshRenderPass* MeshRenderPass = nullptr;
+
     FWorldBillboardRenderPass* WorldBillboardRenderPass = nullptr;
     FEditorBillboardRenderPass* EditorBillboardRenderPass = nullptr;
     FGizmoRenderPass* GizmoRenderPass = nullptr;
