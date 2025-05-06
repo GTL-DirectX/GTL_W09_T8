@@ -19,6 +19,7 @@
 #include "Runtime/Engine/Classes/Actors/DirectionalLightActor.h"
 #include "Components/Light/DirectionalLightComponent.h"
 
+#include "ShowFlag.h"
 // End Test
 
 UWorld* ViewerEditor::ViewerWorld = nullptr;
@@ -79,7 +80,7 @@ void ViewerEditor::InitializeViewerResources()
 
     ViewerViewportClient->SetShouldDraw(false);
     FViewportCamera& vpCam = ViewerViewportClient->GetPerspectiveCamera();
-    vpCam.SetLocation(FVector(-10, 0, 5));
+    vpCam.SetLocation(FVector(-100, 0, 5));
     FVector TargetLocation = FVector(0, 0, 0);
     FVector CamLocation = vpCam.GetLocation();
     FVector Dir = (TargetLocation - CamLocation).GetSafeNormal();
@@ -233,7 +234,12 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
             if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Checkbox("Show Bones", &bShowBones);
-
+                
+                //if (ImGui::Checkbox("Show Bones (Toggle SF_Bone)", &bShowBones))
+                //{
+                //    //ViewerViewportClient->SetShowFlagState(EEngineShowFlags::SF_Bone, bShowBones);
+                //    //uint64 CurrentFlags = ViewerViewportClient->GetShowFlag();
+                //}
                 int BoneCount = RenderData->BoneNames.Num();
                 TArray<TArray<int>> Children;
                 Children.SetNum(BoneCount);

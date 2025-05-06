@@ -11,7 +11,7 @@ float FViewportClient::OrthoSize = 10.0f;
 
 FViewportClient::FViewportClient()
     : ViewportType(LVT_Perspective)
-   , ShowFlag(63)
+   , ShowFlag(1087) // FIX-ME
    , ViewMode(EViewModeIndex::VMI_Lit_BlinnPhong)
 {
 }
