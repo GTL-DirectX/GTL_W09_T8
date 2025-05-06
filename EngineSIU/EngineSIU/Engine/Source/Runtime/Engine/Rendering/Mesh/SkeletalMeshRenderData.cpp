@@ -48,6 +48,8 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
         VertexBuffer,
         IndexBuffer
     );
+    // OrigineReferencePose = ReferencePose;
+    // OrigineVertices = Vertices;
 }
 
 void FSkeletalMeshRenderData::ComputeBounds(const TArray<FSkeletalMeshVertex>& Verts, FVector& OutMin, FVector& OutMax)

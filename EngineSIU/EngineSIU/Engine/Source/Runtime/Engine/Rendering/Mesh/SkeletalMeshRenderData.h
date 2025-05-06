@@ -3,6 +3,7 @@
 #include <queue>
 
 #include "Define.h"
+#include "Math/JungleMath.h"
 
 // struct FSkeletalMeshRenderSection
 // {
@@ -104,20 +105,20 @@ struct FSkeletalMeshRenderData
     {
         int32 BoneCount = ReferencePose.Num();
         int32 VCount    = Vertices.Num();
-
+        
         // Delta 행렬 계산
         TArray<FMatrix> Delta; Delta.SetNum(BoneCount);
         for (int32 i = 0; i < BoneCount; ++i)
         {
-            Delta[i] = ReferencePose[i] * FMatrix::Inverse(SkinningMatrix[i]);
+            Delta[i] = ReferencePose[i] * FMatrix::Inverse(OrigineReferencePose[i]);
         }
-
+        
         // 각 버텍스에 대해
         for (int32 vi = 0; vi < VCount; ++vi)
         {
             const auto& src = OrigineVertices[vi];
             auto&       dst = Vertices[vi];
-
+        
             // 1) 가중치 합 계산 및 정규화
             float WeightSum = 0.0f;
             for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
@@ -125,7 +126,7 @@ struct FSkeletalMeshRenderData
             
             // 2) 가중치 정규화 (합이 0이 아니면)
             float InverseSum = (WeightSum > KINDA_SMALL_NUMBER) ? (1.0f / WeightSum) : 0.0f;
-
+        
             FVector P(0), N(0), T(0), B(0);
             
             // 3) 스키닝 적용
@@ -135,13 +136,13 @@ struct FSkeletalMeshRenderData
                 if (w <= 0.0f) continue;
                 int bi = src.BoneIndices[j];
                 const FMatrix& M = Delta[bi];
-
+        
                 P += M.TransformPosition(src.Position) * w;
                 N += FMatrix::TransformVector(src.Normal, M) * w;
                 T += FMatrix::TransformVector(src.Tangent,M) * w;
                 B += FMatrix::TransformVector(src.Bitangent,M) * w;
             }
-
+        
             // 4) 결과 저장
             dst.Position  = P;
             dst.Normal    = N.GetSafeNormal();
@@ -156,6 +157,76 @@ struct FSkeletalMeshRenderData
                 dst.BoneWeights[j] = src.BoneWeights[j];
             }
         }
+
+        // int32 BoneCount = ReferencePose.Num();
+        // int32 VCount    = Vertices.Num();
+        //
+        // // 1) 각 뼈대별로 두 가지 행렬을 미리 계산
+        // //    a) OrigineBindPose → 뼈대 로컬 공간
+        // //    b) 뼈대 로컬 공간 → NewBindPose(ReferencePose)
+        // TArray<FMatrix> ToLocal;   ToLocal.SetNum(BoneCount);
+        // TArray<FMatrix> FromLocal; FromLocal.SetNum(BoneCount);
+        //
+        // for (int32 i = 0; i < BoneCount; ++i)
+        // {
+        //     // a) 원래 바인드 포즈에서 뼈대 로컬 공간으로
+        //     ToLocal[i] = FMatrix::Inverse(OrigineReferencePose[i]);
+        //
+        //     // b) 새 바인드 포즈(ReferencePose)로
+        //     FromLocal[i] = ReferencePose[i];
+        // }
+        //
+        // // 2) 각 버텍스에 대해 스키닝
+        // for (int32 vi = 0; vi < VCount; ++vi)
+        // {
+        //     const auto& src = OrigineVertices[vi];
+        //     auto&       dst = Vertices[vi];
+        //
+        //     // 가중치 합 및 정규화
+        //     float WeightSum = 0.0f;
+        //     for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+        //         WeightSum += src.BoneWeights[j];
+        //     float InverseSum = (WeightSum > KINDA_SMALL_NUMBER) ? (1.0f / WeightSum) : 0.0f;
+        //
+        //     FVector P(0), N(0), T(0), B(0);
+        //
+        //     // 스키닝: 두 단계 변환 적용
+        //     for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+        //     {
+        //         float w = src.BoneWeights[j] * InverseSum;
+        //         if (w <= 0.0f) continue;
+        //
+        //         int bi = src.BoneIndices[j];
+        //
+        //         // 1) 원래 바인드 포즈 → 로컬 공간
+        //         
+        //         FVector LocalPos    = FMatrix::TransformVector(src.Position,ToLocal[bi]);
+        //
+        //         FVector LocalNormal = FMatrix::TransformVector(src.Normal,ToLocal[bi]);
+        //         FVector LocalTangent  = FMatrix::TransformVector(src.Tangent,ToLocal[bi]);
+        //         FVector LocalBitangent = FMatrix::TransformVector(src.Bitangent,ToLocal[bi]);
+        //
+        //         // 2) 로컬 공간 → 새 바인드 포즈(월드 공간)
+        //         P +=  FMatrix::TransformVector(LocalPos,FromLocal[bi]) * w;
+        //         N += FMatrix::TransformVector(LocalNormal,FromLocal[bi]) * w;
+        //         T += FMatrix::TransformVector(LocalTangent,FromLocal[bi]) * w;
+        //         B += FMatrix::TransformVector(LocalBitangent,FromLocal[bi]) * w;
+        //     }
+        //
+        //     // 결과 저장 (정규화)
+        //     dst.Position  = P;
+        //     dst.Normal    = N.GetSafeNormal();
+        //     dst.Tangent   = T.GetSafeNormal();
+        //     dst.Bitangent = B.GetSafeNormal();
+        //     dst.UV        = src.UV;
+        //
+        //     // 뼈대 인덱스/가중치는 원본 그대로
+        //     for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+        //     {
+        //         dst.BoneIndices[j] = src.BoneIndices[j];
+        //         dst.BoneWeights[j] = src.BoneWeights[j];
+        //     }
+        // }
     }
     void ApplyBoneOffsetAndRebuild(
     int32                   BoneIndex,

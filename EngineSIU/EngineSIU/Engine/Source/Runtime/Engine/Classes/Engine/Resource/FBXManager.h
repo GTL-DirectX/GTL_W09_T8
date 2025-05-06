@@ -59,7 +59,7 @@ private:
     FFBXManager() = default;
     FFBXManager(const FFBXManager&) = delete;
     FFBXManager& operator=(const FFBXManager&) = delete;
-    double finalScaleFactor;
+    double finalScaleFactor =1.0;
     // FBX SDK 주요 객체
     FbxManager*     SdkManager      = nullptr;
     FbxIOSettings*  IOSettings      = nullptr;

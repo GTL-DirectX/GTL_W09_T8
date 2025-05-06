@@ -115,11 +115,11 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     // FBX의 좌표계
     FbxAxisSystem sourceAxisSystem = node->GetScene()->GetGlobalSettings().GetAxisSystem();
     FbxSystemUnit sourceUnit = node->GetScene()->GetGlobalSettings().GetSystemUnit();
-
+    
     // 이 엔진의 좌표계 정의
     const FbxAxisSystem EngineAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eLeftHanded); // Z-up, X-fwd(ParityOdd), LH
     const float EngineUnitScaleFactor = 1.0f; // 엔진 단위가 미터라고 가정 (cm -> m)
-
+    
     FMatrix conversionMatrix = GetConversionMatrix(sourceAxisSystem, EngineAxisSystem);
     float conversionMatrixDet = conversionMatrix.Determinant3x3();
     finalScaleFactor = sourceUnit.GetScaleFactor() * EngineUnitScaleFactor;
@@ -135,7 +135,8 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     {
         auto& v = outData.Vertices[i];
         FVector sourcePosition = FVector(cps[i][0], cps[i][1], cps[i][2]);
-        v.Position = conversionMatrix.TransformPosition(sourcePosition) * finalScaleFactor; // 변환 행렬을 사용하여 변환
+        // v.Position = conversionMatrix.TransformPosition(sourcePosition) * finalScaleFactor; // 변환 행렬을 사용하여 변환
+        v.Position = sourcePosition; // 변환 행렬을 사용하여 변환
         for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
             v.BoneIndices[j] = v.BoneWeights[j] = 0;
     }
@@ -248,32 +249,34 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
                     // 좌표계 변환 필요시 수행
                     FVector sourceNormal = FVector(normal[0], normal[1], normal[2]);
 
-                    outData.Vertices[cpIndex].Normal = conversionMatrix.TransformPosition(sourceNormal);
+                    // outData.Vertices[cpIndex].Normal = conversionMatrix.TransformPosition(sourceNormal);
+                    outData.Vertices[cpIndex].Normal = sourceNormal;
+
                     // 참고: UV와 마찬가지로 덮어쓰기 문제 가능성 있음
                 }
             }
 
             // TODO: --- 탄젠트 추출 (필요하고 FBX에 데이터가 있다면) ---
             // if (hasTangents) { ... }
+            outData.Indices.Add(mesh->GetPolygonVertex(p, k));
         }
-
-        if (validTriangle)
-        {
-            // 삼각형 인덱스 추가
-            // Determinant < 0이면, 좌표계 뒤집힌 것
-            if (conversionMatrixDet < 0.0f)
-            {
-                outData.Indices.Add(mesh->GetPolygonVertex(p, 0));
-                outData.Indices.Add(mesh->GetPolygonVertex(p, 2));
-                outData.Indices.Add(mesh->GetPolygonVertex(p, 1));
-            }
-            else
-            {
-                outData.Indices.Add(mesh->GetPolygonVertex(p, 0));
-                outData.Indices.Add(mesh->GetPolygonVertex(p, 1));
-                outData.Indices.Add(mesh->GetPolygonVertex(p, 2));
-            }
-        }
+        // if (validTriangle)
+        // {
+        //     // 삼각형 인덱스 추가
+        //     // Determinant < 0이면, 좌표계 뒤집힌 것
+        //     if (conversionMatrixDet < 0.0f)
+        //     {
+        //         outData.Indices.Add(mesh->GetPolygonVertex(p, 0));
+        //         outData.Indices.Add(mesh->GetPolygonVertex(p, 2));
+        //         outData.Indices.Add(mesh->GetPolygonVertex(p, 1));
+        //     }
+        //     else
+        //     {
+        //         outData.Indices.Add(mesh->GetPolygonVertex(p, 0));
+        //         outData.Indices.Add(mesh->GetPolygonVertex(p, 1));
+        //         outData.Indices.Add(mesh->GetPolygonVertex(p, 2));
+        //     }
+        // }
     }
 
 
@@ -347,10 +350,13 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
             parentIdx = SortedBones.Find(parent);
         }
         outData.ParentBoneIndices.Add(parentIdx);
+        // ClusterBindPose[boneNode].M[3][1] = -ClusterBindPose[boneNode].M[3][1];
+
+        // ClusterBindPose[boneNode].M[3][1] = ClusterBindPose[boneNode].M[3][2];
+        // ClusterBindPose[boneNode].M[3][2] = tmp;
 
         // bind-pose matrix
-        FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
-        outData.ReferencePose.Add( ClusterBindPose[boneNode]);
+        outData.ReferencePose.Add(ClusterBindPose[boneNode]);
         outData.SkinningMatrix.Add(ClusterSkinPose[boneNode]);
     }
 
