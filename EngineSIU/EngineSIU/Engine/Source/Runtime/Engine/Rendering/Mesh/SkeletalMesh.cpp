@@ -33,7 +33,7 @@ uint32 USkeletalMesh::GetMaterialIndex(FName MaterialSlotName) const
 
 void USkeletalMesh::GetUsedMaterials(TArray<UMaterial*>& Out) const
 {
-    for (const FStaticMaterial* Material : Materials)
+    for (const FMaterialSlot* Material : Materials)
     {
         Out.Emplace(Material->Material);
     }
@@ -41,7 +41,7 @@ void USkeletalMesh::GetUsedMaterials(TArray<UMaterial*>& Out) const
 
 void USkeletalMesh::AddMaterial(UMaterial* InMaterial)
 {
-    FStaticMaterial* newMaterialSlot = new FStaticMaterial();
+    FMaterialSlot* newMaterialSlot = new FMaterialSlot();
     newMaterialSlot->Material = InMaterial;
     newMaterialSlot->MaterialSlotName = InMaterial->GetName();
     Materials.Add(newMaterialSlot);
@@ -60,7 +60,7 @@ void USkeletalMesh::SetData(FSkeletalMeshRenderData* renderData)
 
     for (int materialIndex = 0; materialIndex < RenderData->Materials.Num(); materialIndex++) 
     {
-        FStaticMaterial* newMaterialSlot = new FStaticMaterial();
+        FMaterialSlot* newMaterialSlot = new FMaterialSlot();
         UMaterial* newMaterial = UMaterial::CreateMaterial(RenderData->Materials[materialIndex]);
         newMaterialSlot->Material = newMaterial;
         newMaterialSlot->MaterialSlotName = RenderData->Materials[materialIndex].MaterialName;
