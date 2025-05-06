@@ -198,7 +198,7 @@ private:
     //uint32 MaxDirectionalLightShadows = 1;
 
 
-    uint32 NumCascades = 3;                             // [캐스케이드 개수] : **여기서 초기화**
+    uint32 NumCascades = 1;                             // [캐스케이드 개수] : **여기서 초기화**
     TArray<FMatrix> CascadesViewProjMatrices;   // 캐스케이드 ViewProj 행렬
     TArray<FMatrix> CascadesInvProjMatrices;    // 캐스케이드 InvProj 행렬
     TArray<float> CascadeSplits;                  // 캐스케이드 분할 거리 (NearClip ~ FarClip)

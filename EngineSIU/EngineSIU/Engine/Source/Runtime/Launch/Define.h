@@ -43,7 +43,7 @@ struct FMaterialSubset
     FString MaterialName; // Material Name
 };
 
-struct FStaticMaterial
+struct FMaterialSlot
 {
     class UMaterial* Material;
     FName MaterialSlotName;

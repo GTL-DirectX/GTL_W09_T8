@@ -15,6 +15,9 @@
 #include "UnrealEd/EditorViewportClient.h"
 #include "UObject/Casts.h"
 #include "UObject/UObjectIterator.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Rendering/Mesh/SkeletalMesh.h"
+#include "Rendering/Mesh/SkeletalMeshRenderData.h"
 
 class UEditorEngine;
 class UStaticMeshComponent;
@@ -94,6 +97,14 @@ void FShadowRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>&
         if (!Cast<UGizmoBaseComponent>(iter) && iter->GetWorld() == Viewport->GetWorld())
         {
             StaticMeshComponents.Add(iter);
+        }
+    }
+
+    for (const auto iter : TObjectRange<USkeletalMeshComponent>())
+    {
+        if (!Cast<UGizmoBaseComponent>(iter) && iter->GetWorld() == Viewport->GetWorld())
+        {
+            SkeletalMeshComponents.Add(iter);
         }
     }
 }
@@ -194,7 +205,7 @@ void FShadowRenderPass::SetLightData(const TArray<class UPointLightComponent*>& 
     SpotLights = InSpotLights;
 }
 
-void FShadowRenderPass::RenderPrimitive(FStaticMeshRenderData* RenderData, const TArray<FStaticMaterial*> Materials, TArray<UMaterial*> OverrideMaterials,
+void FShadowRenderPass::RenderPrimitive(FStaticMeshRenderData* RenderData, const TArray<FMaterialSlot*> Materials, TArray<UMaterial*> OverrideMaterials,
                                         int SelectedSubMeshIndex)
 {
     UINT Stride = sizeof(FStaticMeshVertex);
