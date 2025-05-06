@@ -30,11 +30,13 @@
 #include "Components/TextComponent.h"
 #include "Components/HeightFogComponent.h"
 #include "Components/ProjectileMovementComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/SpringArmComponent.h"
 #include "Components/Shapes/BoxComponent.h"
 #include "Components/Shapes/CapsuleComponent.h"
 #include "Components/Shapes/SphereComponent.h"
 #include "Engine/CurveManager.h"
+#include "Rendering/Mesh/SkeletalMesh.h"
 
 void PropertyEditorPanel::Render()
 {
@@ -119,7 +121,40 @@ void PropertyEditorPanel::Render()
         RenderForStaticMesh(StaticMeshComponent);
         RenderForMaterial(StaticMeshComponent);
     }
+    if (USkeletalMeshComponent* SkeletalComponent = GetTargetComponent<USkeletalMeshComponent>(SelectedActor, SelectedComponent))
+    {
+        int   transBoneIdx = SkeletalComponent->transboneidx;
 
+        // 1) 본 인덱스 입력
+        ImGui::InputInt("Bone Index", &transBoneIdx);
+        SkeletalComponent->transboneidx = transBoneIdx;
+
+        // 2) 위치 입력 (X, Y, Z)
+        ImGui::InputFloat3("Delta Location", loc);
+
+        // 3) 회전 입력 (Pitch, Yaw, Roll)
+        ImGui::InputFloat3("Delta Rotation (P,Y,R)", rot);
+
+        // 4) 스케일 입력 (X, Y, Z)
+        ImGui::InputFloat3("Delta Scale", scale);
+
+        // 5) Apply 버튼
+        if (ImGui::Button("Apply Offset"))
+        {
+            FVector    deltaLoc   = FVector(loc[0], loc[1], loc[2]);
+            FRotator   deltaRot   = FRotator(rot[0], rot[1], rot[2]);
+            FVector    deltaScale = FVector(scale[0], scale[1], scale[2]);
+
+            // 실제 적용
+            SkeletalComponent->GetSkeletalMesh()->GetRenderData()->ApplyBoneOffsetAndRebuild(
+                transBoneIdx,
+                deltaLoc,
+                deltaRot,
+                deltaScale
+            );
+        }
+
+    }
     if (UHeightFogComponent* FogComponent = GetTargetComponent<UHeightFogComponent>(SelectedActor, SelectedComponent))
     {
         RenderForExponentialHeightFogComponent(FogComponent);

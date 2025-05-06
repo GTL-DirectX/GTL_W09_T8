@@ -79,5 +79,10 @@ private:
     FObjMaterialInfo tempMaterialInfo;
     bool IsCreateMaterial;
 
+
+    float loc[3]       = { 0.0f, 0.0f, 0.0f };
+    float rot[3]       = { 0.0f, 0.0f, 0.0f }; // Pitch, Yaw, Roll 순
+    float scale[3]     = { 1.0f, 1.0f, 1.0f };
+    
     const FString TemplateFilePath = FString("Scripts/LuaTemplate.lua");
 };

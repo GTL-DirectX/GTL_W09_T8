@@ -12,7 +12,7 @@ UObject* USkeletalMeshComponent::Duplicate(UObject* InOuter)
     ThisClass* NewComponent = Cast<ThisClass>(Super::Duplicate(InOuter));
     NewComponent->SkeletalMeshAsset = SkeletalMeshAsset;
     NewComponent->AABB = AABB;
-
+    NewComponent->transboneidx = transboneidx;
     return NewComponent;
 }
 
@@ -76,7 +76,10 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     USkinnedMeshComponent::TickComponent(DeltaTime);
 
-    SkeletalMeshAsset->GetRenderData()->ApplyBoneOffsetAndRebuild(7,FVector::ZeroVector,FRotator(0.1,0,0),FVector(1,1,1));
+    // for (int i=0;i< SkeletalMeshAsset->GetRenderData()->BoneNames.Num();i++)
+    // {
+        SkeletalMeshAsset->GetRenderData()->ApplyBoneOffsetAndRebuild(transboneidx,FVector::ZeroVector,FRotator(1,0,0),FVector(1,1,1));
+    // }
 }
 
 int USkeletalMeshComponent::CheckRayIntersection(const FVector& InRayOrigin, const FVector& InRayDirection, float& OutHitDistance) const

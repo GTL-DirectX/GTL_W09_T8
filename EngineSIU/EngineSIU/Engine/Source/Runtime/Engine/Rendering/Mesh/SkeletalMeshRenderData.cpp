@@ -3,17 +3,22 @@
 #include "UObject/Object.h"
 
 void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector DeltaLoc, FRotator DeltaRot, FVector DeltaScale)
-{
+{                                                        
     if(!LocalBindPose.IsValidIndex(BoneIndex))
     {
         UE_LOG(LogLevel::Error, "Not Valid Bone Index");
         return;
     }
+    FVector Pivot = FVector(LocalBindPose[BoneIndex].M[3][0],LocalBindPose[BoneIndex].M[3][1],LocalBindPose[BoneIndex].M[3][2]);
+    UE_LOG(LogLevel::Warning, "Pivot: %f", Pivot);
     // 델타 행렬 (Scale -> Rot -> Trans)
-    FMatrix Mscale = FMatrix::CreateScaleMatrix(DeltaScale.X,DeltaScale.Y,DeltaScale.Z);
+    FMatrix Mscale = FMatrix::CreateScaleMatrix(1,1,1);
     FMatrix Mrot   = FMatrix::CreateRotationMatrix(DeltaRot.Roll,DeltaRot.Pitch,DeltaRot.Yaw);
-    FMatrix DeltaM = FMatrix::CreateTranslationMatrix(DeltaLoc);
-    DeltaM = DeltaM * Mrot * Mscale;
+    FMatrix Mtrans = FMatrix::CreateTranslationMatrix(DeltaLoc);
+    
+    FMatrix ToPivot    = FMatrix::CreateTranslationMatrix(-Pivot);
+    FMatrix FromPivot  = FMatrix::CreateTranslationMatrix(Pivot);
+    FMatrix DeltaM     = FromPivot * Mtrans * Mrot * Mscale * ToPivot;
     // 1) 로컬 바인드 포즈 적용
     LocalBindPose[BoneIndex] = DeltaM * LocalBindPose[BoneIndex];
     // 2) 글로벌 ReferencePose 재계산
@@ -24,6 +29,7 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
     UpdateVerticesFromNewBindPose();
     // 5) 바운딩 & GPU 버퍼
     ComputeBounds(Vertices, BoundingBoxMin, BoundingBoxMax);
+    
     TArray<FStaticMeshVertex> StaticVerts; StaticVerts.SetNum(Vertices.Num());
     for (int32 i = 0; i < Vertices.Num(); ++i)
     {
