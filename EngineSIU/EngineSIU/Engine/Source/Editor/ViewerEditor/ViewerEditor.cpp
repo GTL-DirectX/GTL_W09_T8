@@ -20,6 +20,7 @@
 #include "Components/Light/DirectionalLightComponent.h"
 
 #include "ShowFlag.h"
+#include "Math/Quat.h"
 // End Test
 
 UWorld* ViewerEditor::ViewerWorld = nullptr;
@@ -29,6 +30,7 @@ FString ViewerEditor::ViewportIdentifier = TEXT("SkeletalMeshViewerViewport");
 AActor* ViewerEditor::SelectedActor = nullptr;
 USkeletalMesh* ViewerEditor::SelectedSkeletalMesh = nullptr;
 bool ViewerEditor::bShowBones = false;
+int ViewerEditor::SelectedBone = -1;
 
 void ViewerEditor::InitializeViewerResources()
 {
@@ -121,9 +123,10 @@ void ViewerEditor::DestroyViewerResources()
     bIsInitialized = false;
 }
 
-void ViewerEditor::DrawBoneHierarchyRecursive(int BoneIndex, const TArray<FString>& BoneNames, const TArray<TArray<int>>& Children)
+
+void ViewerEditor::DrawBoneHierarchyRecursive(int BoneIndex, const TArray<FString>& BoneNames, const TArray<TArray<int>>& Children, const FSkeletalMeshRenderData* RenderData)
 {
-    if (BoneIndex < 0 || BoneIndex >= BoneNames.Num())
+    if (BoneIndex < 0 || BoneIndex >= BoneNames.Num() || !RenderData)
     {
         return;
     }
@@ -137,17 +140,31 @@ void ViewerEditor::DrawBoneHierarchyRecursive(int BoneIndex, const TArray<FStrin
         NodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     }
 
+    // 선택된 본인지 확인
+    bool bIsSelected = (SelectedBone == BoneIndex);
+    if (bIsSelected)
+    {
+        NodeFlags |= ImGuiTreeNodeFlags_Selected;
+    }
+
     bool bNodeOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>((intptr_t)BoneIndex), NodeFlags, "%s", GetData(BoneName));
+
+    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+    {
+        SelectedBone = BoneIndex;
+    }
+
 
     if (bNodeOpen && !(NodeFlags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
     {
         for (int ChildIndex : CurrentChildren)
         {
-            DrawBoneHierarchyRecursive(ChildIndex, BoneNames, Children);
+            DrawBoneHierarchyRecursive(ChildIndex, BoneNames, Children, RenderData);
         }
         ImGui::TreePop();
     }
 }
+
 void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
 {
     if (!bShowWindow)
@@ -234,30 +251,61 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
             if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Checkbox("Show Bones", &bShowBones);
+                if (ViewerViewportClient)
                 {
                     ViewerViewportClient->SetShowFlagState(EEngineShowFlags::SF_Bone, bShowBones);
                 }
-                int BoneCount = RenderData->BoneNames.Num();
-                TArray<TArray<int>> Children;
-                Children.SetNum(BoneCount);
-                for (int i = 0; i < BoneCount; ++i)
+
+                // 본 계층 트리 표시를 위한 Child Window (스크롤 가능하게)
+                ImGui::BeginChild("BoneTreeChildWindow", ImVec2(0, ImGui::GetContentRegionAvail().y * 0.5f), true, ImGuiWindowFlags_HorizontalScrollbar);
                 {
-                    int ParentIndex = RenderData->ParentBoneIndices[i];
-                    if (ParentIndex >= 0 && ParentIndex < BoneCount)
+                    int BoneCount = RenderData->BoneNames.Num();
+                    TArray<TArray<int>> Children;
+                    Children.SetNum(BoneCount);
+                    for (int i = 0; i < BoneCount; ++i)
                     {
-                        Children[ParentIndex].Add(i);
+                        int ParentIndex = RenderData->ParentBoneIndices[i];
+                        if (ParentIndex >= 0 && ParentIndex < BoneCount)
+                        {
+                            Children[ParentIndex].Add(i);
+                        }
+                    }
+                    for (int i = 0; i < BoneCount; ++i)
+                    {
+                        if (RenderData->ParentBoneIndices[i] < 0)
+                        {
+                            DrawBoneHierarchyRecursive(i, RenderData->BoneNames, Children, RenderData);
+                        }
                     }
                 }
-                for (int i = 0; i < BoneCount; ++i)
+                ImGui::EndChild();
+                if (SelectedBone != -1 && SelectedBone < RenderData->BoneNames.Num())
                 {
-                    if (RenderData->ParentBoneIndices[i] < 0)
+                    ImGui::Separator();
+                    ImGui::Text("Selected Bone Info:");
+                    ImGui::Indent();
+                    ImGui::Text("Index: %d", SelectedBone);
+
+                    const FMatrix& BoneTransform = RenderData->ReferencePose[SelectedBone];
+                    FVector Translation = BoneTransform.GetTranslationVector();
+                    FRotator Rotation = FMatrix::GetRotationMatrix(BoneTransform).ToQuat().Rotator();
+                    FVector Scale = BoneTransform.GetScaleVector();
+
+                    ImGui::Text("Position: (X: %.1f, Y: %.1f, Z: %.1f)", Translation.X, Translation.Y, Translation.Z);
+                    ImGui::Text("Rotation: (Pitch: %.1f, Yaw: %.1f, Roll: %.1f)", Rotation.Pitch, Rotation.Yaw, Rotation.Roll);
+                    int ParentIdx = RenderData->ParentBoneIndices[SelectedBone];
+                    if (ParentIdx != -1)
                     {
-                        DrawBoneHierarchyRecursive(i, RenderData->BoneNames, Children);
+                        ImGui::Text("Parent: %s (Index: %d)", GetData(RenderData->BoneNames[ParentIdx]), ParentIdx);
                     }
+                    else
+                    {
+                        ImGui::Text("Parent: None (Root Bone)");
+                    }
+                    ImGui::Unindent();
                 }
             }
         }
-
         ImGui::Columns(1);
     }
     ImGui::End();

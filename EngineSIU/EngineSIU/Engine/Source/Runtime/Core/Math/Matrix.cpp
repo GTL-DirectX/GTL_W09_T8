@@ -283,6 +283,62 @@ FMatrix FMatrix::GetTranslationMatrix(const FVector& position)
     return CreateTranslationMatrix(position);
 }
 
+FMatrix FMatrix::GetRotationMatrix(const FMatrix& InMatrix, bool bNormalize)
+{
+    FMatrix ResultMatrix = FMatrix::Identity;
+    // X축 벡터 (첫 번째 열의 x, y, z 성분)
+    FVector XAxis(InMatrix.M[0][0], InMatrix.M[0][1], InMatrix.M[0][2]);
+    // Y축 벡터 (두 번째 열의 x, y, z 성분)
+    FVector YAxis(InMatrix.M[1][0], InMatrix.M[1][1], InMatrix.M[1][2]);
+    // Z축 벡터 (세 번째 열의 x, y, z 성분)
+    FVector ZAxis(InMatrix.M[2][0], InMatrix.M[2][1], InMatrix.M[2][2]);
+
+    if (bNormalize)
+    {
+        if (XAxis.SquaredLength() > KINDA_SMALL_NUMBER)
+        {
+            XAxis.Normalize();
+        }
+        if (YAxis.SquaredLength() > KINDA_SMALL_NUMBER)
+        {
+            YAxis.Normalize();
+        }
+        if (ZAxis.SquaredLength() > KINDA_SMALL_NUMBER)
+        {
+            ZAxis.Normalize();
+        }
+    }
+
+    // 결과 행렬의 좌상단 3x3 부분에 회전/스케일 축 벡터 설정
+    // (열 우선 방식)
+
+    // 열 0 (X축)
+    ResultMatrix.M[0][0] = XAxis.X;
+    ResultMatrix.M[0][1] = XAxis.Y;
+    ResultMatrix.M[0][2] = XAxis.Z;
+    ResultMatrix.M[0][3] = 0.0f;
+
+    // 열 1 (Y축)
+    ResultMatrix.M[1][0] = YAxis.X;
+    ResultMatrix.M[1][1] = YAxis.Y;
+    ResultMatrix.M[1][2] = YAxis.Z;
+    ResultMatrix.M[1][3] = 0.0f;
+
+    // 열 2 (Z축)
+    ResultMatrix.M[2][0] = ZAxis.X;
+    ResultMatrix.M[2][1] = ZAxis.Y;
+    ResultMatrix.M[2][2] = ZAxis.Z;
+    ResultMatrix.M[2][3] = 0.0f;
+
+    // 열 3 (이동 부분) - 회전 행렬이므로 (0,0,0,1)로 설정
+    ResultMatrix.M[3][0] = 0.0f;
+    ResultMatrix.M[3][1] = 0.0f;
+    ResultMatrix.M[3][2] = 0.0f;
+    ResultMatrix.M[3][3] = 1.0f;
+
+    return ResultMatrix;
+}
+
 FMatrix FMatrix::GetRotationMatrix(const FRotator& InRotation)
 {
     return CreateRotationMatrix(InRotation.Roll, InRotation.Pitch, InRotation.Yaw);

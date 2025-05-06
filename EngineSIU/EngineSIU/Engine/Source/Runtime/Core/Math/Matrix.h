@@ -42,6 +42,8 @@ public:
 
     static FMatrix GetScaleMatrix(const FVector& InScale);
     static FMatrix GetTranslationMatrix(const FVector& InPosition);
+
+    static FMatrix GetRotationMatrix(const FMatrix& InMatrix, bool bNormalize = true);
     static FMatrix GetRotationMatrix(const FRotator& InRotation);
     static FMatrix GetRotationMatrix(const FQuat& InRotation);
 
