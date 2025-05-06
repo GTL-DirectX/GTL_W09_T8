@@ -503,18 +503,34 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     );
 
     // 10) LocalBindPose 계산
-    int32 BoneCount = outData.ReferencePose.Num();
+    // int32 BoneCount = outData.ReferencePose.Num();
+    // outData.LocalBindPose.SetNum(BoneCount);
+    // for (int32 i = 0; i < BoneCount; ++i)
+    // {
+    //     const FMatrix& G = outData.ReferencePose[i];
+    //     int32 P = outData.ParentBoneIndices[i];
+    //     if (P >= 0)
+    //         outData.LocalBindPose[i] = FMatrix::Inverse(outData.ReferencePose[P]) * G;
+    //     else
+    //         outData.LocalBindPose[i] = G;
+    // }
+    
+    int32 BoneCount = SortedBones.Num();
     outData.LocalBindPose.SetNum(BoneCount);
-    for (int32 i = 0; i < BoneCount; ++i)
+        // bind-pose 타임으로 0프레임(혹은 T0) 사용
+    FbxTime evalTime = FBXSDK_TIME_ZERO;
+        for (int32 i = 0; i < BoneCount; ++i)
     {
-        const FMatrix& G = outData.ReferencePose[i];
-        int32 P = outData.ParentBoneIndices[i];
-        if (P >= 0)
-            outData.LocalBindPose[i] = FMatrix::Inverse(outData.ReferencePose[P]) * G;
-        else
-            outData.LocalBindPose[i] = G;
+        FbxNode* boneNode = SortedBones[i];
+            // 1) FBX 로컬 바인드 포즈 매트릭스 얻기
+        FbxAMatrix  fbxLocal = boneNode->EvaluateLocalTransform(evalTime);
+        // (필요시 애니메이션 레이어 인자로 넘겨줄 수도 있음)
+            // 2) FBX 좌표계 → 언리얼 좌표계 변환
+        //    (sourceAxisSystem, conversionMatrix 은 함수 상단에서 이미 구해두셨죠)
+        FMatrix RawMat = ConvertToFMatrix(fbxLocal);
+        outData.LocalBindPose[i] = RawMat;
     }
-
+    
     // 11) 원본 데이터 보관
     outData.OrigineVertices          = outData.Vertices;
     outData.OrigineReferencePose     = outData.ReferencePose;

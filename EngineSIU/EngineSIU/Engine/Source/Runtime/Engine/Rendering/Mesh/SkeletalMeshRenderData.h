@@ -79,14 +79,15 @@ struct FSkeletalMeshRenderData
 
     void UpdateReferencePoseFromLocal()
     {
+
         const int32 BoneCount = LocalBindPose.Num();
         ReferencePose.SetNum(BoneCount);
         OrigineReferencePose.SetNum(BoneCount); // 원본 백업
-
+        
         for (int32 i = 0; i < BoneCount; ++i)
         {
             int parentIndex = ParentBoneIndices[i];
-
+        
             if (parentIndex >= 0)
             {
                 // 부모의 글로벌 포즈에 현재 로컬을 곱함
