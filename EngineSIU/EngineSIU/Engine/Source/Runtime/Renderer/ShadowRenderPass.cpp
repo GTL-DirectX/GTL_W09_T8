@@ -414,6 +414,25 @@ void FShadowRenderPass::RenderAllSkeletalMeshes()
 
 void FShadowRenderPass::RenderAllSkeletalMeshesForCSM(FCascadeConstantBuffer FCasCadeData)
 {
+    for (USkeletalMeshComponent* Comp : SkeletalMeshComponents)
+    {
+        if (!Comp || !Comp->GetSkeletalMesh())
+        {
+            continue;
+        }
+
+        FSkeletalMeshRenderData* RenderData = Comp->GetSkeletalMesh()->GetRenderData();
+        if (RenderData == nullptr)
+        {
+            continue;
+        }
+
+        FMatrix WorldMatrix = Comp->GetWorldMatrix();
+        FCasCadeData.World = WorldMatrix;
+        BufferManager->UpdateConstantBuffer(TEXT("FCascadeConstantBuffer"), FCasCadeData);
+
+        RenderPrimitive(RenderData, Comp->GetSkeletalMesh()->GetMaterials(), Comp->GetOverrideMaterials(), Comp->GetselectedSubMeshIndex());
+    }
 }
 
 void FShadowRenderPass::RenderAllSkeletalMeshesForPointLight(UPointLightComponent*& PointLight)

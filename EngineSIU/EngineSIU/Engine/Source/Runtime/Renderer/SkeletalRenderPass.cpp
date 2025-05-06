@@ -94,23 +94,23 @@ void FSkeletalRenderPass::Render(const std::shared_ptr<FViewportClient>& Viewpor
     RenderAllSkeletalMeshes(Viewport);
     // RenderAllSkeletalMeshes(Viewport);
     // 렌더 타겟 해제
-    Graphics->DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
-    ID3D11ShaderResourceView* nullSRV = nullptr;
-    Graphics->DeviceContext->PSSetShaderResources(static_cast<int>(EShaderSRVSlot::SRV_PointLight), 1, &nullSRV); // t51 슬롯을 NULL로 설정
-    Graphics->DeviceContext->PSSetShaderResources(static_cast<int>(EShaderSRVSlot::SRV_DirectionalLight), 1, &nullSRV); // t51 슬롯을 NULL로 설정
-    Graphics->DeviceContext->PSSetShaderResources(static_cast<int>(EShaderSRVSlot::SRV_SpotLight), 1, &nullSRV); // t51 슬롯을 NULL로 설정
+    //Graphics->DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+    //ID3D11ShaderResourceView* nullSRV = nullptr;
+    //Graphics->DeviceContext->PSSetShaderResources(static_cast<int>(EShaderSRVSlot::SRV_PointLight), 1, &nullSRV); // t51 슬롯을 NULL로 설정
+    //Graphics->DeviceContext->PSSetShaderResources(static_cast<int>(EShaderSRVSlot::SRV_DirectionalLight), 1, &nullSRV); // t51 슬롯을 NULL로 설정
+    //Graphics->DeviceContext->PSSetShaderResources(static_cast<int>(EShaderSRVSlot::SRV_SpotLight), 1, &nullSRV); // t51 슬롯을 NULL로 설정
 
-    
-    // @todo 리소스 언바인딩 필요한가?
-    // SRV 해제
-    ID3D11ShaderResourceView* NullSRVs[14] = { nullptr };
-    Graphics->DeviceContext->PSSetShaderResources(0, 14, NullSRVs);
+    //
+    //// @todo 리소스 언바인딩 필요한가?
+    //// SRV 해제
+    //ID3D11ShaderResourceView* NullSRVs[14] = { nullptr };
+    //Graphics->DeviceContext->PSSetShaderResources(0, 14, NullSRVs);
 
-    // 상수버퍼 해제
-    ID3D11Buffer* NullPSBuffer[9] = { nullptr };
-    Graphics->DeviceContext->PSSetConstantBuffers(0, 9, NullPSBuffer);
-    ID3D11Buffer* NullVSBuffer[2] = { nullptr };
-    Graphics->DeviceContext->VSSetConstantBuffers(0, 2, NullVSBuffer);
+    //// 상수버퍼 해제
+    //ID3D11Buffer* NullPSBuffer[9] = { nullptr };
+    //Graphics->DeviceContext->PSSetConstantBuffers(0, 9, NullPSBuffer);
+    //ID3D11Buffer* NullVSBuffer[2] = { nullptr };
+    //Graphics->DeviceContext->VSSetConstantBuffers(0, 2, NullVSBuffer);
 }
 
 void FSkeletalRenderPass::ClearRenderArr()
