@@ -920,6 +920,10 @@ bool FFBXManager::SaveSkeletalMeshToBinary(const FString& FilePath, const FSkele
     File.write(reinterpret_cast<const char*>(&VertexCount), sizeof(VertexCount));
     File.write(reinterpret_cast<const char*>(StaticMesh.Vertices.GetData()), VertexCount * sizeof(FSkeletalMeshVertex));
 
+    uint32 OrigineVertexCount = StaticMesh.OrigineVertices.Num();
+    File.write(reinterpret_cast<const char*>(&OrigineVertexCount), sizeof(OrigineVertexCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.OrigineVertices.GetData()), OrigineVertexCount * sizeof(FSkeletalMeshVertex));
+
     uint32 IndexCount = StaticMesh.Indices.Num();
     File.write(reinterpret_cast<const char*>(&IndexCount), sizeof(IndexCount));
     File.write(reinterpret_cast<const char*>(StaticMesh.Indices.GetData()), IndexCount * sizeof(uint32));
@@ -1022,6 +1026,11 @@ bool FFBXManager::LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalM
     File.read(reinterpret_cast<char*>(&VertexCount), sizeof(VertexCount));
     OutStaticMesh.Vertices.SetNum(VertexCount);
     File.read(reinterpret_cast<char*>(OutStaticMesh.Vertices.GetData()), VertexCount * sizeof(FSkeletalMeshVertex));
+
+    uint32 OrigineVertexCount = 0;
+    File.read(reinterpret_cast<char*>(&OrigineVertexCount), sizeof(OrigineVertexCount));
+    OutStaticMesh.OrigineVertices.SetNum(OrigineVertexCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.OrigineVertices.GetData()), OrigineVertexCount * sizeof(FSkeletalMeshVertex));
 
     // 3) 인덱스 수 읽기
     uint32 IndexCount = 0;
