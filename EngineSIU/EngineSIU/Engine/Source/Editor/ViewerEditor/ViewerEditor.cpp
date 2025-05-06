@@ -234,12 +234,9 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
             if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Checkbox("Show Bones", &bShowBones);
-                
-                //if (ImGui::Checkbox("Show Bones (Toggle SF_Bone)", &bShowBones))
-                //{
-                //    //ViewerViewportClient->SetShowFlagState(EEngineShowFlags::SF_Bone, bShowBones);
-                //    //uint64 CurrentFlags = ViewerViewportClient->GetShowFlag();
-                //}
+                {
+                    ViewerViewportClient->SetShowFlagState(EEngineShowFlags::SF_Bone, bShowBones);
+                }
                 int BoneCount = RenderData->BoneNames.Num();
                 TArray<TArray<int>> Children;
                 Children.SetNum(BoneCount);

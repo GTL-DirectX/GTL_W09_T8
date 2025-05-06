@@ -6,6 +6,7 @@
 #include "HAL/PlatformType.h"
 #include "Math/Matrix.h"
 
+
 #define MIN_ORTHOZOOM (1.0)  // 2D ortho viewport zoom >= MIN_ORTHOZOOM
 #define MAX_ORTHOZOOM (1e25)
 
@@ -113,6 +114,8 @@ public:
     
     uint64 GetShowFlag() const { return ShowFlag; }
     void SetShowFlag(uint64 InShowFlag) { ShowFlag = InShowFlag; }
+
+    void SetShowFlagState(uint64 flag, bool bEnable);
 
 protected:
     ELevelViewportType ViewportType;
