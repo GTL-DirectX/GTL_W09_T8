@@ -45,6 +45,9 @@ class FTileLightCullingPass;
 class FGPUTimingManager;
 
 class FFadeRenderPass;
+
+class FBoneRenderPass;
+
 class FRenderer
 {
 public:
@@ -117,6 +120,8 @@ public:
     
     FFadeRenderPass* FadeRenderPass = nullptr;
     FSlateRenderPass* SlateRenderPass = nullptr;
+
+    FBoneRenderPass* BoneRenderPass = nullptr;
 };
 
 template<typename T>

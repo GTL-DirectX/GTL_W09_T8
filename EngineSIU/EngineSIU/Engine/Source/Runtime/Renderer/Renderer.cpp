@@ -39,6 +39,7 @@
 #include "Stats/Stats.h"
 #include "Stats/GPUTimingManager.h"
 
+
 //------------------------------------------------------------------------------
 // 초기화 및 해제 관련 함수
 //------------------------------------------------------------------------------
@@ -106,6 +107,7 @@ void FRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* InBuf
     FadeRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
     
     SlateRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
+
 }
 
 void FRenderer::Release()
@@ -127,6 +129,7 @@ void FRenderer::Release()
     delete CompositingPass;
     delete PostProcessCompositingPass;
     delete SlateRenderPass;
+    delete BoneRenderPass;
 }
 
 //------------------------------------------------------------------------------
@@ -182,6 +185,11 @@ void FRenderer::CreateConstantBuffers()
     UINT FadeConstantBufferSize = sizeof(FFadeConstants);
     BufferManager->CreateBufferGeneric<FFadeConstants>("FFadeConstants", nullptr, FadeConstantBufferSize, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
     
+    // 상수 버퍼 업데이트 하나 있었는데 이름이 기억이 안남
+
+    //UINT FadeConstantBufferSize = sizeof(FBone);
+    //BufferManager->CreateBufferGeneric<FFadeConstants>("FFadeConstants", nullptr, FadeConstantBufferSize, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+
     // TODO: 함수로 분리
     ID3D11Buffer* ObjectBuffer = BufferManager->GetConstantBuffer(TEXT("FObjectConstantBuffer"));
     ID3D11Buffer* CameraConstantBuffer = BufferManager->GetConstantBuffer(TEXT("FCameraConstantBuffer"));
@@ -442,6 +450,7 @@ void FRenderer::RenderWorldScene(const std::shared_ptr<FViewportClient>& Viewpor
             StaticMeshRenderPass->Render(Viewport);
             SkeletalMeshRenderPass->Render(Viewport);
         }
+
     }
     
     // Render World Billboard

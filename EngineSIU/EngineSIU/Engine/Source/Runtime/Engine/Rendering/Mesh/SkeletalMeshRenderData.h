@@ -77,7 +77,7 @@ struct FSkeletalMeshRenderData
     // 애니메이션 처리용 (선택)
     // TArray<AnimationClip>  Animations;
 
-    void UpdateReferencePoseFromLoacl()
+    void UpdateReferencePoseFromLocal()
     {
         const int32 BoneCount = LocalBindPose.Num();
         ReferencePose.SetNum(BoneCount);

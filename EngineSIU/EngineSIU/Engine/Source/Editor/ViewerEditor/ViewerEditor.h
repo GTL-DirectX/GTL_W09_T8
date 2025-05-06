@@ -27,4 +27,6 @@ private:
     static bool bIsInitialized;
     static FString ViewportIdentifier;
 
+    static bool bShowBones;
+
 };
