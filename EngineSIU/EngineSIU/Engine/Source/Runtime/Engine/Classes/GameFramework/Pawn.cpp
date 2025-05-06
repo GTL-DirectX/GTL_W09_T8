@@ -101,10 +101,24 @@ void APawn::AddMovementInput(FVector WorldDirection, float ScaleValue)
 
 void APawn::AddControllerYawInput(float Value)
 {
+    if (Value != 0.0f)
+    {
+        // Yaw 회전 처리
+        FRotator NewRotation = GetActorRotation();
+        NewRotation.Yaw += Value * 0.2;
+        SetActorRotation(NewRotation);
+    }
 }
 
 void APawn::AddControllerPitchInput(float Value)
 {
+    if (Value != 0.0f)
+    {
+        // Pitch 회전 처리
+        FRotator NewRotation = GetActorRotation();
+        NewRotation.Pitch -= Value * 0.2;
+        SetActorRotation(NewRotation);
+    }
 }
 
 FVector APawn::GetPawnViewLocation() const

@@ -15,6 +15,7 @@
 #include "Games/LastWar/Characters/Wall.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Audio/AudioManager.h"
+#include "GameFramework/DefaultPawn.h"
 
 namespace PrivateEditorSelection
 {
@@ -185,18 +186,13 @@ void UEditorEngine::StartPIE()
     ActiveWorld->AddPlayerController(PC);
 
     // 2) Character 스폰 및 Possess
-    ACharacter* PlayerCharacter = ActiveWorld->SpawnActor<APlayerCharacter>();
-    PC->Possess(PlayerCharacter);
+    APawn* DefaultCharacter = ActiveWorld->SpawnActor<ADefaultPawn>();
+    PC->Possess(DefaultCharacter);
 
     // 3) 월드에 컨트롤러 등록
-    AudioManager::Get().PlayBgm(EAudioType::MainTheme);
+    //AudioManager::Get().PlayBgm(EAudioType::MainTheme);
 
-    //PIEWorld->BeginPlay();
     PIEWorld->BeginPlay();
-    GEngine->ActiveWorld->GetFirstPlayerController()->PlayerCameraManager->ViewTarget.Target = PlayerCharacter;
-    //GEngine->ActiveWorld->GetFirstPlayerController()->PlayerCameraManager->StartCameraFade(0.0f, 1.0f, 10.0f, FLinearColor::Red, false, true);
-
-    
 
     OnStartPIE.Broadcast(PIEWorld);
     // 나중에 제거하기

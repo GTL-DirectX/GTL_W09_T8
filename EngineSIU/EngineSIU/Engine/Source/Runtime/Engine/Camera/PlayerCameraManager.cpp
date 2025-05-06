@@ -251,6 +251,23 @@ void APlayerCameraManager::UpdateViewTarget(FViewTarget& OutVT, float DeltaTime)
         // 액터가 카메라 컴포넌트를 가지고 있을 때.
         CamActor->GetCameraComponent()->GetCameraView(DeltaTime, OutVT.POV);
     }
+    else if (AController* PC = Cast<AController>(OutVT.Target))
+    {
+        // Viewing through a controller.
+        // Target 액터가 컨트롤러일 때.
+        if (APawn* Pawn = PC->GetPawn())
+        {
+            OutVT.POV.Location = Pawn->GetActorLocation();
+            OutVT.POV.Rotation = Pawn->GetActorRotation();
+            OutVT.POV.FOV = 90.0f;
+        }
+        else
+        {
+            OutVT.POV.Location = PC->GetActorLocation();
+            OutVT.POV.Rotation = PC->GetActorRotation();
+            OutVT.POV.FOV = 90.0f;
+        }
+    }
     else
     {
         if (UCameraComponent* CamComp = OutVT.Target->GetComponentByClass<UCameraComponent>())

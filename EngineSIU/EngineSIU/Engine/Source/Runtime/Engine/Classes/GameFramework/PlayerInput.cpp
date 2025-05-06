@@ -9,6 +9,8 @@ void UPlayerInput::InitializeDefaultMappings()
     AddAxisMapping({ "MoveForward", EKeys::S, -1.f });
     AddAxisMapping({ "MoveRight",   EKeys::D,  1.f });
     AddAxisMapping({ "MoveRight",   EKeys::A, -1.f });
+    AddAxisMapping({ "Turn",       EKeys::MouseX, 1.f });
+    AddAxisMapping({ "LookUp",     EKeys::MouseY, 1.f });
 }
 
 void UPlayerInput::AddActionMapping(const FInputActionKeyMapping& Mapping)
@@ -69,7 +71,7 @@ void UPlayerInput::InputKey(EKeys::Type Key, EInputEvent EventType)
     }
 }
 
-void UPlayerInput::InputAxis(EKeys::Type Key)
+void UPlayerInput::InputAxis(EKeys::Type Key, EInputEvent EventType)
 {
     // 매핑된 축 찾기
     if (APlayerController* PC = Cast<APlayerController>(GetOuter()))
@@ -86,6 +88,36 @@ void UPlayerInput::InputAxis(EKeys::Type Key)
                     {
                         IC->InputAxis(Mapping.AxisName, ScaledValue);
                     }
+                }
+            }
+        }
+    }
+}
+
+void UPlayerInput::MouseInput(float DeltaX, float DeltaY)
+{
+    // 마우스 이동 처리
+    for (const auto& M : AxisMappings)
+    {
+        if (M.Key == EKeys::MouseX)
+        {
+            // PlayerController 에서 관리하는 InputComponent 스택에 전달
+            if (APlayerController* PC = Cast<APlayerController>(GetOuter()))
+            {
+                for (UInputComponent* IC : PC->GetInputComponentStack())
+                {
+                    IC->InputAxis(M.AxisName, DeltaX);
+                }
+            }
+        }
+        else if (M.Key == EKeys::MouseY)
+        {
+            // PlayerController 에서 관리하는 InputComponent 스택에 전달
+            if (APlayerController* PC = Cast<APlayerController>(GetOuter()))
+            {
+                for (UInputComponent* IC : PC->GetInputComponentStack())
+                {
+                    IC->InputAxis(M.AxisName, DeltaY);
                 }
             }
         }
