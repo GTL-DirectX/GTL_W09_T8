@@ -108,6 +108,7 @@ void FFBXManager::LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkelet
     {
         std::cerr << "Triangulation failed" << std::endl;
     }
+    
     OutRenderData.FilePath = FbxFilePath;
     // 루트 노드 순회하여 데이터 출력
     FbxNode* root = Scene->GetRootNode();
@@ -121,8 +122,45 @@ void FFBXManager::LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkelet
         }
     }
 }
+void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
+{
+    outData.ObjectName = FString(node->GetName());
+    // 1) 메시 얻기
+    FbxMesh* mesh = node->GetMesh();
+    if (!mesh)
+    {
+        for (int i = 0; i < node->GetChildCount(); i++)
+        {
+            ExtractSkeletalMeshData(node->GetChild(i), outData);
+        }
+        return;
+    }
+    
+    int cpCount = mesh->GetControlPointsCount();
+    // Vertex 정보를 추출합니다.
+    ExtractVertexPosition(outData, mesh, cpCount);
+    
+    int polyCount = mesh->GetPolygonCount();
 
-void FFBXManager::InitializeLocalbindPose(FSkeletalMeshRenderData& outData)
+    // Index, Normal, UV, Tangent 값등을 추출합니다.
+    ExtractVertexInfo(outData, mesh, cpCount, polyCount);
+
+    // 본 계층구조와 가중치, Global Bind Pose를 추출합니다.
+    ExtractBoneInfo(outData, mesh);
+    
+    // Global Bind Pose를 기반으로 Local Bind Pose를 생성합니다.
+    CreateLocalbindPose(outData);
+    
+    outData.OrigineVertices          = outData.Vertices;
+    outData.OrigineReferencePose     = outData.ReferencePose;
+
+    // 머터리얼 정보를 추출합니다. 
+    ExtractMaterial(outData, mesh, polyCount);
+
+    outData.ComputeBounds();
+}
+
+void FFBXManager::CreateLocalbindPose(FSkeletalMeshRenderData& outData)
 {
     int32 BoneCount = outData.ReferencePose.Num();
     outData.LocalBindPose.SetNum(BoneCount);
@@ -164,7 +202,7 @@ void FFBXManager::InitializeLocalbindPose(FSkeletalMeshRenderData& outData)
     }
 }
 
-void FFBXManager::InitailizeMaterial(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int polyCount)
+void FFBXManager::ExtractMaterial(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int polyCount)
 {
     outData.Materials.Reset();
     outData.MaterialSubsets.Reset();
@@ -257,7 +295,7 @@ void FFBXManager::InitailizeMaterial(FSkeletalMeshRenderData& outData, FbxMesh* 
     }
 }
 
-void FFBXManager::InitializeBoneInfo(FSkeletalMeshRenderData& outData, FbxMesh* mesh)
+void FFBXManager::ExtractBoneInfo(FSkeletalMeshRenderData& outData, FbxMesh* mesh)
 {
     TSet<FbxNode*>            BoneNodeSet;
     TMap<FbxNode*, FMatrix>   ClusterBindPose;
@@ -357,41 +395,14 @@ void FFBXManager::InitializeBoneInfo(FSkeletalMeshRenderData& outData, FbxMesh* 
     }
 }
 
-void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
+void FFBXManager::ExtractVertexInfo(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int cpCount, int polyCount)
 {
-    // 1) 메시 얻기
-    FbxMesh* mesh = node->GetMesh();
-    if (!mesh)
-    {
-        for (int i = 0; i < node->GetChildCount(); i++)
-        {
-            ExtractSkeletalMeshData(node->GetChild(i), outData);
-        }
-        return;
-    }
-    outData.ObjectName = FString(node->GetName());
-    
-    // 2) 컨트롤 포인트 버텍스 초기화
-    int cpCount = mesh->GetControlPointsCount();
-    outData.Vertices.SetNum(cpCount);
-    FbxVector4* cps = mesh->GetControlPoints();
-    for (int i = 0; i < cpCount; ++i)
-    {
-        auto& v = outData.Vertices[i];
-        FVector sourcePosition = FVector(cps[i][0], cps[i][1], cps[i][2]);
-        v.Position = sourcePosition; // 변환 행렬을 사용하여 변환
-        for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
-            v.BoneIndices[j] = v.BoneWeights[j] = 0;
-    }
-
-    // 3) 인덱스 삼각화 및 초기화
-    int polyCount = mesh->GetPolygonCount();
     outData.Indices.Reset();
     outData.Indices.Reserve(polyCount * 3);
 
     // 4) 클러스터 정보 미리 수집 (본 노드, TransformLinkMatrix, 가중치)
 
-      // boneNode -> array of (controlPointIdx, weight)
+    // boneNode -> array of (controlPointIdx, weight)
 
     // UV Element 가져오기 (첫 번째 UV 세트)
     FbxLayerElementUV* uvElement = mesh->GetLayer(0)->GetUVs(); // mesh->GetElementUV(0) 과 동일할 수 있음
@@ -494,25 +505,28 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
                     // 참고: UV와 마찬가지로 덮어쓰기 문제 가능성 있음
                 }
             }
-
             // TODO: --- 탄젠트 추출 (필요하고 FBX에 데이터가 있다면) ---
             // if (hasTangents) { ... }
             outData.Indices.Add(mesh->GetPolygonVertex(p, k));
         }
     }
-
-
-    // 5) 본 + 스킨 정보 수집
-    InitializeBoneInfo(outData, mesh);
-    InitializeLocalbindPose(outData);
-    
-    outData.OrigineVertices          = outData.Vertices;
-    outData.OrigineReferencePose     = outData.ReferencePose;
-
-    InitailizeMaterial(outData, mesh, polyCount);
-
-    outData.ComputeBounds();
 }
+
+void FFBXManager::ExtractVertexPosition(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int cpCount)
+{
+    outData.Vertices.SetNum(cpCount);
+    FbxVector4* cps = mesh->GetControlPoints();
+    for (int i = 0; i < cpCount; ++i)
+    {
+        auto& v = outData.Vertices[i];
+        FVector sourcePosition = FVector(cps[i][0], cps[i][1], cps[i][2]);
+        v.Position = sourcePosition; // 변환 행렬을 사용하여 변환
+        for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+            v.BoneIndices[j] = v.BoneWeights[j] = 0;
+    }
+}
+
+
 
 FMatrix FFBXManager::ConvertToFMatrix(const FbxAMatrix& in)
 {
@@ -524,7 +538,6 @@ FMatrix FFBXManager::ConvertToFMatrix(const FbxAMatrix& in)
     out.M[3][0] = in.Get(3,0) * static_cast<float>(finalScaleFactor); out.M[3][1] = in.Get(3,1)* static_cast<float>(finalScaleFactor); out.M[3][2] = in.Get(3,2)* static_cast<float>(finalScaleFactor); out.M[3][3] = in.Get(3,3);
     return out;
 }
-
 
 bool FFBXManager::SaveSkeletalMeshToBinary(const FString& FilePath, const FSkeletalMeshRenderData& StaticMesh)
 {

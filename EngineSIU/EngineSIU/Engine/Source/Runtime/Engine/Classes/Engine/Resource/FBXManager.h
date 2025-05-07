@@ -28,15 +28,18 @@ public:
 
     // SDK 초기화
     void Initialize();
-
+    void Release();
+    
     // FBX 파일 로드 및 씬 셋업 (파일 경로: const char*)
     void LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData);
-    void InitializeLocalbindPose(FSkeletalMeshRenderData& outData);
-    void InitailizeMaterial(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int polyCount);
-    void InitializeBoneInfo(FSkeletalMeshRenderData& outData, FbxMesh* mesh);
-    void Release();
-    // 씬에서 노드 데이터 출력 (예시)
     void ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData);
+
+    void CreateLocalbindPose(FSkeletalMeshRenderData& outData);
+    void ExtractMaterial(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int polyCount);
+    void ExtractBoneInfo(FSkeletalMeshRenderData& outData, FbxMesh* mesh);
+    void ExtractVertexInfo(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int cpCount, int polyCount);
+    void ExtractVertexPosition(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int cpCount);
+    // 씬에서 노드 데이터 출력 (예시)
     FMatrix ConvertToFMatrix(const FbxAMatrix& in);
 
 public:
