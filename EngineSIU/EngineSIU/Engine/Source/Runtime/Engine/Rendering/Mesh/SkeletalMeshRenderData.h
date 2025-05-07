@@ -118,7 +118,7 @@ struct FSkeletalMeshRenderData
         TArray<FMatrix> Delta; Delta.SetNum(BoneCount);
         for (int32 i = 0; i < BoneCount; ++i)
         {
-            Delta[i] = ReferencePose[i] * FMatrix::Inverse(OrigineReferencePose[i]);
+            Delta[i] = FMatrix::Inverse(OrigineReferencePose[i]) * ReferencePose[i]  ;
         }
         
         // 각 버텍스에 대해
