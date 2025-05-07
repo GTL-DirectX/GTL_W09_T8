@@ -151,24 +151,24 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     // 0) 좌표계 판단
     
     // FBX의 좌표계
-    FbxAxisSystem sourceAxisSystem = node->GetScene()->GetGlobalSettings().GetAxisSystem();
-    FbxSystemUnit sourceUnit = node->GetScene()->GetGlobalSettings().GetSystemUnit();
-    
-    // 이 엔진의 좌표계 정의
-    const FbxAxisSystem EngineAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eLeftHanded); // Z-up, X-fwd(ParityOdd), LH
-    const float EngineUnitScaleFactor = 1.0f; // 엔진 단위가 미터라고 가정 (cm -> m)
-    
-    FMatrix conversionMatrix = GetConversionMatrix(sourceAxisSystem, EngineAxisSystem);
-    float conversionMatrixDet = conversionMatrix.Determinant3x3();
-    finalScaleFactor = sourceUnit.GetScaleFactor() * EngineUnitScaleFactor;
+    // FbxAxisSystem sourceAxisSystem = node->GetScene()->GetGlobalSettings().GetAxisSystem();
+    // FbxSystemUnit sourceUnit = node->GetScene()->GetGlobalSettings().GetSystemUnit();
+    //
+    // // 이 엔진의 좌표계 정의
+    // const FbxAxisSystem EngineAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eLeftHanded); // Z-up, X-fwd(ParityOdd), LH
+    // const float EngineUnitScaleFactor = 1.0f; // 엔진 단위가 미터라고 가정 (cm -> m)
+    //
+    // FMatrix conversionMatrix = GetConversionMatrix(sourceAxisSystem, EngineAxisSystem);
+    // float conversionMatrixDet = conversionMatrix.Determinant3x3();
+    // finalScaleFactor = sourceUnit.GetScaleFactor() * EngineUnitScaleFactor;
     // 1) 메시 얻기
     FbxMesh* mesh = node->GetMesh();
     if (!mesh)
     {
-        for (int i = 0; i < node->GetChildCount(); i++)
-        {
-            ExtractSkeletalMeshData(node->GetChild(i), outData);
-        }
+        // for (int i = 0; i < node->GetChildCount(); i++)
+        // {
+        //     ExtractSkeletalMeshData(node->GetChild(i), outData);
+        // }
         return;
     }
 
@@ -345,6 +345,8 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
             FbxAMatrix linkGlobal;
             cluster->GetTransformLinkMatrix(linkGlobal);
             FMatrix boneGlobal = ConvertToFMatrix(linkGlobal);
+
+            ClusterBindPose[boneNode] = boneGlobal;
             
             // 가중치 모으기
             int    count   = cluster->GetControlPointIndicesCount();
@@ -392,7 +394,7 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
         }
         outData.ParentBoneIndices.Add(parentIdx);
         // bind-pose matrix
-        FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
+        // FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
         outData.ReferencePose.Add( ClusterBindPose[boneNode]);
     }
 
