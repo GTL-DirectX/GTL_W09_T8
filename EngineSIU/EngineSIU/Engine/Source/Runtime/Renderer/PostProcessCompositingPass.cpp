@@ -3,7 +3,7 @@
 #include <array>
 
 #include "RendererHelpers.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "D3D11RHI/DXDShaderManager.h"
 #include "UnrealEd/EditorViewportClient.h"
 

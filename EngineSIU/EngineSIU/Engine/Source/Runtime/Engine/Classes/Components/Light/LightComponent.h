@@ -1,5 +1,4 @@
 #pragma once
-#include "UnrealClient.h"
 #include "Components/SceneComponent.h"
 
 #define NUM_FACES 6

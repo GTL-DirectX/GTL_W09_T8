@@ -2,7 +2,7 @@
 
 #include <fstream>
 #include "EngineLoop.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "WindowsCursor.h"
 #include "BaseGizmos/GizmoBaseComponent.h"
 #include "Engine/EditorEngine.h"

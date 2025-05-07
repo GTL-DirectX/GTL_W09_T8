@@ -4,7 +4,7 @@
 
 #include "Define.h"
 #include "RendererHelpers.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "UnrealEd/EditorViewportClient.h"
 
 FCompositingPass::FCompositingPass()

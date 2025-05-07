@@ -29,7 +29,7 @@
 #include "Games/LastWar/Core/Spawner.h"
 #include "ImGUI/imgui.h"
 
-#include "Editor/ViewerEditor/ViewerEditor.h"
+#include "Viewport/ViewerEditor.h"
 #include <Engine/SkeletalMeshActor.h>
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/Resource/FBXManager.h"
@@ -439,6 +439,9 @@ void ControlEditorPanel::CreateViewerButton()
     }
 
     ViewerEditor::RenderViewerWindow(bShowSkeletalMeshViewer);
+
+    //Cast<UEditorEngine>(GEngine)->CreateSkeletalPreviewViewport();
+
 }
 void ControlEditorPanel::CreateFlagButton()
 {

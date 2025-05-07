@@ -15,7 +15,7 @@
 #include "Engine/EditorEngine.h"
 
 #include "EngineLoop.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 
 #include "World/World.h"
 

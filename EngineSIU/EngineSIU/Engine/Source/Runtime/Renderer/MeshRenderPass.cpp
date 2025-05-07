@@ -1,6 +1,6 @@
 #include "MeshRenderPass.h"
 #include "ShadowManager.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 
 #include "UObject/UObjectIterator.h"
 #include "UObject/Casts.h"

@@ -159,7 +159,7 @@ public:
     FViewport(EViewScreenLocation InViewLocation);
     ~FViewport();
 
-    void Initialize(const FRect& InRect);
+    virtual void Initialize(const FRect& InRect);
     void ResizeViewport(const FRect& InRect);
     void ResizeViewport(const FRect& Top, const FRect& Bottom, const FRect& Left, const FRect& Right);
 
@@ -172,6 +172,8 @@ public:
     FRect GetRect() const { return Rect; }
 
     bool bIsHovered(const FVector2D& InPoint) const;
+
+    virtual void Draw(float DeltaTime);
 
 private:
     FViewportResource* ViewportResource;

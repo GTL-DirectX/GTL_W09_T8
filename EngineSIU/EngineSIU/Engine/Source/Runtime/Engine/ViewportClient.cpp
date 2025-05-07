@@ -1,6 +1,6 @@
 #include "ViewportClient.h"
 
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "Math/JungleMath.h"
 #include "Engine/EditorEngine.h"
 #include "World/World.h"
@@ -30,6 +30,10 @@ void FViewportClient::Draw(FViewport* Viewport)
 
 void FViewportClient::Tick(float DeltaTime)
 {
+    if (Viewport)
+    {
+        Viewport->Draw(DeltaTime);
+    }
 }
 
 void FViewportClient::Release()

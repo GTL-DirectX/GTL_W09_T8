@@ -5,7 +5,7 @@
 #include "sstream"
 #include "ostream"
 #include "Math/JungleMath.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "WindowsCursor.h"
 #include "GameFramework/Actor.h"
 

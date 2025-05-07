@@ -1,7 +1,7 @@
 #include "SlateRenderPass.h"
 
 #include "RendererHelpers.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "D3D11RHI/DXDBufferManager.h"
 #include "D3D11RHI/DXDShaderManager.h"
 #include "UnrealEd/EditorViewportClient.h"

@@ -3,7 +3,7 @@
 #include "D3D11RHI/GraphicDevice.h"
 #include "D3D11RHI/DXDShaderManager.h"
 
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "UnrealEd/EditorViewportClient.h"
 #include "LevelEditor/SLevelEditor.h"
 #include "UObject/Casts.h"

@@ -7,7 +7,7 @@
 #include <D3D11RHI/DXDShaderManager.h>
 
 #include "ShowFlag.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "Engine/Source/Runtime/Engine/World/World.h"
 #include "UnrealEd/EditorViewportClient.h"
 #include "UObject/UObjectIterator.h"

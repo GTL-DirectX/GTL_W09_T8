@@ -1,7 +1,6 @@
 #include "SkeletalMeshViewportClient.h"
 
-#include "UnrealClient.h"
-
+#include "Viewport/SkeletalMeshEditorViewport.h"
 
 FSkeletalMeshViewportClient::FSkeletalMeshViewportClient()
 {

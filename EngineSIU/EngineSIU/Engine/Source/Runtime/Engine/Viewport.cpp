@@ -1,4 +1,4 @@
-#include "UnrealClient.h"
+#include "Viewport.h"
 
 #include "EngineLoop.h"
 #include <array>
@@ -372,4 +372,8 @@ bool FViewport::bIsHovered(const FVector2D& InPoint) const
 {
     return (Rect.TopLeftX <= static_cast<float>(InPoint.X) && static_cast<float>(InPoint.X) <= Rect.TopLeftX + Rect.Width) &&
            (Rect.TopLeftY <= static_cast<float>(InPoint.Y) && static_cast<float>(InPoint.Y) <= Rect.TopLeftY + Rect.Height);
+}
+
+void FViewport::Draw(float DeltaTime)
+{
 }

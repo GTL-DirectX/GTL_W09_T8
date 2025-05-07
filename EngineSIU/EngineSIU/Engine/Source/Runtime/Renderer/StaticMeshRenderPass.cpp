@@ -9,7 +9,7 @@
 #include "ShadowManager.h"
 #include "ShadowRenderPass.h"
 #include "ShowFlag.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "Math/JungleMath.h"
 
 #include "UObject/UObjectIterator.h"

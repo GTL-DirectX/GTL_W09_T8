@@ -12,7 +12,7 @@
 #include "Runtime/Engine/Classes/Actors/Cube.h"
 #include "Editor/LevelEditor/SLevelEditor.h"
 #include "Editor/UnrealEd/EditorViewportClient.h"
-#include "Runtime/Engine/UnrealClient.h"
+#include "Runtime/Engine/Viewport.h"
 #include "Runtime/Core/Container/String.h"
 #include "Runtime/Engine/Classes/Engine/Resource/FBXManager.h"
 

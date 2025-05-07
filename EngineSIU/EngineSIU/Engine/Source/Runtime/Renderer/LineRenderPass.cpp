@@ -11,7 +11,7 @@
 #include "Math/JungleMath.h"
 
 #include "EngineLoop.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 
 #include "UObject/UObjectIterator.h"
 

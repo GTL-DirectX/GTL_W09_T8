@@ -23,7 +23,7 @@
 #include "UnrealEd/EditorViewportClient.h"
 
 #include "EngineLoop.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 
 #include "UObject/ObjectTypes.h"
 

@@ -1,7 +1,7 @@
 
 #include "EditorBillboardRenderPass.h"
 
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "Engine/Engine.h"
 #include "UObject/UObjectIterator.h"
 #include "Components/BillboardComponent.h"

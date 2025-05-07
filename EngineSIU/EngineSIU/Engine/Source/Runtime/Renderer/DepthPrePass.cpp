@@ -1,7 +1,7 @@
 #include "DepthPrePass.h"
 
 #include "HAL/PlatformType.h"
-#include "UnrealClient.h"
+#include "Viewport.h"
 #include "D3D11RHI/DXDBufferManager.h"
 #include "D3D11RHI/GraphicDevice.h"
 #include "D3D11RHI/DXDShaderManager.h"

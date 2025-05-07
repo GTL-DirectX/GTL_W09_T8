@@ -171,7 +171,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\DefaultPawn.cpp" />
-    <ClCompile Include="Engine\Source\Editor\ViewerEditor\ViewerEditor.cpp" />
+    <ClCompile Include="Engine\Source\Editor\Viewport\ViewerEditor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Actors\CameraActor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Camera\CameraModifier.cpp" />
     <ClCompile Include="Engine\Source\Editor\UnrealEd\EditorConfigManager.cpp" />
@@ -278,7 +278,7 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\PlayerInput.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Level.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\OverlapInfo.h" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\UnrealClient.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Viewport.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\UserInterface\Console.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\ViewportClient.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\World\World.cpp" />
@@ -338,6 +338,8 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Texture\Texture.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\Resource\TextureManager.cpp" />
     <ClCompile Include="Engine\Source\Editor\UnrealEd\SkeletalMeshViewportClient.cpp" />
+    <ClCompile Include="Engine\Source\Editor\Viewport\SkeletalMeshEditorViewport.cpp" />
+    <ClCompile Include="Engine\Source\Editor\Viewport\EditorViewport.cpp" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmod.dll" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmodL.dll" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmodstudio.dll" />
@@ -441,7 +443,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\GameFramework\DefaultPawn.h" />
-    <ClInclude Include="Engine\Source\Editor\ViewerEditor\ViewerEditor.h" />
+    <ClInclude Include="Engine\Source\Editor\Viewport\ViewerEditor.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Math\Interpolator.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Actors\CameraActor.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Camera\CameraModifier.h" />
@@ -572,7 +574,7 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Level.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Math\ShapeInfo.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Types\Buffers.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\UnrealClient.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Viewport.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\UserInterface\Console.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\ViewportClient.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\World\World.h" />
@@ -803,6 +805,8 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Texture\Texture.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Resource\TextureManager.h" />
     <ClInclude Include="Engine\Source\Editor\UnrealEd\SkeletalMeshViewportClient.h" />
+    <ClInclude Include="Engine\Source\Editor\Viewport\SkeletalMeshEditorViewport.h" />
+    <ClInclude Include="Engine\Source\Editor\Viewport\EditorViewport.h" />
     <None Include="Shaders\EditorShaderConstants.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

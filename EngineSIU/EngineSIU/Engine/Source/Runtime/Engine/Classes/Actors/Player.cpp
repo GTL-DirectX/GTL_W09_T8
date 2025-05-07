@@ -13,6 +13,8 @@
 #include "UObject/Object.h"
 #include "UObject/UObjectIterator.h"
 
+#include "Viewport.h"
+
 #include "ImGUI/imgui.h"
 
 
