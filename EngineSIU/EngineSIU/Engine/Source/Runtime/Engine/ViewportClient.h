@@ -2,6 +2,7 @@
 #define _TCHAR_DEFINED
 #include <d3d11.h>
 
+#include "Define.h"
 #include "EngineBaseTypes.h"
 #include "HAL/PlatformType.h"
 #include "Math/Matrix.h"
@@ -13,6 +14,8 @@
 class FViewportResource;
 class FViewport;
 class UWorld;
+
+enum class EViewScreenLocation : uint8;
 
 struct FViewportCamera
 {
@@ -90,6 +93,9 @@ public:
     virtual void Release();
     
     // FViewport에 대한 참조 (혹은 소유)
+
+    virtual void Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld);
+
 
 public:
     FViewport* GetViewport() const { return Viewport; }

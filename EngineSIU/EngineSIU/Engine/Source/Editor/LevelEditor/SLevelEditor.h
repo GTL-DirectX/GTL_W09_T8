@@ -7,6 +7,17 @@ class SSplitterV;
 class UEngine;
 class FEditorViewportClient;
 
+enum class EEditorViewportType
+{
+    EditorViewport,
+    StaticMeshEditor,
+    SkeletalMeshEditor,
+    AnimationEditor,
+    MaterialEditor,
+    TextureEditor,
+    ParticleEditor,
+    MAX
+};
 
 class SLevelEditor
 {
@@ -25,7 +36,7 @@ public:
     bool IsMultiViewport() const;
 
     // AdditionalViewports에 추가적인 뷰포트를 추가
-    FEditorViewportClient* AddWindowViewportClient(FName ViewportName, UWorld* PreviewWorld, const FRect& InRect);
+    FViewportClient* AddWindowViewportClient(FName ViewportName, UWorld* PreviewWorld, const FRect& InRect, EEditorViewportType NewViewportType);
     void RemoveWindowViewportClient(FName ViewportName);
 
 private:
@@ -37,7 +48,7 @@ private:
     
     std::shared_ptr<FEditorViewportClient> ViewportClients[4];
     std::shared_ptr<FEditorViewportClient> ActiveViewportClient;
-    TMap<FName, std::shared_ptr<FEditorViewportClient>> WindowViewportClients;
+    TMap<FName, std::shared_ptr<FViewportClient>> WindowViewportClients;
 
     /** 우클릭 시 캡처된 마우스 커서의 초기 위치 (스크린 좌표계) */
     FVector2D MousePinPosition;
@@ -64,7 +75,7 @@ public:
     {
         ActiveViewportClient = ViewportClients[Index];
     }
-    const TMap<FName, std::shared_ptr<FEditorViewportClient>>& GetWindowViewportClients() const
+    const TMap<FName, std::shared_ptr<FViewportClient>>& GetWindowViewportClients() const
     {
         return WindowViewportClients;
     }

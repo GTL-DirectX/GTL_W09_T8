@@ -53,7 +53,7 @@ void ViewerEditor::InitializeViewerResources()
     SelectedActor->AddComponent<USkeletalMeshComponent>();
     SkeletalMeshComponent = SelectedActor->GetComponentByClass<USkeletalMeshComponent>();
     ADirectionalLight* LightActor = ViewerWorld->SpawnActor<ADirectionalLight>();
-    UDirectionalLightComponent* LightComp=LightActor->GetComponentByClass<UDirectionalLightComponent>();
+    UDirectionalLightComponent* LightComp = LightActor->GetComponentByClass<UDirectionalLightComponent>();
     LightComp->SetRelativeRotation(FRotator(0.f, 180.f,0.f));
 
     if (SelectedActor)
@@ -61,12 +61,13 @@ void ViewerEditor::InitializeViewerResources()
         SelectedActor->SetActorLabel(TEXT("Viewer_SkeletalMesh"));
     }
 
-    // FIX-ME
-    ViewerViewportClient = GEngineLoop.GetLevelEditor()->AddWindowViewportClient(
+    ViewerViewportClient = dynamic_cast<FEditorViewportClient*>(GEngineLoop.GetLevelEditor()->AddWindowViewportClient(
         ViewportIdentifier,
         ViewerWorld,
-        FRect(100, 100, 800, 800)
-    );
+        FRect(100, 100, 800, 800),
+        EEditorViewportType::SkeletalMeshEditor
+    ));
+    // End Test
 
     if (!ViewerViewportClient)
     {

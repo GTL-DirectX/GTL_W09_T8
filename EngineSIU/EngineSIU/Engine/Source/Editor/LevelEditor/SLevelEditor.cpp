@@ -11,6 +11,7 @@
 #include "SlateCore/Widgets/SWindow.h"
 #include "UnrealEd/EditorConfigManager.h"
 #include "UnrealEd/EditorViewportClient.h"
+#include "UnrealEd/SkeletalMeshViewportClient.h"
 #include "UObject/ObjectTypes.h"
 
 #include "GameFramework/PlayerController.h"
@@ -493,7 +494,7 @@ bool SLevelEditor::IsMultiViewport() const
     return bMultiViewportMode;
 }
 
-FEditorViewportClient* SLevelEditor::AddWindowViewportClient(FName ViewportName, UWorld* PreviewWorld, const FRect& InRect)
+FViewportClient* SLevelEditor::AddWindowViewportClient(FName ViewportName, UWorld* PreviewWorld, const FRect& InRect, EEditorViewportType NewViewportType)
 {
     if (WindowViewportClients.Contains(ViewportName))
     {
@@ -501,9 +502,34 @@ FEditorViewportClient* SLevelEditor::AddWindowViewportClient(FName ViewportName,
         return WindowViewportClients[ViewportName].get();
     }
 
-    std::shared_ptr<FEditorViewportClient> NewViewportClient = std::make_shared<FEditorViewportClient>();
-    NewViewportClient->Initialize(EViewScreenLocation::EVL_Window, InRect, PreviewWorld);
-    NewViewportClient->SetViewportType(ELevelViewportType::LVT_Perspective);
+    std::shared_ptr<FViewportClient> NewViewportClient = nullptr;
+    switch (NewViewportType)
+    {
+    case EEditorViewportType::EditorViewport:
+        NewViewportClient = std::make_shared<FEditorViewportClient>();
+        NewViewportClient->Initialize(EViewScreenLocation::EVL_Window, InRect, PreviewWorld);
+        NewViewportClient->SetViewportType(ELevelViewportType::LVT_Perspective);
+        break;
+    case EEditorViewportType::StaticMeshEditor:
+        break;
+    case EEditorViewportType::SkeletalMeshEditor:
+        NewViewportClient = std::make_shared<FSkeletalMeshViewportClient>();
+        NewViewportClient->Initialize(EViewScreenLocation::EVL_Window, InRect, PreviewWorld);
+        NewViewportClient->SetViewportType(ELevelViewportType::LVT_Perspective);
+        break;
+    case EEditorViewportType::AnimationEditor:
+        break;
+    case EEditorViewportType::MaterialEditor:
+        break;
+    case EEditorViewportType::TextureEditor:
+        break;
+    case EEditorViewportType::ParticleEditor:
+        break;
+    case EEditorViewportType::MAX:
+        break;
+    default:
+        break;
+    }
 
     WindowViewportClients.Add(ViewportName, NewViewportClient);
 
