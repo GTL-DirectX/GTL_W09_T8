@@ -12,31 +12,70 @@
 #include "Math/Quat.h"
 #include "Rendering/Material/Material.h"
 
+#include <fstream>
+#include <sstream>
+#include <Serialization/Serializer.h>
+
 // 전역 인스턴스 정의
 FFBXManager* GFBXManager = nullptr;
 
-USkeletalMesh* FFBXManager::LoadSkeletalMesh(const FString& FbxFilePath)
+USkeletalMesh* FFBXManager::LoadFbx(const FString& FbxFilePath)
 {
     // SkeletalMesh가 이미 로드되어 있는지 확인
     if (SkeletalMeshMap.Contains(FbxFilePath))
     {
         return *SkeletalMeshMap.Find(FbxFilePath);
     }
-    // 새로운 SkeletalMesh 생성
-    USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(&UAssetManager::Get()); // AssetManager를 Outer로 설정해서 Asset 총 관리하도록 설정.
-    SkeletalMeshMap.Add(FbxFilePath, NewSkeletalMesh);
-    // FBX 파일 로드 및 데이터 설정
+
+    // BinaryPath
+
+    // RenderData
     FSkeletalMeshRenderData* RenderData = new FSkeletalMeshRenderData();
-    LoadFbx(FbxFilePath, *RenderData);
+
+    // SkeletalMesh
+    USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(&UAssetManager::Get()); // AssetManager를 Outer로 설정해서 Asset 총 관리하도록 설정.
+
+    // Binary Check
+    if (!LoadSkeletalMeshFromBinary(FbxFilePath, *RenderData))
+    {
+        // 바이너리 없으면 FBX 로드
+        LoadSkeletalMeshRenderData(FbxFilePath, *RenderData);
+        SaveSkeletalMeshToBinary(FbxFilePath, *RenderData);
+    }
+
     NewSkeletalMesh->SetRenderData(RenderData);
+    SkeletalMeshMap.Add(FbxFilePath, NewSkeletalMesh);
 
     // Material
     for (auto& MaterialInfo : RenderData->Materials)
     {
         UMaterial* Material = UMaterial::CreateMaterial(MaterialInfo);
-
+        
         NewSkeletalMesh->AddMaterial(Material);
     }
+
+    // 버텍스 및 인덱스 버퍼 생성
+    TArray<FStaticMeshVertex> StaticVerts;
+    StaticVerts.SetNum(RenderData->Vertices.Num());
+    for (int i = 0; i < RenderData->Vertices.Num(); ++i)
+    {
+        const auto& S = RenderData->Vertices[i];
+        auto& D = StaticVerts[i];
+        D.X = S.Position.X; D.Y = S.Position.Y; D.Z = S.Position.Z;
+        D.R = D.G = D.B = D.A = 1.0f;
+        D.NormalX = S.Normal.X;  D.NormalY = S.Normal.Y;  D.NormalZ = S.Normal.Z;
+        D.TangentX = S.Tangent.X; D.TangentY = S.Tangent.Y; D.TangentZ = S.Tangent.Z;
+        D.U = S.UV.X; D.V = S.UV.Y;
+        D.MaterialIndex = 0;
+    }
+
+    CreateBuffers(
+        GEngineLoop.GraphicDevice.Device,
+        StaticVerts,
+        RenderData->Indices,
+        RenderData->VertexBuffer,
+        RenderData->IndexBuffer
+    );
 
     return NewSkeletalMesh;
 }
@@ -58,11 +97,12 @@ void FFBXManager::Release()
     SkeletalMeshMap.Empty();
 }
 
-void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
+void FFBXManager::LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkeletalMeshRenderData& OutRenderData)
 {
     if (!std::filesystem::exists(FbxFilePath.ToWideString()))
     {
-        assert(0 && "FBX File Not Found");
+        UE_LOG(LogLevel::Error, TEXT("FBX File Not Found"));
+        return;
     }
 
     // FBX 파일 열기
@@ -98,13 +138,10 @@ void FFBXManager::LoadFbx(const FString& FbxFilePath, FSkeletalMeshRenderData& O
             ExtractSkeletalMeshData(child, OutRenderData);
             std::cout << GetData(OutRenderData.FilePath) << std::endl;
             
-            for (int i=0;i<5;i++)
+            for (int i=0;i<OutRenderData.ReferencePose.Num();i++)
             {
                 std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
-                std::cout << "Local Bind Pose " << std::endl;
                 OutRenderData.LocalBindPose[i].PrintMatirx();
-                std::cout << "Global Bind Pose " << std::endl;
-                OutRenderData.ReferencePose[i].PrintMatirx();
             }
         }
     }
@@ -126,8 +163,16 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     finalScaleFactor = sourceUnit.GetScaleFactor() * EngineUnitScaleFactor;
     // 1) 메시 얻기
     FbxMesh* mesh = node->GetMesh();
-    if (!mesh) return;
+    if (!mesh)
+    {
+        for (int i = 0; i < node->GetChildCount(); i++)
+        {
+            ExtractSkeletalMeshData(node->GetChild(i), outData);
+        }
+        return;
+    }
 
+    outData.ObjectName = FString(node->GetName());
     // 2) 컨트롤 포인트 버텍스 초기화
     int cpCount = mesh->GetControlPointsCount();
     outData.Vertices.SetNum(cpCount);
@@ -150,7 +195,6 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     // 4) 클러스터 정보 미리 수집 (본 노드, TransformLinkMatrix, 가중치)
     TSet<FbxNode*>            BoneNodeSet;
     TMap<FbxNode*, FMatrix>   ClusterBindPose;
-    TMap<FbxNode*, FMatrix>   ClusterSkinPose;
     TMap<FbxNode*, TArray<std::pair<int, float>>>  BoneWeightsMap; 
       // boneNode -> array of (controlPointIdx, weight)
 
@@ -302,9 +346,6 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
             cluster->GetTransformLinkMatrix(linkGlobal);
             FMatrix boneGlobal = ConvertToFMatrix(linkGlobal);
             
-            FMatrix skinTransform = invMeshGlobal * boneGlobal;
-            ClusterBindPose.Add(boneNode, boneGlobal);
-            ClusterSkinPose.Add(boneNode, skinTransform);
             // 가중치 모으기
             int    count   = cluster->GetControlPointIndicesCount();
             const int* cpsIdx    = cluster->GetControlPointIndices();
@@ -335,7 +376,6 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     // 7) 정렬된 순서대로 Bone 정보 채우기
     outData.BoneNames.Reset();
     outData.ParentBoneIndices.Reset();
-    outData.SkinningMatrix.Reset();
     outData.ReferencePose.Reset();
 
     for (int i = 0; i < SortedBones.Num(); ++i)
@@ -352,8 +392,8 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
         }
         outData.ParentBoneIndices.Add(parentIdx);
         // bind-pose matrix
-        outData.ReferencePose.Add(ClusterBindPose[boneNode]);
-        outData.SkinningMatrix.Add(ClusterSkinPose[boneNode]);
+        FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
+        outData.ReferencePose.Add( ClusterBindPose[boneNode]);
     }
 
     // 8) 이제 Vertex 쪽에 BoneIndices/BoneWeights 채우기
@@ -533,28 +573,7 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     outData.BoneTransforms           = outData.ReferencePose;
     // 7) 바운딩 박스 계산
     ComputeBounds(outData.Vertices, outData.BoundingBoxMin, outData.BoundingBoxMax);
-
-    // 8) GPU 버퍼 생성
-    TArray<FStaticMeshVertex> StaticVerts;
-    StaticVerts.SetNum(outData.Vertices.Num());
-    for (int i = 0; i < outData.Vertices.Num(); ++i)
-    {
-        const auto& S = outData.Vertices[i];
-        auto& D = StaticVerts[i];
-        D.X = S.Position.X; D.Y = S.Position.Y; D.Z = S.Position.Z;
-        D.R = D.G = D.B = D.A = 1.0f;
-        D.NormalX  = S.Normal.X;  D.NormalY  = S.Normal.Y;  D.NormalZ  = S.Normal.Z;
-        D.TangentX = S.Tangent.X; D.TangentY = S.Tangent.Y; D.TangentZ = S.Tangent.Z;
-        D.U = S.UV.X; D.V = S.UV.Y;
-        D.MaterialIndex = 0;
-    }
-    CreateBuffers(
-        GEngineLoop.GraphicDevice.Device,
-        StaticVerts,
-        outData.Indices,
-        outData.VertexBuffer,
-        outData.IndexBuffer
-    );
+    
 }
 
 FMatrix FFBXManager::ConvertToFMatrix(const FbxAMatrix& in)
@@ -606,6 +625,403 @@ void FFBXManager::CreateBuffers(ID3D11Device* Device, const TArray<FStaticMeshVe
     Device->CreateBuffer(&ibDesc, &ibData, &OutIB);
 }
 
+
+bool FFBXManager::SaveSkeletalMeshToBinary(const FString& FilePath, const FSkeletalMeshRenderData& StaticMesh)
+{
+    FString BinaryPath = (FilePath + ".bin");
+
+    std::ofstream File(BinaryPath.ToWideString(), std::ios::binary);
+    if (!File.is_open())
+    {
+        UE_LOG(LogLevel::Error, "Failed to open file for writing: %s", FilePath);
+        return false;
+    }
+
+    Serializer::WriteFString(File, StaticMesh.ObjectName);
+
+    uint32 VertexCount = StaticMesh.Vertices.Num();
+    File.write(reinterpret_cast<const char*>(&VertexCount), sizeof(VertexCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.Vertices.GetData()), VertexCount * sizeof(FSkeletalMeshVertex));
+
+    uint32 OrigineVertexCount = StaticMesh.OrigineVertices.Num();
+    File.write(reinterpret_cast<const char*>(&OrigineVertexCount), sizeof(OrigineVertexCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.OrigineVertices.GetData()), OrigineVertexCount * sizeof(FSkeletalMeshVertex));
+
+    uint32 IndexCount = StaticMesh.Indices.Num();
+    File.write(reinterpret_cast<const char*>(&IndexCount), sizeof(IndexCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.Indices.GetData()), IndexCount * sizeof(uint32));
+
+    uint32 MaterialCount = StaticMesh.Materials.Num();
+    File.write(reinterpret_cast<const char*>(&MaterialCount), sizeof(MaterialCount));
+    for (const FObjMaterialInfo& Material : StaticMesh.Materials)
+    {
+        Serializer::WriteFString(File, Material.MaterialName);
+        File.write(reinterpret_cast<const char*>(&Material.TextureFlag), sizeof(Material.TextureFlag));
+        //File.write(reinterpret_cast<const char*>(&Material.bHasNormalMap), sizeof(Material.bHasNormalMap));
+        File.write(reinterpret_cast<const char*>(&Material.bTransparent), sizeof(Material.bTransparent));
+        File.write(reinterpret_cast<const char*>(&Material.Diffuse), sizeof(Material.Diffuse));
+        File.write(reinterpret_cast<const char*>(&Material.Specular), sizeof(Material.Specular));
+        File.write(reinterpret_cast<const char*>(&Material.Ambient), sizeof(Material.Ambient));
+        File.write(reinterpret_cast<const char*>(&Material.Emissive), sizeof(Material.Emissive));
+
+        File.write(reinterpret_cast<const char*>(&Material.SpecularScalar), sizeof(Material.SpecularScalar));
+        File.write(reinterpret_cast<const char*>(&Material.DensityScalar), sizeof(Material.DensityScalar));
+        File.write(reinterpret_cast<const char*>(&Material.TransparencyScalar), sizeof(Material.TransparencyScalar));
+        File.write(reinterpret_cast<const char*>(&Material.BumpMultiplier), sizeof(Material.BumpMultiplier));
+        File.write(reinterpret_cast<const char*>(&Material.IlluminanceModel), sizeof(Material.IlluminanceModel));
+
+        Serializer::WriteFString(File, Material.DiffuseTextureName);
+        Serializer::WriteFWString(File, Material.DiffuseTexturePath);
+
+        Serializer::WriteFString(File, Material.AmbientTextureName);
+        Serializer::WriteFWString(File, Material.AmbientTexturePath);
+
+        Serializer::WriteFString(File, Material.SpecularTextureName);
+        Serializer::WriteFWString(File, Material.SpecularTexturePath);
+
+        Serializer::WriteFString(File, Material.BumpTextureName);
+        Serializer::WriteFWString(File, Material.BumpTexturePath);
+
+        Serializer::WriteFString(File, Material.AlphaTextureName);
+        Serializer::WriteFWString(File, Material.AlphaTexturePath);
+    }
+
+    uint32 SubsetCount = StaticMesh.MaterialSubsets.Num();
+    File.write(reinterpret_cast<const char*>(&SubsetCount), sizeof(SubsetCount));
+    for (const FMaterialSubset& Subset : StaticMesh.MaterialSubsets)
+    {
+        Serializer::WriteFString(File, Subset.MaterialName);
+        File.write(reinterpret_cast<const char*>(&Subset.IndexStart), sizeof(Subset.IndexStart));
+        File.write(reinterpret_cast<const char*>(&Subset.IndexCount), sizeof(Subset.IndexCount));
+        File.write(reinterpret_cast<const char*>(&Subset.MaterialIndex), sizeof(Subset.MaterialIndex));
+    }
+
+    uint32 BoneNamesCount = StaticMesh.BoneNames.Num();
+    File.write(reinterpret_cast<const char*>(&BoneNamesCount), sizeof(BoneNamesCount));
+    for (const FString& BoneName : StaticMesh.BoneNames)
+    {
+        Serializer::WriteFString(File, BoneName);
+    }
+
+    uint32 ParentBoneIndicesCount = StaticMesh.ParentBoneIndices.Num();
+    File.write(reinterpret_cast<const char*>(&ParentBoneIndicesCount), sizeof(ParentBoneIndicesCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.ParentBoneIndices.GetData()), ParentBoneIndicesCount * sizeof(int));
+
+    uint32 ReferencePoseCount = StaticMesh.ReferencePose.Num();
+    File.write(reinterpret_cast<const char*>(&ReferencePoseCount), sizeof(ReferencePoseCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.ReferencePose.GetData()), ReferencePoseCount * sizeof(FMatrix));
+
+    uint32 OrigineReferencePoseCount = StaticMesh.OrigineReferencePose.Num();
+    File.write(reinterpret_cast<const char*>(&OrigineReferencePoseCount), sizeof(OrigineReferencePoseCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.OrigineReferencePose.GetData()), OrigineReferencePoseCount * sizeof(FMatrix));
+
+    uint32 BoneTransformsCount = StaticMesh.BoneTransforms.Num();
+    File.write(reinterpret_cast<const char*>(&BoneTransformsCount), sizeof(BoneTransformsCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.BoneTransforms.GetData()), BoneTransformsCount * sizeof(FMatrix));
+
+    uint32 LocalBindPoseCount = StaticMesh.LocalBindPose.Num();
+    File.write(reinterpret_cast<const char*>(&LocalBindPoseCount), sizeof(LocalBindPoseCount));
+    File.write(reinterpret_cast<const char*>(StaticMesh.LocalBindPose.GetData()), LocalBindPoseCount * sizeof(FMatrix));
+
+    File.close();
+
+    return true;
+}
+
+bool FFBXManager::LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalMeshRenderData& OutStaticMesh)
+{
+    FString BinaryPath = (FilePath + ".bin");
+
+    std::ifstream File(BinaryPath.ToWideString(), std::ios::binary);
+
+    if (!File.is_open())
+    {
+        UE_LOG(LogLevel::Error, "Failed to open file for reading: %s", FilePath);
+        return false;
+    }
+
+    OutStaticMesh.FilePath = FilePath;
+    // 1) 오브젝트 이름 읽기
+    Serializer::ReadFString(File, OutStaticMesh.ObjectName);
+
+    // 2) 버텍스 수 읽기
+    uint32 VertexCount = 0;
+    File.read(reinterpret_cast<char*>(&VertexCount), sizeof(VertexCount));
+    OutStaticMesh.Vertices.SetNum(VertexCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.Vertices.GetData()), VertexCount * sizeof(FSkeletalMeshVertex));
+
+    uint32 OrigineVertexCount = 0;
+    File.read(reinterpret_cast<char*>(&OrigineVertexCount), sizeof(OrigineVertexCount));
+    OutStaticMesh.OrigineVertices.SetNum(OrigineVertexCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.OrigineVertices.GetData()), OrigineVertexCount * sizeof(FSkeletalMeshVertex));
+
+    // 3) 인덱스 수 읽기
+    uint32 IndexCount = 0;
+    File.read(reinterpret_cast<char*>(&IndexCount), sizeof(IndexCount));
+    OutStaticMesh.Indices.SetNum(IndexCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.Indices.GetData()), IndexCount * sizeof(uint32));
+
+    // 4) 머티리얼
+    TArray<FWString> Textures;
+
+    uint32 MaterialCount = 0;
+    File.read(reinterpret_cast<char*>(&MaterialCount), sizeof(MaterialCount));
+    OutStaticMesh.Materials.SetNum(MaterialCount);
+    for (FObjMaterialInfo& Material : OutStaticMesh.Materials)
+    {
+        Serializer::ReadFString(File, Material.MaterialName);
+        File.read(reinterpret_cast<char*>(&Material.TextureFlag), sizeof(Material.TextureFlag));
+        File.read(reinterpret_cast<char*>(&Material.bTransparent), sizeof(Material.bTransparent));
+        File.read(reinterpret_cast<char*>(&Material.Diffuse), sizeof(Material.Diffuse));
+        File.read(reinterpret_cast<char*>(&Material.Specular), sizeof(Material.Specular));
+        File.read(reinterpret_cast<char*>(&Material.Ambient), sizeof(Material.Ambient));
+        File.read(reinterpret_cast<char*>(&Material.Emissive), sizeof(Material.Emissive));
+
+        File.read(reinterpret_cast<char*>(&Material.SpecularScalar), sizeof(Material.SpecularScalar));
+        File.read(reinterpret_cast<char*>(&Material.DensityScalar), sizeof(Material.DensityScalar));
+        File.read(reinterpret_cast<char*>(&Material.TransparencyScalar), sizeof(Material.TransparencyScalar));
+        File.read(reinterpret_cast<char*>(&Material.BumpMultiplier), sizeof(Material.BumpMultiplier));
+        File.read(reinterpret_cast<char*>(&Material.IlluminanceModel), sizeof(Material.IlluminanceModel));
+
+        Serializer::ReadFString(File, Material.DiffuseTextureName);
+        Serializer::ReadFWString(File, Material.DiffuseTexturePath);
+
+        Serializer::ReadFString(File, Material.AmbientTextureName);
+        Serializer::ReadFWString(File, Material.AmbientTexturePath);
+
+        Serializer::ReadFString(File, Material.SpecularTextureName);
+        Serializer::ReadFWString(File, Material.SpecularTexturePath);
+
+        Serializer::ReadFString(File, Material.BumpTextureName);
+        Serializer::ReadFWString(File, Material.BumpTexturePath);
+
+        Serializer::ReadFString(File, Material.AlphaTextureName);
+        Serializer::ReadFWString(File, Material.AlphaTexturePath);
+
+        if (!Material.DiffuseTexturePath.empty())
+        {
+            Textures.AddUnique(Material.DiffuseTexturePath);
+        }
+        if (!Material.AmbientTexturePath.empty())
+        {
+            Textures.AddUnique(Material.AmbientTexturePath);
+        }
+        if (!Material.SpecularTexturePath.empty())
+        {
+            Textures.AddUnique(Material.SpecularTexturePath);
+        }
+        if (!Material.BumpTexturePath.empty())
+        {
+            Textures.AddUnique(Material.BumpTexturePath);
+        }
+        if (!Material.AlphaTexturePath.empty())
+        {
+            Textures.AddUnique(Material.AlphaTexturePath);
+        }
+    }
+
+    // Material Subset
+    uint32 SubsetCount = 0;
+    File.read(reinterpret_cast<char*>(&SubsetCount), sizeof(SubsetCount));
+    OutStaticMesh.MaterialSubsets.SetNum(SubsetCount);
+    for (FMaterialSubset& Subset : OutStaticMesh.MaterialSubsets)
+    {
+        Serializer::ReadFString(File, Subset.MaterialName);
+        File.read(reinterpret_cast<char*>(&Subset.IndexStart), sizeof(Subset.IndexStart));
+        File.read(reinterpret_cast<char*>(&Subset.IndexCount), sizeof(Subset.IndexCount));
+        File.read(reinterpret_cast<char*>(&Subset.MaterialIndex), sizeof(Subset.MaterialIndex));
+    }
+
+    // 본 이름 인덱스
+    uint32 BoneNamesCount = 0;
+    File.read(reinterpret_cast<char*>(&BoneNamesCount), sizeof(BoneNamesCount));
+    OutStaticMesh.BoneNames.SetNum(BoneNamesCount);
+    for (FString& BoneName : OutStaticMesh.BoneNames)
+    {
+        Serializer::ReadFString(File, BoneName);
+    }
+
+    // 본 계층 트리
+    uint32 ParentBoneIndicesCount = 0;
+    File.read(reinterpret_cast<char*>(&ParentBoneIndicesCount), sizeof(ParentBoneIndicesCount));
+    OutStaticMesh.ParentBoneIndices.SetNum(ParentBoneIndicesCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.ParentBoneIndices.GetData()), ParentBoneIndicesCount * sizeof(int));
+
+    // 본 레퍼런스 변환 행렬
+    uint32 ReferencePoseCount = 0;
+    File.read(reinterpret_cast<char*>(&ReferencePoseCount), sizeof(ReferencePoseCount));
+    OutStaticMesh.ReferencePose.SetNum(ReferencePoseCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.ReferencePose.GetData()), ReferencePoseCount * sizeof(FMatrix));
+
+    // 원본 본 변환 행렬
+    uint32 OrigineReferencePoseCount = 0;
+    File.read(reinterpret_cast<char*>(&OrigineReferencePoseCount), sizeof(OrigineReferencePoseCount));
+    OutStaticMesh.OrigineReferencePose.SetNum(OrigineReferencePoseCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.OrigineReferencePose.GetData()), OrigineReferencePoseCount * sizeof(FMatrix));
+
+    // 본 변환행렬
+    uint32 BoneTransformsCount = 0;
+    File.read(reinterpret_cast<char*>(&BoneTransformsCount), sizeof(BoneTransformsCount));
+    OutStaticMesh.BoneTransforms.SetNum(BoneTransformsCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.BoneTransforms.GetData()), BoneTransformsCount * sizeof(FMatrix));
+
+    // 로컬 바인드 포즈
+    uint32 LocalBindPoseCount = 0;
+    File.read(reinterpret_cast<char*>(&LocalBindPoseCount), sizeof(LocalBindPoseCount));
+    OutStaticMesh.LocalBindPose.SetNum(LocalBindPoseCount);
+    File.read(reinterpret_cast<char*>(OutStaticMesh.LocalBindPose.GetData()), LocalBindPoseCount * sizeof(FMatrix));
+
+    ComputeBounds(OutStaticMesh.Vertices, OutStaticMesh.BoundingBoxMin, OutStaticMesh.BoundingBoxMax);
+
+    File.close();
+    return true;
+}
+
+void FFBXManager::ProcessNodeRecursively(FbxNode* node, FBX::FImportSceneData& OutSceneData, int32 parentNodeIndex, const FMatrix& parentWorldTransform, const FMatrix& conversionMatrix, bool bFlipWinding)
+{
+    if (!node)
+        return;
+
+    using namespace FBX;
+    // 1. 현재 Node에 대한 Node Info를 만든다
+    FNodeInfo currentNodeInfo;
+    currentNodeInfo.Name = FString(node->GetName());
+    currentNodeInfo.ParentIndex = parentNodeIndex;
+    currentNodeInfo.TempFbxNodePtr = node;
+
+    // 엔진 Space에서의 로컬, 월드 트랜스폼을 구함
+    currentNodeInfo.LocalTransform = GetNodeLocalTransformConverted(node, conversionMatrix);
+    currentNodeInfo.WorldTransform = parentWorldTransform * currentNodeInfo.LocalTransform;
+
+    // 노드를 하이라키에 먼저 넣고, 인덱스 받아옴
+    int currentNodeIndex = OutSceneData.NodeHierarchy.Add(currentNodeInfo);
+    OutSceneData.FbxNodeToIndexMap.Add(node, currentNodeIndex);
+
+    // 2. 노드들의 Attribute 처리
+    FbxNodeAttribute* attribute = node->GetNodeAttribute();
+    int attributeDataIndex = -1;
+    FbxNodeAttribute::EType attributeType = FbxNodeAttribute::eUnknown;
+
+    if (attribute)
+    {
+        attributeType = attribute->GetAttributeType();
+        OutSceneData.NodeHierarchy[currentNodeIndex].AttributeType = attributeType; // Update type in stored node info
+
+        switch (attributeType)
+        {
+        case FbxNodeAttribute::eMesh:
+        {
+            FbxMesh* mesh = static_cast<FbxMesh*>(attribute);
+            FMeshData meshData;
+            ExtractMeshData(node, mesh, meshData, currentNodeInfo.WorldTransform, conversionMatrix, bFlipWinding);
+            if (!meshData.Vertices.IsEmpty()) 
+            { // Check if data was actually extracted
+                attributeDataIndex = OutSceneData.MeshDatas.Add(meshData);
+            }
+            break;
+        }
+        case FbxNodeAttribute::eSkeleton:
+        {
+            // 스켈레톤 처리는 종종 메쉬 노드에서 발견되는 Skin/Cluster 정보와 밀접하게 연결됨.
+            // 여기서는 단순히 이 노드가 스켈레톤 속성을 가졌다는 사실과 변환 정보 정도만 기록할 수 있음.
+            // 실제 본(bone) 계층 구조 구축은 나중에 FbxSkin/FbxCluster 처리 단계 또는 ExtractMeshData 내에서 수행될 수 있음.
+            // 현재로서는, 참조가 필요한 경우 별도의 본 리스트에 추가한다고 가정.
+            FbxSkeleton* skeleton = static_cast<FbxSkeleton*>(attribute);
+            // 예시: ExtractSkeletonData(node, skeleton, OutSceneData, currentNodeIndex);
+            // 이 함수는 OutSceneData.SkeletonBones에 정보를 추가하고 나중에 부모 링크 등을 업데이트 할 수 있음.
+            // 단순화를 위해, 여기서는 직접 처리를 건너뛰고 스키닝 정보에 의존할 수도 있음.
+            UE_LOG(LogLevel::Display, "노드 %s는 스켈레톤입니다", *currentNodeInfo.Name);
+            break;
+        }
+        case FbxNodeAttribute::eLight: // 라이트 속성인 경우
+        {
+            FbxLight* light = static_cast<FbxLight*>(attribute);
+            FLightData lightData;
+            ExtractLightData(node, light, lightData, currentNodeInfo.WorldTransform, conversionMatrix);
+            attributeDataIndex = OutSceneData.LightDatas.Add(lightData); // 라이트 데이터 배열에 추가하고 인덱스 저장
+            break;
+        }
+        case FbxNodeAttribute::eCamera: // 카메라 속성인 경우
+        {
+            FbxCamera* camera = static_cast<FbxCamera*>(attribute);
+            FCameraData cameraData;
+            ExtractCameraData(node, camera, cameraData, currentNodeInfo.WorldTransform, conversionMatrix);
+            attributeDataIndex = OutSceneData.CameraDatas.Add(cameraData); // 카메라 데이터 배열에 추가하고 인덱스 저장
+            break;
+        }
+        case FbxNodeAttribute::eNull: // Null 속성인 경우 (더미 노드)
+        {
+            UE_LOG(LogLevel::Warning, "노드 %s는 Null입니다", *currentNodeInfo.Name);
+            // 종종 지오메트리/스켈레톤 속성 없이 그룹 노드나 본 조인트(뼈대 마디)로 사용됨
+            break;
+        }
+        // 필요한 경우 다른 타입(eLODGroup, eMarker 등)에 대한 케이스 추가
+        default: // 처리되지 않은 다른 속성 타입
+            UE_LOG(LogLevel::Warning, "노드 %s는 처리되지 않은 속성 타입을 가집니다: %d", *currentNodeInfo.Name, attributeType);
+            break;
+        }
+    }
+
+    // 3. 자식 노드 재귀처리
+    for (int i = 0; i < node->GetChildCount(); ++i) 
+    {
+        // 자식 노드에 대해 재귀 호출
+        ProcessNodeRecursively(
+            node->GetChild(i),          
+            OutSceneData,               
+            currentNodeIndex,           
+            currentNodeInfo.WorldTransform, 
+            conversionMatrix,           
+            bFlipWinding               
+        );
+    }
+
+}
+
+void FFBXManager::ExtractMeshData(FbxNode* node, FbxMesh* mesh, FBX::FMeshData& outMeshData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix, bool bFlipWinding)
+{
+}
+
+void FFBXManager::ExtractSkeletonData(FbxNode* node, FbxSkeleton* skeleton, FBX::FImportSceneData& OutSceneData, int32 nodeIndex)
+{
+}
+
+void FFBXManager::ExtractLightData(FbxNode* node, FbxLight* light, FBX::FLightData& outLightData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix)
+{
+}
+
+void FFBXManager::ExtractCameraData(FbxNode* node, FbxCamera* camera, FBX::FCameraData& outCameraData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix)
+{
+}
+
+FMatrix FFBXManager::GetNodeLocalTransformConverted(FbxNode* node, const FMatrix& conversionMatrix)
+{
+    FbxAMatrix fbxLocalMatrix = node->EvaluateLocalTransform();
+    FMatrix engineLocalMatrix = ConvertFbxMatrixToEngineMatrix(fbxLocalMatrix);
+
+    // Apply coordinate system conversion: M_engine = C * M_fbx * C_inv
+    // If C is orthogonal (rotation/reflection only), C_inv = C_transpose
+    // For simplicity assuming conversionMatrix.Inverse() exists and handles it.
+    // Note: This conversion might need refinement based on how C affects transforms vs vectors.
+    // Often, just converting the Translation, Rotation, Scale components separately is more robust.
+    // T = C * T_fbx
+    // R = C * R_fbx * C_inv
+    // S = S_fbx (scaling needs careful handling with non-uniform scaling and C)
+    // For now, using the matrix multiplication approach (verify results):
+    return conversionMatrix * engineLocalMatrix * FMatrix::Inverse(conversionMatrix); // Or Transpose() if appropriate
+}
+
+FMatrix FFBXManager::ConvertFbxMatrixToEngineMatrix(const FbxAMatrix& fbxMatrix)
+{
+    FMatrix engineMatrix;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            // Assuming Engine Matrix is Column-Major, FBX is Row-Major
+            engineMatrix.M[j][i] = static_cast<float>(fbxMatrix[i][j]);
+        }
+    }
+    return engineMatrix;
+}
 
 FMatrix FFBXManager::GetConversionMatrix(const FbxAxisSystem& sourceAxisSystem, const FbxAxisSystem& targetAxisSystem)
 {
@@ -677,5 +1093,9 @@ void FFBXManager::BuildBasisMatrix(const FbxAxisSystem& system, FbxAMatrix& outM
     invBasisMatrix.SetRow(2, FbxVector4(axisZ.DotProduct(rightVec), axisZ.DotProduct(upVec), axisZ.DotProduct(forwardVec)));
     invBasisMatrix.SetRow(3, FbxVector4(0, 0, 0, 1)); // Translation 없음
     outMatrix = invBasisMatrix.Inverse(); // 더 안전하게 Inverse 사용
+}
+
+void FFBXManager::LoadFbxScene(const FString& FbxFilePath, FBX::FImportSceneData& OutSceneData)
+{
 }
 

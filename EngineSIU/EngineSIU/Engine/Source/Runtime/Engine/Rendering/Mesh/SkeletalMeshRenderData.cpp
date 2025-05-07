@@ -3,14 +3,14 @@
 #include "UObject/Object.h"
 
 void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector DeltaLoc, FRotator DeltaRot, FVector DeltaScale)
-{                                                        
+{
     if(!LocalBindPose.IsValidIndex(BoneIndex))
     {
         UE_LOG(LogLevel::Error, "Not Valid Bone Index");
         return;
     }
     // 델타 행렬 (Scale -> Rot -> Trans)
-    FMatrix Mscale = FMatrix::CreateScaleMatrix(1,1,1);
+    FMatrix Mscale = FMatrix::CreateScaleMatrix(DeltaScale.X,DeltaScale.Y,DeltaScale.Z);
     FMatrix Mrot   = FMatrix::CreateRotationMatrix(DeltaRot.Roll,DeltaRot.Pitch,DeltaRot.Yaw);
     FMatrix DeltaM = FMatrix::CreateTranslationMatrix(DeltaLoc);
     DeltaM = DeltaM * Mrot * Mscale;
@@ -24,7 +24,6 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
     UpdateVerticesFromNewBindPose();
     // 5) 바운딩 & GPU 버퍼
     ComputeBounds(Vertices, BoundingBoxMin, BoundingBoxMax);
-    
     TArray<FStaticMeshVertex> StaticVerts; StaticVerts.SetNum(Vertices.Num());
     for (int32 i = 0; i < Vertices.Num(); ++i)
     {

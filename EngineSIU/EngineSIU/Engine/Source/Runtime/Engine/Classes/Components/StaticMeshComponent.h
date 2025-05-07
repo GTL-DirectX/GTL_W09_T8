@@ -16,8 +16,7 @@ public:
     
     void SetProperties(const TMap<FString, FString>& InProperties) override;
 
-    void SetselectedSubMeshIndex(const int& value) { selectedSubMeshIndex = value; }
-    int GetselectedSubMeshIndex() const { return selectedSubMeshIndex; }
+
 
     virtual uint32 GetNumMaterials() const override;
     virtual UMaterial* GetMaterial(uint32 ElementIndex) const override;
@@ -45,5 +44,4 @@ public:
 
 protected:
     UStaticMesh* StaticMesh = nullptr;
-    int selectedSubMeshIndex = -1;
 };

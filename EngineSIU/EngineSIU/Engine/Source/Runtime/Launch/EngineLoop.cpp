@@ -131,7 +131,6 @@ void FEngineLoop::Render() const
     else
     {
         Renderer.Render(ActiveViewportCache);
-        
         Renderer.RenderViewport(ActiveViewportCache);
     }
     

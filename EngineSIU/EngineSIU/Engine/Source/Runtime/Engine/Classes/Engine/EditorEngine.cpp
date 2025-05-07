@@ -17,6 +17,9 @@
 #include "Audio/AudioManager.h"
 #include "GameFramework/DefaultPawn.h"
 
+#include "LevelEditor/SLevelEditor.h"
+#include "Rendering/Mesh/SkeletalMesh.h"
+
 namespace PrivateEditorSelection
 {
     static AActor* GActorSelected = nullptr;
@@ -218,6 +221,25 @@ void UEditorEngine::EndPIE()
     ActiveWorld = EditorWorld;
 
     OnEndPIE.Broadcast(ActiveWorld);
+}
+
+void UEditorEngine::CreateSkeletalPreviewViewport(USkeletalMesh* TargetSkeletalMesh)
+{
+    FWorldContext& SkMeshPreviewViewport = CreateNewWorldContext(EWorldType::PIE);
+
+    UWorld* SKMeshViewerWorld = UWorld::CreateWorld(this, EWorldType::EditorPreview, "SkeletalMeshViewer");
+
+    SkMeshPreviewViewport.SetCurrentWorld(SKMeshViewerWorld);
+
+    FRect ViewportRect(100, 100, 800, 800);
+
+    GEngineLoop.GetLevelEditor()->AddWindowViewportClient(SKMeshViewerWorld->GetFName(), SKMeshViewerWorld, ViewportRect, EEditorViewportType::SkeletalMeshEditor);
+
+
+
+
+    SKMeshViewerWorld->BeginPlay();
+
 }
 
 FWorldContext& UEditorEngine::GetEditorWorldContext(/*bool bEnsureIsGWorld*/)

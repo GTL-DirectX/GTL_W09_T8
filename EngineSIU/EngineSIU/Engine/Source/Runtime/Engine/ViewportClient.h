@@ -2,9 +2,11 @@
 #define _TCHAR_DEFINED
 #include <d3d11.h>
 
+#include "Define.h"
 #include "EngineBaseTypes.h"
 #include "HAL/PlatformType.h"
 #include "Math/Matrix.h"
+
 
 #define MIN_ORTHOZOOM (1.0)  // 2D ortho viewport zoom >= MIN_ORTHOZOOM
 #define MAX_ORTHOZOOM (1e25)
@@ -12,6 +14,8 @@
 class FViewportResource;
 class FViewport;
 class UWorld;
+
+enum class EViewScreenLocation : uint8;
 
 struct FViewportCamera
 {
@@ -90,6 +94,9 @@ public:
     
     // FViewport에 대한 참조 (혹은 소유)
 
+    virtual void Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld);
+
+
 public:
     FViewport* GetViewport() const { return Viewport; }
     uint32 GetViewportIndex() const { return ViewportIndex; }
@@ -113,6 +120,8 @@ public:
     
     uint64 GetShowFlag() const { return ShowFlag; }
     void SetShowFlag(uint64 InShowFlag) { ShowFlag = InShowFlag; }
+
+    void SetShowFlagState(uint64 flag, bool bEnable);
 
 protected:
     ELevelViewportType ViewportType;

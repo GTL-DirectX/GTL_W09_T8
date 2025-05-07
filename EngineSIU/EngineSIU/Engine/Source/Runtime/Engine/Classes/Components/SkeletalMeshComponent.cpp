@@ -12,7 +12,7 @@ UObject* USkeletalMeshComponent::Duplicate(UObject* InOuter)
     ThisClass* NewComponent = Cast<ThisClass>(Super::Duplicate(InOuter));
     NewComponent->SkeletalMeshAsset = SkeletalMeshAsset;
     NewComponent->AABB = AABB;
-    NewComponent->transboneidx = transboneidx;
+
     return NewComponent;
 }
 
@@ -24,7 +24,7 @@ void USkeletalMeshComponent::GetProperties(TMap<FString, FString>& OutProperties
     if (CurrentMesh != nullptr) {
 
         // 1. std::wstring 경로 얻기
-        FString Path = CurrentMesh->GetObjectName(); // 이 함수가 std::wstring 반환 가정
+        FString Path = CurrentMesh->GetRenderData()->FilePath; // 이 함수가 std::wstring 반환 가정
 
         OutProperties.Add(TEXT("SkeletalMeshPath"), Path);
     }
@@ -46,7 +46,7 @@ void USkeletalMeshComponent::SetProperties(const TMap<FString, FString>& InPrope
         {
             // 경로 문자열로 UStaticMesh 에셋 로드 시도
 
-            if (USkeletalMesh* MeshToSet = FFBXManager::Get().LoadSkeletalMesh(*TempStr))
+            if (USkeletalMesh* MeshToSet = FFBXManager::Get().LoadFbx(*TempStr))
             {
                 SetSkeletalMesh(MeshToSet); // 성공 시 메시 설정
                 UE_LOG(LogLevel::Display, TEXT("Set SkeletalMesh '%s' for %s"), **TempStr, *GetName());
@@ -76,10 +76,7 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     USkinnedMeshComponent::TickComponent(DeltaTime);
 
-    // for (int i=0;i< SkeletalMeshAsset->GetRenderData()->BoneNames.Num();i++)
-    // {
-        SkeletalMeshAsset->GetRenderData()->ApplyBoneOffsetAndRebuild(transboneidx,FVector::ZeroVector,FRotator(1,0,0),FVector(1,1,1));
-    // }
+    SkeletalMeshAsset->GetRenderData()->ApplyBoneOffsetAndRebuild(7,FVector::ZeroVector,FRotator(0.1,0,0),FVector(1,1,1));
 }
 
 int USkeletalMeshComponent::CheckRayIntersection(const FVector& InRayOrigin, const FVector& InRayDirection, float& OutHitDistance) const
@@ -139,6 +136,43 @@ int USkeletalMeshComponent::CheckRayIntersection(const FVector& InRayOrigin, con
     return IntersectionNum;
 }
 
+uint32 USkeletalMeshComponent::GetNumMaterials() const
+{
+    if (SkeletalMeshAsset)
+    {
+        return SkeletalMeshAsset->GetMaterials().Num();
+    }
+
+    return 0;
+}
+
+TArray<FName> USkeletalMeshComponent::GetMaterialSlotNames() const
+{
+    TArray<FName> MaterialNames;
+    if (SkeletalMeshAsset == nullptr) return MaterialNames;
+
+    for (const FMaterialSlot* Material : SkeletalMeshAsset->GetMaterials())
+    {
+        MaterialNames.Emplace(Material->MaterialSlotName);
+    }
+
+    return MaterialNames;
+}
+UMaterial* USkeletalMeshComponent::GetMaterial(uint32 ElementIndex) const
+{
+    if (SkeletalMeshAsset != nullptr)
+    {
+        if (OverrideMaterials.IsValidIndex(ElementIndex))
+            return OverrideMaterials[ElementIndex];
+
+        if (SkeletalMeshAsset->GetMaterials().IsValidIndex(ElementIndex))
+        {
+            return SkeletalMeshAsset->GetMaterials()[ElementIndex]->Material;
+        }
+    }
+
+    return nullptr;
+}
 void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 {
     SkeletalMeshAsset = InSkeletalMesh;

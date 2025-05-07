@@ -38,7 +38,7 @@ uint32 UStaticMesh::GetMaterialIndex(FName MaterialSlotName) const
 
 void UStaticMesh::GetUsedMaterials(TArray<UMaterial*>& Out) const
 {
-    for (const FStaticMaterial* Material : materials)
+    for (const FMaterialSlot* Material : materials)
     {
         Out.Emplace(Material->Material);
     }
@@ -57,7 +57,7 @@ void UStaticMesh::SetData(FStaticMeshRenderData* renderData)
         staticMeshRenderData->IndexBuffer = FEngineLoop::Renderer.CreateImmutableIndexBuffer(staticMeshRenderData->DisplayName, staticMeshRenderData->Indices);
 
     for (int materialIndex = 0; materialIndex < staticMeshRenderData->Materials.Num(); materialIndex++) {
-        FStaticMaterial* newMaterialSlot = new FStaticMaterial();
+        FMaterialSlot* newMaterialSlot = new FMaterialSlot();
         UMaterial* newMaterial = UMaterial::CreateMaterial(staticMeshRenderData->Materials[materialIndex]);
 
         newMaterialSlot->Material = newMaterial;

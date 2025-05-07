@@ -19,6 +19,7 @@
 #include "DepthPrePass.h"
 #include "FadeRenderpass.h"
 #include "TileLightCullingPass.h"
+#include "MeshRenderPass.h"
 #include <UObject/UObjectIterator.h>
 #include <UObject/Casts.h>
 
@@ -56,10 +57,10 @@ void FRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* InBuf
     CreateConstantBuffers();
     CreateCommonShader();
     
-    StaticMeshRenderPass = new FStaticMeshRenderPass();
-#pragma region SkeletalMeshRenderPass
-    SkeletalMeshRenderPass = new FSkeletalRenderPass();
-#pragma endregion
+//    StaticMeshRenderPass = new FStaticMeshRenderPass();
+//    SkeletalMeshRenderPass = new FSkeletalRenderPass();
+
+    MeshRenderPass = new FMeshRenderPass();
     WorldBillboardRenderPass = new FWorldBillboardRenderPass();
     EditorBillboardRenderPass = new FEditorBillboardRenderPass();
     GizmoRenderPass = new FGizmoRenderPass();
@@ -84,12 +85,14 @@ void FRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* InBuf
     ShadowRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
     ShadowRenderPass->InitializeShadowManager(ShadowManager);
     
-    StaticMeshRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
-    StaticMeshRenderPass->InitializeShadowManager(ShadowManager);
-#pragma region SkeletalMeshRenderPass
-    SkeletalMeshRenderPass->Initialize(BufferManager,Graphics, ShaderManager);
-    SkeletalMeshRenderPass->InitializeShadowManager(ShadowManager);
-#pragma endregion
+    //StaticMeshRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
+    //StaticMeshRenderPass->InitializeShadowManager(ShadowManager);
+    //SkeletalMeshRenderPass->Initialize(BufferManager,Graphics, ShaderManager);
+    //SkeletalMeshRenderPass->InitializeShadowManager(ShadowManager);
+
+    MeshRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
+    MeshRenderPass->InitializeShadowManager(ShadowManager);
+
     WorldBillboardRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
     EditorBillboardRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
     GizmoRenderPass->Initialize(BufferManager, Graphics, ShaderManager);
@@ -115,11 +118,13 @@ void FRenderer::Release()
     delete ShaderManager;
     delete ShadowManager;
     delete ShadowRenderPass;
+//
+//    delete StaticMeshRenderPass;
+//#pragma region SkeletalMeshRenderPass
+//    delete SkeletalMeshRenderPass;
+//#pragma endregion
 
-    delete StaticMeshRenderPass;
-#pragma region SkeletalMeshRenderPass
-    delete SkeletalMeshRenderPass;
-#pragma endregion
+    delete MeshRenderPass;
     delete WorldBillboardRenderPass;
     delete EditorBillboardRenderPass;
     delete GizmoRenderPass;
@@ -247,8 +252,9 @@ void FRenderer::PrepareRender(FViewportResource* ViewportResource) const
 
 void FRenderer::PrepareRenderPass(const std::shared_ptr<FViewportClient>& Viewport) const
 {
-    StaticMeshRenderPass->PrepareRenderArr(Viewport);
-    SkeletalMeshRenderPass->PrepareRenderArr(Viewport);
+    //StaticMeshRenderPass->PrepareRenderArr(Viewport);
+    //SkeletalMeshRenderPass->PrepareRenderArr(Viewport);
+    MeshRenderPass->PrepareRenderArr(Viewport);
     ShadowRenderPass->PrepareRenderArr(Viewport);
     GizmoRenderPass->PrepareRenderArr(Viewport);
     WorldBillboardRenderPass->PrepareRenderArr(Viewport);
@@ -263,8 +269,9 @@ void FRenderer::PrepareRenderPass(const std::shared_ptr<FViewportClient>& Viewpo
 
 void FRenderer::ClearRenderArr() const
 {
-    StaticMeshRenderPass->ClearRenderArr();
-    SkeletalMeshRenderPass->ClearRenderArr();
+    //StaticMeshRenderPass->ClearRenderArr();
+    //SkeletalMeshRenderPass->ClearRenderArr();
+    MeshRenderPass->ClearRenderArr();
     ShadowRenderPass->ClearRenderArr();
     WorldBillboardRenderPass->ClearRenderArr();
     EditorBillboardRenderPass->ClearRenderArr();
@@ -447,8 +454,9 @@ void FRenderer::RenderWorldScene(const std::shared_ptr<FViewportClient>& Viewpor
         {
             QUICK_SCOPE_CYCLE_COUNTER(StaticMeshPass_CPU)
             QUICK_GPU_SCOPE_CYCLE_COUNTER(StaticMeshPass_GPU, *GPUTimingManager)
-            StaticMeshRenderPass->Render(Viewport);
-            SkeletalMeshRenderPass->Render(Viewport);
+            //SkeletalMeshRenderPass->Render(Viewport);
+            //StaticMeshRenderPass->Render(Viewport);
+            MeshRenderPass->Render(Viewport);
         }
 
     }

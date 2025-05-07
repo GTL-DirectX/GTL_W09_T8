@@ -229,11 +229,11 @@ void FShadowManager::BindResourcesForSampling(
         if (CascadeSplits.Num() >= 4) {
             CascadeData.CascadeSplit = { CascadeSplits[0], CascadeSplits[1], CascadeSplits[2], CascadeSplits[3] };
         }
-            //CascadeData.CascadeSplits[i] = CascadeSplits[i];
-        //CascadeData.CascadeSplits[NumCascades] = CascadeSplits[NumCascades];
+        /*CascadeData.CascadeSplits[i] = CascadeSplits[i];
+        CascadeData.CascadeSplits[NumCascades] = CascadeSplits[NumCascades];*/
 
-        BufferManager->UpdateConstantBuffer(TEXT("FCascadeConstantBuffer"), CascadeData);
-        BufferManager->BindConstantBuffer(TEXT("FCascadeConstantBuffer"), 9, EShaderStage::Pixel);
+        /*BufferManager->UpdateConstantBuffer(TEXT("FCascadeConstantBuffer"), CascadeData);
+        BufferManager->BindConstantBuffer(TEXT("FCascadeConstantBuffer"), 9, EShaderStage::Pixel);*/
         /*ID3D11Buffer* CascadeConstantBuffer = BufferManager->GetConstantBuffer(TEXT("FCascadeConstantBuffer"));
         D3DContext->PSSetConstantBuffers(9,1,&CascadeConstantBuffer);*/
     }
