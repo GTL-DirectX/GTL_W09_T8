@@ -31,5 +31,6 @@ private:
     static FString ViewportIdentifier;
 
     static bool bShowBones;
+    static bool bWireframe;
     static int SelectedBone;
 };

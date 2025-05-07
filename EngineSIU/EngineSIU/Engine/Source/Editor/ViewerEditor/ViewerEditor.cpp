@@ -30,8 +30,10 @@ FString ViewerEditor::ViewportIdentifier = TEXT("SkeletalMeshViewerViewport");
 AActor* ViewerEditor::SelectedActor = nullptr;
 USkeletalMesh* ViewerEditor::SelectedSkeletalMesh = nullptr;
 bool ViewerEditor::bShowBones = false;
+bool ViewerEditor::bWireframe = false;
 int ViewerEditor::SelectedBone = -1;
 USkeletalMeshComponent* ViewerEditor::SkeletalMeshComponent = nullptr;
+
 
 void ViewerEditor::InitializeViewerResources()
 {
@@ -67,6 +69,8 @@ void ViewerEditor::InitializeViewerResources()
         FRect(100, 100, 800, 800),
         EEditorViewportType::SkeletalMeshEditor
     ));
+
+    //ViewerViewportClient->SetShowFlag()
     // End Test
 
     if (!ViewerViewportClient)
@@ -77,7 +81,7 @@ void ViewerEditor::InitializeViewerResources()
         }
         return;
     }
-
+    ViewerViewportClient->SetViewMode(EViewModeIndex::VMI_Unlit);
     ViewerViewportClient->SetShouldDraw(false);
     FViewportCamera& vpCam = ViewerViewportClient->GetPerspectiveCamera();
     vpCam.SetLocation(FVector(-200, 0, 80));
@@ -290,6 +294,17 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
                 SelectedActor->GetRootComponent()->AddRotation(FRotator(0, -90, 0));
             }
 
+            if (ImGui::Checkbox("Wireframe", &bWireframe))
+            {
+                if (bWireframe)
+                {
+                    ViewerViewportClient->SetViewMode(EViewModeIndex::VMI_Wireframe);
+                }
+                else
+                {
+                    ViewerViewportClient->SetViewMode(EViewModeIndex::VMI_Unlit);
+                }
+            }
             FSkeletalMeshRenderData* RenderData = SelectedSkeletalMesh->GetRenderData();
             
             if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
