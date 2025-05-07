@@ -91,13 +91,21 @@ struct FSkeletalMeshRenderData
             if (parentIndex >= 0)
             {
                 // 부모의 글로벌 포즈에 현재 로컬을 곱함
-                ReferencePose[i] = ReferencePose[parentIndex] * LocalBindPose[i];
+                ReferencePose[i] =  LocalBindPose[i]* ReferencePose[parentIndex] ;
             }
             else
             {
                 // 루트 본은 로컬이 곧 글로벌
                 ReferencePose[i] = LocalBindPose[i];
             }
+        }
+        for (int i=0;i<5;i++)
+        {
+            std::cout << GetData(BoneNames[i]) << std::endl;
+            std::cout << "Local Bind Pose " << std::endl;
+            LocalBindPose[i].PrintMatirx();
+            std::cout << "Global Bind Pose " << std::endl;
+            ReferencePose[i].PrintMatirx();
         }
     }
     

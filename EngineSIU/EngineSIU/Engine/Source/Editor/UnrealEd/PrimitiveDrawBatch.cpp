@@ -335,7 +335,7 @@ void UPrimitiveDrawBatch::AddConeToBatch(const FVector& Center, float Radius, fl
 void UPrimitiveDrawBatch::AddJointSphereToBatch(const FVector& JointWorldPosition, float Radius, const FVector4& Color, const FMatrix& ModelMatrix)
 {
     FBoneGizmo Gizmo;
-    Gizmo.Center = FMatrix::TransformVector(JointWorldPosition, ModelMatrix);
+    Gizmo.Center =JointWorldPosition;
     Gizmo.Color = Color;
 
     BoneGizmos.Add(Gizmo);
