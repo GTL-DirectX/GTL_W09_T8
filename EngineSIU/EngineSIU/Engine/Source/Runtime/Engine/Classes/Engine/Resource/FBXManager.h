@@ -45,8 +45,6 @@ public:
         const TArray<UINT>& Indices,
         ID3D11Buffer*& OutVB,
         ID3D11Buffer*& OutIB);
-    void UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData, ID3D11DeviceContext* Context);
-
 public:
     bool SaveSkeletalMeshToBinary(const FString& FilePath, const FSkeletalMeshRenderData& StaticMesh);
     bool LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalMeshRenderData& OutStaticMesh);
@@ -83,7 +81,7 @@ private:
     FFBXManager() = default;
     FFBXManager(const FFBXManager&) = delete;
     FFBXManager& operator=(const FFBXManager&) = delete;
-
+    double finalScaleFactor = 1.0;
     // FBX SDK 주요 객체
     FbxManager*     SdkManager      = nullptr;
     FbxIOSettings*  IOSettings      = nullptr;

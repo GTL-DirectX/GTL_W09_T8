@@ -15,7 +15,7 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
     FMatrix DeltaM = FMatrix::CreateTranslationMatrix(DeltaLoc);
     DeltaM = DeltaM * Mrot * Mscale;
     // 1) 로컬 바인드 포즈 적용
-    LocalBindPose[BoneIndex] =  LocalBindPose[BoneIndex]* DeltaM;
+    LocalBindPose[BoneIndex] =  DeltaM * LocalBindPose[BoneIndex]; // 위치 고려 필요
     // 2) 글로벌 ReferencePose 재계산
     UpdateReferencePoseFromLocal();
     // 3) BoneTransforms 동기화
@@ -47,6 +47,8 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
         VertexBuffer,
         IndexBuffer
     );
+    // OrigineReferencePose = ReferencePose;
+    // OrigineVertices = Vertices;
 }
 
 void FSkeletalMeshRenderData::ComputeBounds(const TArray<FSkeletalMeshVertex>& Verts, FVector& OutMin, FVector& OutMax)

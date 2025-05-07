@@ -257,7 +257,7 @@ float3 ComputeBonePosition(uint boneIndex, uint localInstanceID, uint vertexID)
 {
     FBoneData bone = g_BoneData[boneIndex];
     
-    static const float BONE_GIZMO_SPHERE_RADIUS = 5.0f; 
+    static const float BONE_GIZMO_SPHERE_RADIUS = 10.0f; 
     
     uint circleId = localInstanceID / BONE_GIZMO_LINES_PER_CIRCLE; // 0 for XY, 1 for XZ, 2 for YZ
     uint segmentInCircle = localInstanceID % BONE_GIZMO_LINES_PER_CIRCLE; // 0 to (BONE_GIZMO_LINES_PER_CIRCLE - 1)
