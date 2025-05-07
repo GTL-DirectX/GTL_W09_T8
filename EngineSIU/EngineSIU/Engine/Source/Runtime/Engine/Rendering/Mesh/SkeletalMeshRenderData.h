@@ -91,8 +91,7 @@ struct FSkeletalMeshRenderData
             if (parentIndex >= 0)
             {
                 // 부모의 글로벌 포즈에 현재 로컬을 곱함
-                ReferencePose[i] =
-                     ReferencePose[parentIndex] * LocalBindPose[i];
+                ReferencePose[i] = ReferencePose[parentIndex] * LocalBindPose[i];
             }
             else
             {
