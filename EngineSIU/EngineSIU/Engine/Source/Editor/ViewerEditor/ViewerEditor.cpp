@@ -312,21 +312,16 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
                     }
                 }
                 ImGui::EndChild();
+
+                // FIX-ME
+                // FTransform 반드시 만들것..
                 if (SelectedBone != -1 && SelectedBone < RenderData->BoneNames.Num())
                 {
                     ImGui::Separator();
-                    ImGui::Text("Selected Bone Info:");
+                    ImGui::Text("Selected Bone");
                     ImGui::Indent();
                     ImGui::Text("Index: %d", SelectedBone);
 
-                    // 현재 ReferencePose를 사용해서 하고 있는데 이게 맞는지 다시 한 번 물어봐야 함.
-                    const FMatrix& BoneTransform = RenderData->ReferencePose[SelectedBone];
-                    FVector Translation = BoneTransform.GetTranslationVector();
-                    FRotator Rotation = FMatrix::GetRotationMatrix(BoneTransform).ToQuat().Rotator();
-                    FVector Scale = BoneTransform.GetScaleVector();
-
-                    ImGui::Text("Position: (X: %.1f, Y: %.1f, Z: %.1f)", Translation.X, Translation.Y, Translation.Z);
-                    ImGui::Text("Rotation: (Pitch: %.1f, Yaw: %.1f, Roll: %.1f)", Rotation.Pitch, Rotation.Yaw, Rotation.Roll);
                     int ParentIdx = RenderData->ParentBoneIndices[SelectedBone];
                     if (ParentIdx != -1)
                     {
@@ -336,6 +331,87 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
                     {
                         ImGui::Text("Parent: None (Root Bone)");
                     }
+
+                    static int   LastSelectedBoneForLocalEdit = -1;
+                    static float EditableLocalLoc[3] = { 0.0f, 0.0f, 0.0f };
+                    static float EditableLocalRot[3] = { 0.0f, 0.0f, 0.0f }; // Pitch, Yaw, Roll
+                    static float EditableLocalScale[3] = { 1.0f, 1.0f, 1.0f };
+
+                    bool bValueChanged = false;
+
+                    const FMatrix& CurrentLocalBindMatrix = RenderData->LocalBindPose[SelectedBone];
+                    FVector  CurrentOriginLoc = CurrentLocalBindMatrix.GetTranslationVector();
+                    FRotator CurrentOriginRot = CurrentLocalBindMatrix.GetMatrixWithoutScale().ToQuat().Rotator();
+                    FVector  CurrentOriginScale = CurrentLocalBindMatrix.GetScaleVector();
+                    if (SelectedBone != LastSelectedBoneForLocalEdit)
+                    {
+                        EditableLocalLoc[0] = CurrentOriginLoc.X;
+                        EditableLocalLoc[1] = CurrentOriginLoc.Y;
+                        EditableLocalLoc[2] = CurrentOriginLoc.Z;
+
+                        EditableLocalRot[0] = CurrentOriginRot.Pitch;
+                        EditableLocalRot[1] = CurrentOriginRot.Yaw;
+                        EditableLocalRot[2] = CurrentOriginRot.Roll;
+
+                        EditableLocalScale[0] = CurrentOriginScale.X;
+                        EditableLocalScale[1] = CurrentOriginScale.Y;
+                        EditableLocalScale[2] = CurrentOriginScale.Z;
+
+                        LastSelectedBoneForLocalEdit = SelectedBone;
+                    }
+
+                    if (ImGui::InputFloat3("Local Location##LocalEdit", EditableLocalLoc)) bValueChanged = true;
+                    if (ImGui::InputFloat3("Local Rotation (P,Y,R)##LocalEdit", EditableLocalRot)) bValueChanged = true;
+                    if (ImGui::InputFloat3("Local Scale##LocalEdit", EditableLocalScale)) bValueChanged = true;
+
+                    if (bValueChanged)
+                    {
+                        if (SkeletalMeshComponent && SelectedSkeletalMesh && SelectedSkeletalMesh->GetRenderData())
+                        {
+                            FSkeletalMeshRenderData* ModifiableRenderData = SelectedSkeletalMesh->GetRenderData();
+
+                            FVector  TargetLocalLocation = FVector(EditableLocalLoc[0], EditableLocalLoc[1], EditableLocalLoc[2]);
+                            FRotator TargetLocalRotation = FRotator(EditableLocalRot[0], EditableLocalRot[1], EditableLocalRot[2]);
+                            FVector  TargetLocalScale = FVector(EditableLocalScale[0], EditableLocalScale[1], EditableLocalScale[2]);
+
+                            FMatrix OldScale = FMatrix::CreateScaleMatrix(CurrentOriginScale.X, CurrentOriginScale.Y, CurrentOriginScale.Z);
+                            FMatrix OldRotation = FMatrix::CreateRotationMatrix(CurrentOriginRot.Roll, CurrentOriginRot.Pitch, CurrentOriginRot.Yaw); 
+                            FMatrix OldTranslation = FMatrix::CreateTranslationMatrix(CurrentOriginLoc);
+                            FMatrix M_old = OldTranslation * OldRotation * OldScale;
+
+                            FMatrix NewScale = FMatrix::CreateScaleMatrix(TargetLocalScale.X, TargetLocalScale.Y, TargetLocalScale.Z);
+                            FMatrix NewRotation = FMatrix::CreateRotationMatrix(TargetLocalRotation.Roll, TargetLocalRotation.Pitch, TargetLocalRotation.Yaw);
+                            FMatrix NewTranslation = FMatrix::CreateTranslationMatrix(TargetLocalLocation);
+                            FMatrix M_new = NewTranslation * NewRotation * NewScale;
+
+                            FMatrix OldInverse= FMatrix::Inverse(M_old);
+                            FMatrix DeltaTransform = FMatrix::Identity;
+
+                            DeltaTransform = (OldInverse.Determinant3x3() == 0) ? FMatrix::Identity : M_new * OldInverse;
+
+                            FVector  DeltaLocation = DeltaTransform.GetTranslationVector();
+                            FRotator DeltaRotation = DeltaTransform.GetMatrixWithoutScale().ToQuat().Rotator();
+                            FVector  DeltaScale = DeltaTransform.GetScaleVector();
+
+                            ModifiableRenderData->ApplyBoneOffsetAndRebuild(
+                                SelectedBone,
+                                DeltaLocation,
+                                DeltaRotation,
+                                DeltaScale
+                            );
+                        }
+                    }
+                    ImGui::Spacing();
+
+                    const FMatrix& WorldReferencePose = RenderData->ReferencePose[SelectedBone];
+                    FVector WorldPosition = WorldReferencePose.GetTranslationVector();
+                    FRotator WorldRotation = WorldReferencePose.GetMatrixWithoutScale().ToQuat().Rotator();
+                    FVector WorldScale = WorldReferencePose.GetScaleVector();
+
+                    ImGui::Text("World Position: (X: %.3f, Y: %.3f, Z: %.3f)", WorldPosition.X, WorldPosition.Y, WorldPosition.Z);
+                    ImGui::Text("World Rotation: (P: %.3f, Y: %.3f, R: %.3f)", WorldRotation.Pitch, WorldRotation.Yaw, WorldRotation.Roll);
+                    ImGui::Text("World Scale: (X: %.3f, Y: %.3f, Z: %.3f)", WorldScale.X, WorldScale.Y, WorldScale.Z);
+
                     ImGui::Unindent();
                 }
             }
