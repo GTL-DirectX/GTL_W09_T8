@@ -223,7 +223,7 @@ void UEditorEngine::EndPIE()
     OnEndPIE.Broadcast(ActiveWorld);
 }
 
-void UEditorEngine::CreateSkeletalPreviewViewport(USkeletalMesh* TargetSkeletalMesh)
+void UEditorEngine::CreateSkeletalPreviewViewport()
 {
     FWorldContext& SkMeshPreviewViewport = CreateNewWorldContext(EWorldType::PIE);
 
@@ -235,11 +235,7 @@ void UEditorEngine::CreateSkeletalPreviewViewport(USkeletalMesh* TargetSkeletalM
 
     GEngineLoop.GetLevelEditor()->AddWindowViewportClient(SKMeshViewerWorld->GetFName(), SKMeshViewerWorld, ViewportRect, EEditorViewportType::SkeletalMeshEditor);
 
-
-
-
     SKMeshViewerWorld->BeginPlay();
-
 }
 
 FWorldContext& UEditorEngine::GetEditorWorldContext(/*bool bEnsureIsGWorld*/)

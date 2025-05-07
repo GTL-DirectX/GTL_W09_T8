@@ -86,7 +86,7 @@ public:
     void SetShowGizmo(bool bShow) { bShowGizmo = bShow; }
     bool IsShowGizmo() const { return bShowGizmo; }
 
-private:
+protected:
     ATransformGizmo* GizmoActor = nullptr;
     USceneComponent* PickedGizmoComponent = nullptr;
     bool bShowGizmo = true;

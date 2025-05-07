@@ -1,5 +1,6 @@
 #include "Viewport.h"
 
+#include "Define.h"
 #include "EngineLoop.h"
 #include <array>
 

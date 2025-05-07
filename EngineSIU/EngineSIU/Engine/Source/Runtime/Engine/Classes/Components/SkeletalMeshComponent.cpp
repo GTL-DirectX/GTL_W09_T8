@@ -76,6 +76,9 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     USkinnedMeshComponent::TickComponent(DeltaTime);
 
+    if (!SkeletalMeshAsset)
+        return;
+
     SkeletalMeshAsset->GetRenderData()->ApplyBoneOffsetAndRebuild(7,FVector::ZeroVector,FRotator(0.1,0,0),FVector(1,1,1));
 }
 

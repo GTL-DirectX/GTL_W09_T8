@@ -7,7 +7,9 @@ class FSkeletalMeshViewportClient : public FEditorViewportClient
 public:
     FSkeletalMeshViewportClient();
 
-public:
+    virtual void Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld) override;
+
+    virtual void Tick(float DeltaTime);
 
 
 };

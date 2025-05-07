@@ -70,7 +70,8 @@ void UWorld::Tick(float DeltaTime)
             if (PendingBeginPlayActors.Contains(Actor))
                 PendingBeginPlayActors.Remove(Actor);
         }
-        GetFirstPlayerController()->UpdateCameraManager(DeltaTime);
+        if (PlayerControllers.Num() > 0)
+            GetFirstPlayerController()->UpdateCameraManager(DeltaTime);
     }
     TArray<AActor*> ActorsCopy = GetActiveLevel()->Actors;
 

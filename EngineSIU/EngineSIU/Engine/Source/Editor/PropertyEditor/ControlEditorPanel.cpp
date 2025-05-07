@@ -33,6 +33,8 @@
 #include <Engine/SkeletalMeshActor.h>
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/Resource/FBXManager.h"
+#include "UnrealEd/SkeletalMeshViewportClient.h"
+#include "Viewport/SkeletalMeshEditorViewport.h"
 
 void ControlEditorPanel::Render()
 {
@@ -436,12 +438,20 @@ void ControlEditorPanel::CreateViewerButton()
     if (ImGui::Button("SkeletalMesh Viewer"))
     {
         bShowSkeletalMeshViewer = true;
+        Cast<UEditorEngine>(GEngine)->CreateSkeletalPreviewViewport();
     }
 
-    ViewerEditor::RenderViewerWindow(bShowSkeletalMeshViewer);
+    for (auto [Name, Client] : GEngineLoop.GetLevelEditor()->GetWindowViewportClients())
+    {
+        if (auto C = dynamic_cast<FSkeletalMeshViewportClient*>(Client.get()))
+        {
+            C->GetViewport()->Draw(0.0f);
+            break;
+        }
+    }
 
-    //Cast<UEditorEngine>(GEngine)->CreateSkeletalPreviewViewport();
 
+    //ViewerEditor::RenderViewerWindow(bShowSkeletalMeshViewer);
 }
 void ControlEditorPanel::CreateFlagButton()
 {

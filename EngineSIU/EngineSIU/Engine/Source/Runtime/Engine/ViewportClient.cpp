@@ -30,10 +30,7 @@ void FViewportClient::Draw(FViewport* Viewport)
 
 void FViewportClient::Tick(float DeltaTime)
 {
-    if (Viewport)
-    {
-        Viewport->Draw(DeltaTime);
-    }
+   
 }
 
 void FViewportClient::Release()
