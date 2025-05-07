@@ -1,7 +1,6 @@
 #include "SkeletalMeshRenderData.h"
 
 #include "UObject/Object.h"
-
 void FSkeletalMeshRenderData::UpdateReferencePoseFromLocal()
 {
     const int32 BoneCount = LocalBindPose.Num();
@@ -24,7 +23,6 @@ void FSkeletalMeshRenderData::UpdateReferencePoseFromLocal()
         }
     }
 }
-
 void FSkeletalMeshRenderData::UpdateVerticesFromNewBindPose()
 {
     int32 BoneCount = ReferencePose.Num();
@@ -79,7 +77,6 @@ void FSkeletalMeshRenderData::UpdateVerticesFromNewBindPose()
         }
     }
 }
-
 void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector DeltaLoc, FRotator DeltaRot, FVector DeltaScale)
 {
     if(!LocalBindPose.IsValidIndex(BoneIndex))
@@ -97,7 +94,6 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
     ComputeBounds();
     CreateBuffers();
 }
-
 void FSkeletalMeshRenderData::ComputeBounds()
 {
     if (Vertices.Num() == 0) return;
@@ -113,7 +109,6 @@ void FSkeletalMeshRenderData::ComputeBounds()
         BoundingBoxMax.Z = FMath::Max(BoundingBoxMax.Z, v.Position.Z);
     }
 }
-
 void FSkeletalMeshRenderData::CreateBuffers()
 {
     if (VertexBuffer)

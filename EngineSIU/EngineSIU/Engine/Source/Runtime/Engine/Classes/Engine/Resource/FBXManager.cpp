@@ -121,6 +121,242 @@ void FFBXManager::LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkelet
         }
     }
 }
+
+void FFBXManager::InitializeLocalbindPose(FSkeletalMeshRenderData& outData)
+{
+    int32 BoneCount = outData.ReferencePose.Num();
+    outData.LocalBindPose.SetNum(BoneCount);
+    for(int32 i = 0; i < BoneCount; ++i)
+    {
+        int32 P = outData.ParentBoneIndices[i];
+        const FMatrix& Gc = outData.ReferencePose[i];      // 자식 글로벌
+        if(P >= 0)
+        {
+            const FMatrix& Gp = outData.ReferencePose[P];  // 부모 글로벌
+
+            // 1) 부모 회전, 위치 분리
+            FQuat Rp = FQuat(Gp);                  // 부모 글로벌 회전
+            FVector Tp(Gp.M[3][0], Gp.M[3][1], Gp.M[3][2]);
+
+            // 2) 자식 회전, 위치 분리
+            FQuat Rc = FQuat(Gc);
+            FVector Tc(Gc.M[3][0], Gc.M[3][1], Gc.M[3][2]);
+
+            // 3) 로컬 회전 = 부모 회전⁻¹ * 자식 회전
+            FQuat Rlocal = Rp.Inverse() * Rc;
+            Rlocal = Rlocal.GetSafeNormal();
+            // 4) 로컬 이동 = 부모 회전⁻¹ * (자식 위치 - 부모 위치)
+            FVector Tlocal = Rp.Inverse().RotateVector(Tc - Tp);
+
+            // 5) LocalBindPose[i] 재조합
+            FMatrix RotM = Rlocal.ToMatrix();
+            RotM.M[3][0] = Tlocal.X;
+            RotM.M[3][1] = Tlocal.Y;
+            RotM.M[3][2] = Tlocal.Z;
+            RotM.M[3][3] = 1;
+            outData.LocalBindPose[i] = RotM;
+        }
+        else
+        {
+            // 루트 본은 글로벌이 그대로 로컬
+            outData.LocalBindPose[i] = outData.ReferencePose[i];
+        }
+    }
+}
+
+void FFBXManager::InitailizeMaterial(FSkeletalMeshRenderData& outData, FbxMesh* mesh, int polyCount)
+{
+    outData.Materials.Reset();
+    outData.MaterialSubsets.Reset();
+        
+    FbxNode* fbxNode = mesh->GetNode();
+    int materialCount = fbxNode->GetMaterialCount();
+        
+    // 머티리얼 정보 수집
+    for (int m = 0; m < materialCount; ++m)
+    {
+        FObjMaterialInfo matInfo;
+        FbxSurfaceMaterial* fbxMat = fbxNode->GetMaterial(m);
+        matInfo.MaterialName = fbxMat->GetName();
+        
+        auto ReadColor = [&](const char* propName, FVector& outVec)
+        {
+            FbxProperty prop = fbxMat->FindProperty(propName);
+            if (prop.IsValid())
+            {
+                FbxDouble3 val = prop.Get<FbxDouble3>();
+                outVec = FVector((float)val[0], (float)val[1], (float)val[2]);
+            }
+        };
+        ReadColor(FbxSurfaceMaterial::sDiffuse,  matInfo.Diffuse);
+        ReadColor(FbxSurfaceMaterial::sSpecular, matInfo.Specular);
+        ReadColor(FbxSurfaceMaterial::sAmbient,  matInfo.Ambient);
+        ReadColor(FbxSurfaceMaterial::sEmissive, matInfo.Emissive);
+        
+        matInfo.SpecularScalar     = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sShininess).Get<double>());
+        matInfo.DensityScalar      = static_cast<float>(fbxMat->FindProperty("Ni").Get<double>());
+        matInfo.TransparencyScalar = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sTransparencyFactor).Get<double>());
+        matInfo.bTransparent       = (matInfo.TransparencyScalar > 0.0f);
+        
+        auto LoadTex = [&](const char* propName, FString& outName, FWString& outPath, uint32 flag)
+        {
+            FbxProperty prop = fbxMat->FindProperty(propName);
+            if (!prop.IsValid()) return;
+            int count = prop.GetSrcObjectCount<FbxFileTexture>();
+            if (count <= 0) return;
+            FbxFileTexture* tex = prop.GetSrcObject<FbxFileTexture>(0);
+            outName = tex->GetName();
+            std::string fp(tex->GetFileName());
+            outPath = std::wstring(fp.begin(), fp.end());
+            matInfo.TextureFlag |= flag;
+        };
+
+        LoadTex(FbxSurfaceMaterial::sDiffuse,               matInfo.DiffuseTextureName,     matInfo.DiffuseTexturePath,     1 << 1);
+        LoadTex("NormalMap",                                matInfo.BumpTextureName,        matInfo.BumpTexturePath,        1 << 2);
+        LoadTex(FbxSurfaceMaterial::sSpecular,              matInfo.SpecularTextureName,    matInfo.SpecularTexturePath,    1 << 3);
+        LoadTex(FbxSurfaceMaterial::sAmbient,               matInfo.AmbientTextureName,     matInfo.AmbientTexturePath,     1 << 4);
+        LoadTex(FbxSurfaceMaterial::sTransparencyFactor,    matInfo.AlphaTextureName,       matInfo.AlphaTexturePath,       1 << 5);
+        
+        outData.Materials.Add(matInfo);
+    }
+    // 서브셋 맵 생성
+    TMap<int, FMaterialSubset> subsetMap;
+    FbxLayerElementMaterial* elemMat = mesh->GetElementMaterial();
+    if (elemMat)
+    {
+        const auto& indexArray = elemMat->GetIndexArray();
+        for (int p = 0; p < polyCount; ++p)
+        {
+            int matIndex = indexArray.GetAt(p);
+            if (matIndex < 0 || matIndex >= outData.Materials.Num())
+                matIndex = 0;
+        
+            auto& sub = subsetMap.FindOrAdd(matIndex);
+            if (sub.IndexCount == 0)
+            {
+                sub.IndexStart    = p * 3;
+                sub.MaterialIndex = matIndex;
+                sub.MaterialName  = outData.Materials[matIndex].MaterialName;
+            }
+            sub.IndexCount += 3;
+        }
+    }
+    else if (outData.Materials.Num() > 0)
+    {
+        // 단일 머티리얼
+        FMaterialSubset sub;
+        sub.IndexStart    = 0;
+        sub.IndexCount    = polyCount * 3;
+        sub.MaterialIndex = 0;
+        sub.MaterialName  = outData.Materials[0].MaterialName;
+        subsetMap.Add(0, sub);
+    }
+    for (auto& kv : subsetMap)
+    {
+        outData.MaterialSubsets.Add(kv.Value);
+    }
+}
+
+void FFBXManager::InitializeBoneInfo(FSkeletalMeshRenderData& outData, FbxMesh* mesh)
+{
+    TSet<FbxNode*>            BoneNodeSet;
+    TMap<FbxNode*, FMatrix>   ClusterBindPose;
+    TMap<FbxNode*, TArray<std::pair<int, float>>>  BoneWeightsMap; 
+    for (int d = 0; d < mesh->GetDeformerCount(FbxDeformer::eSkin); ++d)
+    {
+        auto* skin = static_cast<FbxSkin*>(mesh->GetDeformer(d, FbxDeformer::eSkin));
+        for (int c = 0; c < skin->GetClusterCount(); ++c)
+        {
+            auto* cluster = skin->GetCluster(c);
+            auto* boneNode = cluster->GetLink();
+            if (!boneNode || !boneNode->GetSkeleton()) continue;
+
+            BoneNodeSet.Add(boneNode);
+
+            // 수정 후 (Skinning Matrix용 TransformMatrix 고려)
+            FbxAMatrix meshGlobal;
+            cluster->GetTransformMatrix(meshGlobal);
+            FMatrix invMeshGlobal = FMatrix::Inverse(ConvertToFMatrix(meshGlobal));
+            FbxAMatrix a;
+            a = a.Transpose();
+            FbxAMatrix linkGlobal;
+            cluster->GetTransformLinkMatrix(linkGlobal);
+            FMatrix boneGlobal = ConvertToFMatrix(linkGlobal);
+
+            ClusterBindPose[boneNode] = boneGlobal;
+            
+            // 가중치 모으기
+            int    count   = cluster->GetControlPointIndicesCount();
+            const int* cpsIdx    = cluster->GetControlPointIndices();
+            const double* weights = cluster->GetControlPointWeights();
+            auto& arr = BoneWeightsMap.FindOrAdd(boneNode);
+            for (int i = 0; i < count; ++i)
+                arr.Emplace(cpsIdx[i], static_cast<float>(weights[i]));
+        }
+    }
+
+    // 5) 본 노드별 depth 계산 (루트에서 얼마나 떨어져 있는지)
+    TMap<FbxNode*, int> BoneDepth;
+    std::function<int(FbxNode*)> ComputeDepth = [&](FbxNode* nd)->int {
+        if (!nd || !nd->GetParent() || !nd->GetParent()->GetSkeleton())
+            return 0;
+        if (BoneDepth.Contains(nd)) return BoneDepth[nd];
+        int d = 1 + ComputeDepth(nd->GetParent());
+        return BoneDepth.Add(nd, d), d;
+    };
+    for (auto* bn : BoneNodeSet) ComputeDepth(bn);
+
+    // 6) depth 오름차순 정렬된 배열 생성
+    TArray<FbxNode*> SortedBones = BoneNodeSet.Array();
+    SortedBones.Sort([&](FbxNode* A, FbxNode* B) {
+        return BoneDepth[A] < BoneDepth[B];
+    });
+
+    // 7) 정렬된 순서대로 Bone 정보 채우기
+    outData.BoneNames.Reset();
+    outData.ParentBoneIndices.Reset();
+    outData.ReferencePose.Reset();
+
+    for (int i = 0; i < SortedBones.Num(); ++i)
+    {
+        FbxNode* boneNode = SortedBones[i];
+        outData.BoneNames.Add(boneNode->GetName());
+
+        // 부모 인덱스 찾기
+        FbxNode* parent = boneNode->GetParent();
+        int parentIdx = -1;
+        if (parent && BoneNodeSet.Contains(parent))
+        {
+            parentIdx = SortedBones.Find(parent);
+        }
+        outData.ParentBoneIndices.Add(parentIdx);
+        // bind-pose matrix
+        // FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
+        outData.ReferencePose.Add( ClusterBindPose[boneNode]);
+    }
+
+    // 8) Vertex 쪽에 BoneIndices/BoneWeights 채우기
+    //    (원본 Vertices 기준으로, SortedBones 순서의 가중치 적용)
+    for (int bi = 0; bi < SortedBones.Num(); ++bi)
+    {
+        FbxNode* boneNode = SortedBones[bi];
+        auto& arr = BoneWeightsMap[boneNode];
+        for (auto& [cpIdx, w] : arr)
+        {
+            auto& vert = outData.Vertices[cpIdx];
+            for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+            {
+                if (vert.BoneWeights[j] == 0.0f)
+                {
+                    vert.BoneIndices[j] = bi;
+                    vert.BoneWeights[j] = w;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData& outData)
 {
     // 1) 메시 얻기
@@ -267,242 +503,15 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
 
 
     // 5) 본 + 스킨 정보 수집
-    TSet<FbxNode*>            BoneNodeSet;
-    TMap<FbxNode*, FMatrix>   ClusterBindPose;
-    TMap<FbxNode*, TArray<std::pair<int, float>>>  BoneWeightsMap; 
-    for (int d = 0; d < mesh->GetDeformerCount(FbxDeformer::eSkin); ++d)
-    {
-        auto* skin = static_cast<FbxSkin*>(mesh->GetDeformer(d, FbxDeformer::eSkin));
-        for (int c = 0; c < skin->GetClusterCount(); ++c)
-        {
-            auto* cluster = skin->GetCluster(c);
-            auto* boneNode = cluster->GetLink();
-            if (!boneNode || !boneNode->GetSkeleton()) continue;
-
-            BoneNodeSet.Add(boneNode);
-
-            // 수정 후 (Skinning Matrix용 TransformMatrix 고려)
-            FbxAMatrix meshGlobal;
-            cluster->GetTransformMatrix(meshGlobal);
-            FMatrix invMeshGlobal = FMatrix::Inverse(ConvertToFMatrix(meshGlobal));
-            FbxAMatrix a;
-            a = a.Transpose();
-            FbxAMatrix linkGlobal;
-            cluster->GetTransformLinkMatrix(linkGlobal);
-            FMatrix boneGlobal = ConvertToFMatrix(linkGlobal);
-
-            ClusterBindPose[boneNode] = boneGlobal;
-            
-            // 가중치 모으기
-            int    count   = cluster->GetControlPointIndicesCount();
-            const int* cpsIdx    = cluster->GetControlPointIndices();
-            const double* weights = cluster->GetControlPointWeights();
-            auto& arr = BoneWeightsMap.FindOrAdd(boneNode);
-            for (int i = 0; i < count; ++i)
-                arr.Emplace(cpsIdx[i], static_cast<float>(weights[i]));
-        }
-    }
-
-    // 5) 본 노드별 depth 계산 (루트에서 얼마나 떨어져 있는지)
-    TMap<FbxNode*, int> BoneDepth;
-    std::function<int(FbxNode*)> ComputeDepth = [&](FbxNode* nd)->int {
-        if (!nd || !nd->GetParent() || !nd->GetParent()->GetSkeleton())
-            return 0;
-        if (BoneDepth.Contains(nd)) return BoneDepth[nd];
-        int d = 1 + ComputeDepth(nd->GetParent());
-        return BoneDepth.Add(nd, d), d;
-    };
-    for (auto* bn : BoneNodeSet) ComputeDepth(bn);
-
-    // 6) depth 오름차순 정렬된 배열 생성
-    TArray<FbxNode*> SortedBones = BoneNodeSet.Array();
-    SortedBones.Sort([&](FbxNode* A, FbxNode* B) {
-        return BoneDepth[A] < BoneDepth[B];
-    });
-
-    // 7) 정렬된 순서대로 Bone 정보 채우기
-    outData.BoneNames.Reset();
-    outData.ParentBoneIndices.Reset();
-    outData.ReferencePose.Reset();
-
-    for (int i = 0; i < SortedBones.Num(); ++i)
-    {
-        FbxNode* boneNode = SortedBones[i];
-        outData.BoneNames.Add(boneNode->GetName());
-
-        // 부모 인덱스 찾기
-        FbxNode* parent = boneNode->GetParent();
-        int parentIdx = -1;
-        if (parent && BoneNodeSet.Contains(parent))
-        {
-            parentIdx = SortedBones.Find(parent);
-        }
-        outData.ParentBoneIndices.Add(parentIdx);
-        // bind-pose matrix
-        // FMatrix ConvMatInv = FMatrix::Inverse(conversionMatrix);
-        outData.ReferencePose.Add( ClusterBindPose[boneNode]);
-    }
-
-    // 8) 이제 Vertex 쪽에 BoneIndices/BoneWeights 채우기
-    //    (원본 Vertices 기준으로, SortedBones 순서의 가중치 적용)
-    for (int bi = 0; bi < SortedBones.Num(); ++bi)
-    {
-        FbxNode* boneNode = SortedBones[bi];
-        auto& arr = BoneWeightsMap[boneNode];
-        for (auto& [cpIdx, w] : arr)
-        {
-            auto& vert = outData.Vertices[cpIdx];
-            for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
-            {
-                if (vert.BoneWeights[j] == 0.0f)
-                {
-                    vert.BoneIndices[j] = bi;
-                    vert.BoneWeights[j] = w;
-                    break;
-                }
-            }
-        }
-    }
-    
-    // 9) LocalBindPose 계산
-    int32 BoneCount = outData.ReferencePose.Num();
-    outData.LocalBindPose.SetNum(BoneCount);
-    for(int32 i = 0; i < BoneCount; ++i)
-    {
-        int32 P = outData.ParentBoneIndices[i];
-        const FMatrix& Gc = outData.ReferencePose[i];      // 자식 글로벌
-        if(P >= 0)
-        {
-            const FMatrix& Gp = outData.ReferencePose[P];  // 부모 글로벌
-
-            // 1) 부모 회전, 위치 분리
-            FQuat Rp = FQuat(Gp);                  // 부모 글로벌 회전
-            FVector Tp(Gp.M[3][0], Gp.M[3][1], Gp.M[3][2]);
-
-            // 2) 자식 회전, 위치 분리
-            FQuat Rc = FQuat(Gc);
-            FVector Tc(Gc.M[3][0], Gc.M[3][1], Gc.M[3][2]);
-
-            // 3) 로컬 회전 = 부모 회전⁻¹ * 자식 회전
-            FQuat Rlocal = Rp.Inverse() * Rc;
-            Rlocal = Rlocal.GetSafeNormal();
-            // 4) 로컬 이동 = 부모 회전⁻¹ * (자식 위치 - 부모 위치)
-            FVector Tlocal = Rp.Inverse().RotateVector(Tc - Tp);
-
-            // 5) LocalBindPose[i] 재조합
-            FMatrix RotM = Rlocal.ToMatrix();
-            RotM.M[3][0] = Tlocal.X;
-            RotM.M[3][1] = Tlocal.Y;
-            RotM.M[3][2] = Tlocal.Z;
-            RotM.M[3][3] = 1;
-            outData.LocalBindPose[i] = RotM;
-        }
-        else
-        {
-            // 루트 본은 글로벌이 그대로 로컬
-            outData.LocalBindPose[i] = outData.ReferencePose[i];
-        }
-    }
+    InitializeBoneInfo(outData, mesh);
+    InitializeLocalbindPose(outData);
     
     outData.OrigineVertices          = outData.Vertices;
     outData.OrigineReferencePose     = outData.ReferencePose;
 
-    // 10) (이전 로직) 재질 & 서브셋 처리 …
-        
-    // 재질 리셋
-    outData.Materials.Reset();
-    outData.MaterialSubsets.Reset();
-        
-    FbxNode* fbxNode = mesh->GetNode();
-    int materialCount = fbxNode->GetMaterialCount();
-        
-    // 머티리얼 정보 수집
-    for (int m = 0; m < materialCount; ++m)
-    {
-        FObjMaterialInfo matInfo;
-        FbxSurfaceMaterial* fbxMat = fbxNode->GetMaterial(m);
-        matInfo.MaterialName = fbxMat->GetName();
-        
-        auto ReadColor = [&](const char* propName, FVector& outVec)
-        {
-            FbxProperty prop = fbxMat->FindProperty(propName);
-            if (prop.IsValid())
-            {
-                FbxDouble3 val = prop.Get<FbxDouble3>();
-                outVec = FVector((float)val[0], (float)val[1], (float)val[2]);
-            }
-        };
-        ReadColor(FbxSurfaceMaterial::sDiffuse,  matInfo.Diffuse);
-        ReadColor(FbxSurfaceMaterial::sSpecular, matInfo.Specular);
-        ReadColor(FbxSurfaceMaterial::sAmbient,  matInfo.Ambient);
-        ReadColor(FbxSurfaceMaterial::sEmissive, matInfo.Emissive);
-        
-        matInfo.SpecularScalar     = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sShininess).Get<double>());
-        matInfo.DensityScalar      = static_cast<float>(fbxMat->FindProperty("Ni").Get<double>());
-        matInfo.TransparencyScalar = static_cast<float>(fbxMat->FindProperty(FbxSurfaceMaterial::sTransparencyFactor).Get<double>());
-        matInfo.bTransparent       = (matInfo.TransparencyScalar > 0.0f);
-        
-        auto LoadTex = [&](const char* propName, FString& outName, FWString& outPath, uint32 flag)
-        {
-            FbxProperty prop = fbxMat->FindProperty(propName);
-            if (!prop.IsValid()) return;
-            int count = prop.GetSrcObjectCount<FbxFileTexture>();
-            if (count <= 0) return;
-            FbxFileTexture* tex = prop.GetSrcObject<FbxFileTexture>(0);
-            outName = tex->GetName();
-            std::string fp(tex->GetFileName());
-            outPath = std::wstring(fp.begin(), fp.end());
-            matInfo.TextureFlag |= flag;
-        };
+    InitailizeMaterial(outData, mesh, polyCount);
 
-        LoadTex(FbxSurfaceMaterial::sDiffuse,               matInfo.DiffuseTextureName,     matInfo.DiffuseTexturePath,     1 << 1);
-        LoadTex("NormalMap",                                matInfo.BumpTextureName,        matInfo.BumpTexturePath,        1 << 2);
-        LoadTex(FbxSurfaceMaterial::sSpecular,              matInfo.SpecularTextureName,    matInfo.SpecularTexturePath,    1 << 3);
-        LoadTex(FbxSurfaceMaterial::sAmbient,               matInfo.AmbientTextureName,     matInfo.AmbientTexturePath,     1 << 4);
-        LoadTex(FbxSurfaceMaterial::sTransparencyFactor,    matInfo.AlphaTextureName,       matInfo.AlphaTexturePath,       1 << 5);
-        
-        outData.Materials.Add(matInfo);
-    }
-        
-    // 서브셋 맵 생성
-    TMap<int, FMaterialSubset> subsetMap;
-    FbxLayerElementMaterial* elemMat = mesh->GetElementMaterial();
-    if (elemMat)
-    {
-        const auto& indexArray = elemMat->GetIndexArray();
-        for (int p = 0; p < polyCount; ++p)
-        {
-            int matIndex = indexArray.GetAt(p);
-            if (matIndex < 0 || matIndex >= outData.Materials.Num())
-                matIndex = 0;
-        
-            auto& sub = subsetMap.FindOrAdd(matIndex);
-            if (sub.IndexCount == 0)
-            {
-                sub.IndexStart    = p * 3;
-                sub.MaterialIndex = matIndex;
-                sub.MaterialName  = outData.Materials[matIndex].MaterialName;
-            }
-            sub.IndexCount += 3;
-        }
-    }
-    else if (outData.Materials.Num() > 0)
-    {
-        // 단일 머티리얼
-        FMaterialSubset sub;
-        sub.IndexStart    = 0;
-        sub.IndexCount    = polyCount * 3;
-        sub.MaterialIndex = 0;
-        sub.MaterialName  = outData.Materials[0].MaterialName;
-        subsetMap.Add(0, sub);
-    }
-        
-    for (auto& kv : subsetMap)
-    {
-        outData.MaterialSubsets.Add(kv.Value);
-    }
-    // 7) 바운딩 박스 계산
-    ComputeBounds(outData.Vertices, outData.BoundingBoxMin, outData.BoundingBoxMax);
+    outData.ComputeBounds();
 }
 
 FMatrix FFBXManager::ConvertToFMatrix(const FbxAMatrix& in)
@@ -514,44 +523,6 @@ FMatrix FFBXManager::ConvertToFMatrix(const FbxAMatrix& in)
     out.M[2][0] = in.Get(2,0); out.M[2][1] = in.Get(2,1); out.M[2][2] = in.Get(2,2); out.M[2][3] = in.Get(2,3);
     out.M[3][0] = in.Get(3,0) * static_cast<float>(finalScaleFactor); out.M[3][1] = in.Get(3,1)* static_cast<float>(finalScaleFactor); out.M[3][2] = in.Get(3,2)* static_cast<float>(finalScaleFactor); out.M[3][3] = in.Get(3,3);
     return out;
-}
-
-void FFBXManager::ComputeBounds(const TArray<FSkeletalMeshVertex>& Verts, FVector& OutMin, FVector& OutMax)
-{
-    if (Verts.Num() == 0) return;
-    OutMin = Verts[0].Position;
-    OutMax = Verts[0].Position;
-    for (const auto& v : Verts)
-    {
-        OutMin.X = FMath::Min(OutMin.X, v.Position.X);
-        OutMin.Y = FMath::Min(OutMin.Y, v.Position.Y);
-        OutMin.Z = FMath::Min(OutMin.Z, v.Position.Z);
-        OutMax.X = FMath::Max(OutMax.X, v.Position.X);
-        OutMax.Y = FMath::Max(OutMax.Y, v.Position.Y);
-        OutMax.Z = FMath::Max(OutMax.Z, v.Position.Z);
-    }
-}
-
-void FFBXManager::CreateBuffers(ID3D11Device* Device, const TArray<FStaticMeshVertex>& Verts, const TArray<UINT>& Indices, ID3D11Buffer*& OutVB,
-    ID3D11Buffer*& OutIB)
-{
-    // Vertex Buffer
-    D3D11_BUFFER_DESC vbDesc = {};
-    vbDesc.Usage = D3D11_USAGE_DEFAULT;
-    vbDesc.ByteWidth = sizeof(FStaticMeshVertex) * Verts.Num();
-    vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    D3D11_SUBRESOURCE_DATA vbData = {};
-    vbData.pSysMem = Verts.GetData();
-    Device->CreateBuffer(&vbDesc, &vbData, &OutVB);
-
-    // Index Buffer
-    D3D11_BUFFER_DESC ibDesc = {};
-    ibDesc.Usage = D3D11_USAGE_DEFAULT;
-    ibDesc.ByteWidth = sizeof(UINT) * Indices.Num();
-    ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    D3D11_SUBRESOURCE_DATA ibData = {};
-    ibData.pSysMem = Indices.GetData();
-    Device->CreateBuffer(&ibDesc, &ibData, &OutIB);
 }
 
 
@@ -790,7 +761,7 @@ bool FFBXManager::LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalM
     OutStaticMesh.LocalBindPose.SetNum(LocalBindPoseCount);
     File.read(reinterpret_cast<char*>(OutStaticMesh.LocalBindPose.GetData()), LocalBindPoseCount * sizeof(FMatrix));
 
-    ComputeBounds(OutStaticMesh.Vertices, OutStaticMesh.BoundingBoxMin, OutStaticMesh.BoundingBoxMax);
+    OutStaticMesh.ComputeBounds();
 
     File.close();
     return true;
