@@ -48,8 +48,8 @@ public:
     void UpdateAndSkinMesh(FSkeletalMeshRenderData& MeshData, ID3D11DeviceContext* Context);
 
 public:
-    bool SaveSkeletalMeshToBinary(const FWString& FilePath, const FSkeletalMeshRenderData& StaticMesh);
-    bool LoadSkeletalMeshFromBinary(const FWString& FilePath, FSkeletalMeshRenderData& OutStaticMesh);
+    bool SaveSkeletalMeshToBinary(const FString& FilePath, const FSkeletalMeshRenderData& StaticMesh);
+    bool LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalMeshRenderData& OutStaticMesh);
 
 
 

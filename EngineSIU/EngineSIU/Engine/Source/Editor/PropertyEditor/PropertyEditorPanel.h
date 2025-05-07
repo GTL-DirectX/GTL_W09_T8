@@ -75,6 +75,7 @@ private:
         requires std::derived_from<T, UActorComponent>
     T* GetTargetComponent(AActor* SelectedActor, USceneComponent* SelectedComponent);
 
+
 private:
     float Width = 0, Height = 0;
     /* Material Property */
@@ -86,4 +87,5 @@ private:
     bool IsCreateMaterial;
 
     const FString TemplateFilePath = FString("Scripts/LuaTemplate.lua");
+
 };

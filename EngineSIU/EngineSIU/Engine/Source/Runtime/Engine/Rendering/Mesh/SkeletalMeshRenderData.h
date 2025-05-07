@@ -177,72 +177,7 @@ struct FSkeletalMeshRenderData
         meshData.LocalBindPose    = NewLocalPose;
     }
     
-    // void UpdateVerticesFromNewBindPose()
-    // {
-    //     // // 1) 델타 행렬 계산 (위 4번)
-    //     // int32 BoneCount = ReferencePose.Num();
-    //     // TArray<FMatrix> OldGlobal = OrigineReferencePose;
-    //     // TArray<FMatrix> Delta; Delta.SetNum(BoneCount);
-    //     // for (int32 bi = 0; bi < BoneCount; ++bi)
-    //     // {
-    //     //     Delta[bi] = ReferencePose[bi] * FMatrix::Inverse(OldGlobal[bi]);
-    //     // }
-    //     //
-    //     // // 2) 버텍스 재계산
-    //     // int32 VCount = Vertices.Num();
-    //     // for (int32 vi = 0; vi < VCount; ++vi)
-    //     // {
-    //     //     const FVector& P0 = OrigineVertices[vi].Position;
-    //     //     const FVector& N0 = OrigineVertices[vi].Normal;
-    //     //     FVector Pnew(0,0,0), Nnew(0,0,0);
-    //     //
-    //     //     const auto& vert = Vertices[vi];
-    //     //     for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
-    //     //     {
-    //     //         float w = vert.BoneWeights[j];
-    //     //         if (w <= 0.0f) continue;
-    //     //
-    //     //         int bi = vert.BoneIndices[j];
-    //     //         Pnew += Delta[bi].TransformPosition(P0) * w;
-    //     //         Nnew += FMatrix::TransformVector(P0,Delta[bi])  * w;
-    //     //     }
-    //     //
-    //     //     Vertices[vi].Position = Pnew;
-    //     //     Vertices[vi].Normal   = Nnew.GetSafeNormal();
-    //     // }
-    //     int32 BoneCount = ReferencePose.Num();
-    //     int32 VCount = Vertices.Num();
-    //     TArray<FMatrix> Delta; Delta.SetNum(BoneCount);
-    //     for (int32 i = 0; i < BoneCount; ++i)
-    //         Delta[i] = ReferencePose[i] * FMatrix::Inverse(OrigineReferencePose[i]);
-    //     for (int32 vi = 0; vi < VCount; ++vi)
-    //     {
-    //         const auto& src = OrigineVertices[vi];
-    //         auto& dst = Vertices[vi];
-    //         FVector P(0), N(0), T(0), B(0);
-    //         for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
-    //         {
-    //             float w = src.BoneWeights[j];
-    //             if (w <= 0) continue;
-    //             int bi = src.BoneIndices[j];
-    //             const FMatrix& M = Delta[bi];
-    //             P += M.TransformPosition(src.Position) * w;
-    //             N += FMatrix::TransformVector(src.Normal, M) * w;
-    //             T += FMatrix::TransformVector(src.Tangent,M) * w;
-    //             B += FMatrix::TransformVector(src.Bitangent,M) * w;
-    //         }
-    //         dst.Position  = P;
-    //         dst.Normal    = N.GetSafeNormal();
-    //         dst.Tangent   = T.GetSafeNormal();
-    //         dst.Bitangent = B.GetSafeNormal();
-    //         dst.UV = src.UV;
-    //         for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
-    //         {
-    //             dst.BoneIndices[j] = src.BoneIndices[j];
-    //             dst.BoneWeights[j] = src.BoneWeights[j];
-    //         }
-    //     }
-    // }
+
     void UpdateVerticesFromNewBindPose()
     {
         int32 BoneCount = ReferencePose.Num();
@@ -256,7 +191,7 @@ struct FSkeletalMeshRenderData
         }
 
         // 각 버텍스에 대해
-        for (int32 vi = 0; vi < VCount; ++vi)
+        for (int32 vi = 0; vi < OrigineVertices.Num(); ++vi)
         {
             const auto& src = OrigineVertices[vi];
             auto&       dst = Vertices[vi];

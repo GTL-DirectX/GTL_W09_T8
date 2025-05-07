@@ -1,9 +1,9 @@
 #pragma once
 
-#include "StaticMeshRenderPass.h"
+#include "MeshRenderPass.h"
 
 
-class FDepthPrePass : public FStaticMeshRenderPass
+class FDepthPrePass : public FMeshRenderPass
 {
     friend class FRenderer; // 렌더러에서 접근 가능
     friend class DepthBufferDebugPass; // DepthBufferDebugPass에서 접근 가능

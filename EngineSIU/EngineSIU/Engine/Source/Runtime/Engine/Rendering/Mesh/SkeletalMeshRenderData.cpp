@@ -15,7 +15,7 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
     FMatrix DeltaM = FMatrix::CreateTranslationMatrix(DeltaLoc);
     DeltaM = DeltaM * Mrot * Mscale;
     // 1) 로컬 바인드 포즈 적용
-    LocalBindPose[BoneIndex] = DeltaM * LocalBindPose[BoneIndex];
+    LocalBindPose[BoneIndex] =  LocalBindPose[BoneIndex]* DeltaM;
     // 2) 글로벌 ReferencePose 재계산
     UpdateReferencePoseFromLoacl();
     // 3) BoneTransforms 동기화
