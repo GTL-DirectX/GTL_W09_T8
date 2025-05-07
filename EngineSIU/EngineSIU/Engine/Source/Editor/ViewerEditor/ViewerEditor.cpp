@@ -315,12 +315,15 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
 
                 // FIX-ME
                 // FTransform 반드시 만들것..
-                if (SelectedBone != -1 && SelectedBone < RenderData->BoneNames.Num())
+                if (SelectedBone != -1 && RenderData && SelectedBone < RenderData->BoneNames.Num())
                 {
                     ImGui::Separator();
                     ImGui::Text("Selected Bone");
-                    ImGui::Indent();
+                    ImGui::Indent(); 
+
                     ImGui::Text("Index: %d", SelectedBone);
+                    ImGui::SameLine(0.0f, 20.0f);
+                    ImGui::Text("Name: %s", GetData(RenderData->BoneNames[SelectedBone]));
 
                     int ParentIdx = RenderData->ParentBoneIndices[SelectedBone];
                     if (ParentIdx != -1)
@@ -331,88 +334,127 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
                     {
                         ImGui::Text("Parent: None (Root Bone)");
                     }
+                    ImGui::Spacing();
 
                     static int   LastSelectedBoneForLocalEdit = -1;
-                    static float EditableLocalLoc[3] = { 0.0f, 0.0f, 0.0f };
-                    static float EditableLocalRot[3] = { 0.0f, 0.0f, 0.0f }; // Pitch, Yaw, Roll
-                    static float EditableLocalScale[3] = { 1.0f, 1.0f, 1.0f };
+                    static FVector EditableLocalLoc = FVector::ZeroVector;
+                    static FRotator EditableLocalRot = FRotator();
+                    static FVector EditableLocalScale = FVector::OneVector;
 
-                    bool bValueChanged = false;
+                    bool bLocChanged = false;
+                    bool bRotChanged = false;
+                    bool bScaleChanged = false;
 
                     const FMatrix& CurrentLocalBindMatrix = RenderData->LocalBindPose[SelectedBone];
                     FVector  CurrentOriginLoc = CurrentLocalBindMatrix.GetTranslationVector();
                     FRotator CurrentOriginRot = CurrentLocalBindMatrix.GetMatrixWithoutScale().ToQuat().Rotator();
                     FVector  CurrentOriginScale = CurrentLocalBindMatrix.GetScaleVector();
+
                     if (SelectedBone != LastSelectedBoneForLocalEdit)
                     {
-                        EditableLocalLoc[0] = CurrentOriginLoc.X;
-                        EditableLocalLoc[1] = CurrentOriginLoc.Y;
-                        EditableLocalLoc[2] = CurrentOriginLoc.Z;
+                        EditableLocalLoc = CurrentOriginLoc;
+                        EditableLocalRot = CurrentOriginRot;
+                        EditableLocalScale = CurrentOriginScale;
 
-                        EditableLocalRot[0] = CurrentOriginRot.Pitch;
-                        EditableLocalRot[1] = CurrentOriginRot.Yaw;
-                        EditableLocalRot[2] = CurrentOriginRot.Roll;
-
-                        EditableLocalScale[0] = CurrentOriginScale.X;
-                        EditableLocalScale[1] = CurrentOriginScale.Y;
-                        EditableLocalScale[2] = CurrentOriginScale.Z;
-
+                        if (EditableLocalScale.IsNearlyZero(KINDA_SMALL_NUMBER))
+                        {
+                            EditableLocalScale = FVector::OneVector;
+                        }
                         LastSelectedBoneForLocalEdit = SelectedBone;
                     }
 
-                    if (ImGui::InputFloat3("Local Location##LocalEdit", EditableLocalLoc)) bValueChanged = true;
-                    if (ImGui::InputFloat3("Local Rotation (P,Y,R)##LocalEdit", EditableLocalRot)) bValueChanged = true;
-                    if (ImGui::InputFloat3("Local Scale##LocalEdit", EditableLocalScale)) bValueChanged = true;
+                    ImGui::Text("Local Location:");
+                    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.30f);
+                    if (ImGui::DragFloat("##LocX", &EditableLocalLoc.X, 0.01f, 0.0f, 0.0f, "X: %.3f")) bLocChanged = true; ImGui::SameLine();
+                    if (ImGui::DragFloat("##LocY", &EditableLocalLoc.Y, 0.01f, 0.0f, 0.0f, "Y: %.3f")) bLocChanged = true; ImGui::SameLine();
+                    if (ImGui::DragFloat("##LocZ", &EditableLocalLoc.Z, 0.01f, 0.0f, 0.0f, "Z: %.3f")) bLocChanged = true;
+                    ImGui::PopItemWidth();
+                    ImGui::Spacing();
 
-                    if (bValueChanged)
+                    ImGui::Text("Local Rotation (Pitch, Yaw, Roll):");
+                    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.30f);
+                    if (ImGui::DragFloat("##RotP", &EditableLocalRot.Pitch, 0.1f, -360.0f, 360.0f, "P: %.2f")) bRotChanged = true; ImGui::SameLine();
+                    if (ImGui::DragFloat("##RotY", &EditableLocalRot.Yaw, 0.1f, -360.0f, 360.0f, "Y: %.2f")) bRotChanged = true; ImGui::SameLine();
+                    if (ImGui::DragFloat("##RotR", &EditableLocalRot.Roll, 0.1f, -360.0f, 360.0f, "R: %.2f")) bRotChanged = true;
+                    ImGui::PopItemWidth();
+                    ImGui::Spacing();
+
+                    ImGui::Text("Local Scale:");
+                    float min_scale = 0.001f;
+                    float max_scale = 1000.0f;
+                    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.30f);
+                    if (ImGui::DragFloat("##ScaleX", &EditableLocalScale.X, 0.01f, min_scale, max_scale, "X: %.3f")) bScaleChanged = true; ImGui::SameLine();
+                    if (ImGui::DragFloat("##ScaleY", &EditableLocalScale.Y, 0.01f, min_scale, max_scale, "Y: %.3f")) bScaleChanged = true; ImGui::SameLine();
+                    if (ImGui::DragFloat("##ScaleZ", &EditableLocalScale.Z, 0.01f, min_scale, max_scale, "Z: %.3f")) bScaleChanged = true;
+                    ImGui::PopItemWidth();
+                    ImGui::Spacing();
+
+
+                    if (bLocChanged || bRotChanged || bScaleChanged)
                     {
                         if (SkeletalMeshComponent && SelectedSkeletalMesh && SelectedSkeletalMesh->GetRenderData())
                         {
                             FSkeletalMeshRenderData* ModifiableRenderData = SelectedSkeletalMesh->GetRenderData();
 
-                            FVector  TargetLocalLocation = FVector(EditableLocalLoc[0], EditableLocalLoc[1], EditableLocalLoc[2]);
-                            FRotator TargetLocalRotation = FRotator(EditableLocalRot[0], EditableLocalRot[1], EditableLocalRot[2]);
-                            FVector  TargetLocalScale = FVector(EditableLocalScale[0], EditableLocalScale[1], EditableLocalScale[2]);
+                            FVector  TargetLocalLocation = EditableLocalLoc;
+                            FRotator TargetLocalRotation = EditableLocalRot;
+                            FVector  TargetLocalScaleVec = EditableLocalScale;
 
-                            FMatrix OldScale = FMatrix::CreateScaleMatrix(CurrentOriginScale.X, CurrentOriginScale.Y, CurrentOriginScale.Z);
-                            FMatrix OldRotation = FMatrix::CreateRotationMatrix(CurrentOriginRot.Roll, CurrentOriginRot.Pitch, CurrentOriginRot.Yaw); 
-                            FMatrix OldTranslation = FMatrix::CreateTranslationMatrix(CurrentOriginLoc);
-                            FMatrix M_old = OldTranslation * OldRotation * OldScale;
+                            if (FMath::IsNearlyZero(TargetLocalScaleVec.X, KINDA_SMALL_NUMBER)) TargetLocalScaleVec.X = FMath::Sign(TargetLocalScaleVec.X) * min_scale;
+                            if (FMath::IsNearlyZero(TargetLocalScaleVec.Y, KINDA_SMALL_NUMBER)) TargetLocalScaleVec.Y = FMath::Sign(TargetLocalScaleVec.Y) * min_scale;
+                            if (FMath::IsNearlyZero(TargetLocalScaleVec.Z, KINDA_SMALL_NUMBER)) TargetLocalScaleVec.Z = FMath::Sign(TargetLocalScaleVec.Z) * min_scale;
+                            TargetLocalScaleVec.X = FMath::Clamp(TargetLocalScaleVec.X, min_scale, max_scale);
+                            TargetLocalScaleVec.Y = FMath::Clamp(TargetLocalScaleVec.Y, min_scale, max_scale);
+                            TargetLocalScaleVec.Z = FMath::Clamp(TargetLocalScaleVec.Z, min_scale, max_scale);
 
-                            FMatrix NewScale = FMatrix::CreateScaleMatrix(TargetLocalScale.X, TargetLocalScale.Y, TargetLocalScale.Z);
-                            FMatrix NewRotation = FMatrix::CreateRotationMatrix(TargetLocalRotation.Roll, TargetLocalRotation.Pitch, TargetLocalRotation.Yaw);
-                            FMatrix NewTranslation = FMatrix::CreateTranslationMatrix(TargetLocalLocation);
-                            FMatrix M_new = NewTranslation * NewRotation * NewScale;
 
-                            FMatrix OldInverse= FMatrix::Inverse(M_old);
+                            FMatrix OldScaleMat = FMatrix::CreateScaleMatrix(CurrentOriginScale.X, CurrentOriginScale.Y, CurrentOriginScale.Z);
+                            FMatrix OldRotationMat = FMatrix::CreateRotationMatrix(CurrentOriginRot.Roll, CurrentOriginRot.Pitch, CurrentOriginRot.Yaw);
+                            FMatrix OldTranslationMat = FMatrix::CreateTranslationMatrix(CurrentOriginLoc);
+                            FMatrix M_old = OldTranslationMat * OldRotationMat * OldScaleMat;
+
+                            FMatrix NewScaleMat = FMatrix::CreateScaleMatrix(TargetLocalScaleVec.X, TargetLocalScaleVec.Y, TargetLocalScaleVec.Z);
+                            FMatrix NewRotationMat = FMatrix::CreateRotationMatrix(TargetLocalRotation.Roll, TargetLocalRotation.Pitch, TargetLocalRotation.Yaw);
+                            FMatrix NewTranslationMat = FMatrix::CreateTranslationMatrix(TargetLocalLocation);
+                            FMatrix M_new = NewTranslationMat * NewRotationMat * NewScaleMat;
+
+                            FMatrix OldInverse;
                             FMatrix DeltaTransform = FMatrix::Identity;
 
-                            DeltaTransform = (OldInverse.Determinant3x3() == 0) ? FMatrix::Identity : M_new * OldInverse;
+                            float DetOld = M_old.Determinant3x3(); 
+                            if (FMath::Abs(DetOld) > KINDA_SMALL_NUMBER)
+                            {
+                                OldInverse = FMatrix::Inverse(M_old);
+                                DeltaTransform = M_new * OldInverse;
+                            }
 
                             FVector  DeltaLocation = DeltaTransform.GetTranslationVector();
                             FRotator DeltaRotation = DeltaTransform.GetMatrixWithoutScale().ToQuat().Rotator();
-                            FVector  DeltaScale = DeltaTransform.GetScaleVector();
+                            FVector  DeltaScaleResult = DeltaTransform.GetScaleVector();
 
                             ModifiableRenderData->ApplyBoneOffsetAndRebuild(
                                 SelectedBone,
                                 DeltaLocation,
                                 DeltaRotation,
-                                DeltaScale
+                                DeltaScaleResult
                             );
+
+                            LastSelectedBoneForLocalEdit = -1;
                         }
                     }
                     ImGui::Spacing();
 
+                    // --- 월드 트랜스폼 정보 ---
                     const FMatrix& WorldReferencePose = RenderData->ReferencePose[SelectedBone];
                     FVector WorldPosition = WorldReferencePose.GetTranslationVector();
                     FRotator WorldRotation = WorldReferencePose.GetMatrixWithoutScale().ToQuat().Rotator();
-                    FVector WorldScale = WorldReferencePose.GetScaleVector();
+                    FVector WorldScaleVal = WorldReferencePose.GetScaleVector();
 
                     ImGui::Text("World Position: (X: %.3f, Y: %.3f, Z: %.3f)", WorldPosition.X, WorldPosition.Y, WorldPosition.Z);
                     ImGui::Text("World Rotation: (P: %.3f, Y: %.3f, R: %.3f)", WorldRotation.Pitch, WorldRotation.Yaw, WorldRotation.Roll);
-                    ImGui::Text("World Scale: (X: %.3f, Y: %.3f, Z: %.3f)", WorldScale.X, WorldScale.Y, WorldScale.Z);
+                    ImGui::Text("World Scale: (X: %.3f, Y: %.3f, Z: %.3f)", WorldScaleVal.X, WorldScaleVal.Y, WorldScaleVal.Z);
 
-                    ImGui::Unindent();
+                    ImGui::Unindent(); // 섹션 전체 들여쓰기 종료
                 }
             }
         }

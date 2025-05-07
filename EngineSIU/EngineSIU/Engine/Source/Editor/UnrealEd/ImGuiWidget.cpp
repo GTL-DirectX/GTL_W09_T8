@@ -1,169 +1,214 @@
-﻿#include "ImGuiWidget.h"
+#include "ImGuiWidget.h"
 
 #include "Math/Vector.h"
 #include "Math/Rotator.h"
 #include "ImGUI/imgui_internal.h"
 
-void FImGuiWidget::DrawVec3Control(const std::string& label, FVector& values, float resetValue, float columnWidth)
+bool FImGuiWidget::DrawVec3Control(const std::string& label, FVector& values, float resetValue, float columnWidth)
 {
-     ImGuiIO& io = ImGui::GetIO();
-        auto boldFont = io.Fonts->Fonts[0];
+    bool bValueChanged = false;
 
-        ImGui::PushID(label.c_str());
+    ImGuiIO& io = ImGui::GetIO();
+    auto boldFont = io.Fonts->Fonts[0];
 
-        // 현재 윈도우 크기 가져오기
-        float windowWidth = ImGui::GetWindowWidth();
-        
-        // 컨트롤러 하나의 너비 계산 (대략적인 값)
-        float controlWidth = columnWidth + // 라벨 컬럼
-                            3.0f * (5.0f + ImGui::CalcItemWidth() + 5.0f) + // 버튼(5) + DragFloat + 간격(5)
-                            GImGui->Style.ItemSpacing.x * 2; // 추가적인 아이템 간격
-        
-        // 가운데 정렬을 위한 오프셋 계산
-        float offset = (windowWidth - controlWidth) * 0.5f;
-        if (offset > 0) {
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
-        }
+    ImGui::PushID(label.c_str());
 
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, columnWidth);
-        ImGui::Text(label.c_str());
-        ImGui::NextColumn();
+    // 현재 윈도우 크기 가져오기
+    float windowWidth = ImGui::GetWindowWidth();
+    
+    // 컨트롤러 하나의 너비 계산 (대략적인 값)
+    float controlWidth = columnWidth + // 라벨 컬럼
+                        3.0f * (5.0f + ImGui::CalcItemWidth() + 5.0f) + // 버튼(5) + DragFloat + 간격(5)
+                        GImGui->Style.ItemSpacing.x * 2; // 추가적인 아이템 간격
+    
+    // 가운데 정렬을 위한 오프셋 계산
+    float offset = (windowWidth - controlWidth) * 0.5f;
+    if (offset > 0) {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+    }
 
-        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, columnWidth);
+    ImGui::Text(label.c_str());
+    ImGui::NextColumn();
 
-        float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-        ImVec2 buttonSize = { 5.0f, lineHeight };
+    ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 
-        // X 컨트롤
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 1.0f, 0.0f, 0.0f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-        ImGui::PushFont(boldFont);
-        if (ImGui::Button("I", buttonSize))
-            values.X = resetValue;
-        ImGui::PopFont();
-        ImGui::PopStyleColor(3);
+    float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+    ImVec2 buttonSize = { 5.0f, lineHeight };
 
-        ImGui::SameLine();
-        ImGui::DragFloat("##X", &values.X, 0.1f, 0.0f, 0.0f, "%.2f");
-        ImGui::PopItemWidth();
-        ImGui::SameLine(0, 5);
+    // X 컨트롤
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 1.0f, 0.0f, 0.0f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("I", buttonSize))
+    {
+        values.X = resetValue;
+        bValueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
 
-        // Y 컨트롤
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.5f, 0.0f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-        ImGui::PushFont(boldFont);
-        if (ImGui::Button("II", buttonSize))
-            values.Y = resetValue;
-        ImGui::PopFont();
-        ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##X", &values.X, 0.1f, 0.0f, 0.0f, "%.2f"))
+    {
+        bValueChanged = true;
+    }
+    ImGui::PopItemWidth();
+    ImGui::SameLine(0, 5);
 
-        ImGui::SameLine();
-        ImGui::DragFloat("##Y", &values.Y, 0.1f, 0.0f, 0.0f, "%.2f");
-        ImGui::PopItemWidth();
-        ImGui::SameLine(0, 5);
+    // Y 컨트롤
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.5f, 0.0f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("II", buttonSize))
+    {
+        values.Y = resetValue;
+        bValueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
 
-        // Z 컨트롤
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 1.0f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-        ImGui::PushFont(boldFont);
-        if (ImGui::Button("III", buttonSize))
-            values.Z = resetValue;
-        ImGui::PopFont();
-        ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##Y", &values.Y, 0.1f, 0.0f, 0.0f, "%.2f"))
+    {
+        bValueChanged = true;
+    }
+    ImGui::PopItemWidth();
+    ImGui::SameLine(0, 5);
 
-        ImGui::SameLine();
-        ImGui::DragFloat("##Z", &values.Z, 0.1f, 0.0f, 0.0f, "%.2f");
-        ImGui::PopItemWidth();
+    // Z 컨트롤
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 1.0f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("III", buttonSize))
+    {
+        values.Z = resetValue;
+        bValueChanged = true;
 
-        ImGui::PopStyleVar(2);
-        ImGui::Columns(1);
-        ImGui::PopID();
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##Z", &values.Z, 0.1f, 0.0f, 0.0f, "%.2f"))
+    {
+        bValueChanged = true;
+    }
+    ImGui::PopItemWidth();
+
+    ImGui::PopStyleVar(2);
+    ImGui::Columns(1);
+    ImGui::PopID();
+
+    return bValueChanged;
 }
 
-void FImGuiWidget::DrawRot3Control(const std::string& label, FRotator& values, float resetValue, float columnWidth)
+bool FImGuiWidget::DrawRot3Control(const std::string& label, FRotator& values, float resetValue, float columnWidth)
 {
-        ImGuiIO& io = ImGui::GetIO();
-        auto boldFont = io.Fonts->Fonts[0];
+    bool bValueChanged = false;
 
-        ImGui::PushID(label.c_str());
+    ImGuiIO& io = ImGui::GetIO();
+    auto boldFont = io.Fonts->Fonts[0];
 
-        // 현재 윈도우 크기 가져오기
-        float windowWidth = ImGui::GetWindowWidth();
-        
-        // 컨트롤러 하나의 너비 계산 (대략적인 값)
-        float controlWidth = columnWidth + // 라벨 컬럼
-                            3.0f * (5.0f + ImGui::CalcItemWidth() + 5.0f) + // 버튼(5) + DragFloat + 간격(5)
-                            GImGui->Style.ItemSpacing.x * 2; // 추가적인 아이템 간격
-        
-        // 가운데 정렬을 위한 오프셋 계산
-        float offset = (windowWidth - controlWidth) * 0.5f;
-        if (offset > 0) {
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
-        }
+    ImGui::PushID(label.c_str());
 
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, columnWidth);
-        ImGui::Text(label.c_str());
-        ImGui::NextColumn();
+    // 현재 윈도우 크기 가져오기
+    float windowWidth = ImGui::GetWindowWidth();
 
-        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+    // 컨트롤러 하나의 너비 계산 (대략적인 값)
+    float controlWidth = columnWidth + // 라벨 컬럼
+        3.0f * (5.0f + ImGui::CalcItemWidth() + 5.0f) + // 버튼(5) + DragFloat + 간격(5)
+        GImGui->Style.ItemSpacing.x * 2; // 추가적인 아이템 간격
 
-        float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-        ImVec2 buttonSize = { 5.0f, lineHeight };
+    // 가운데 정렬을 위한 오프셋 계산
+    float offset = (windowWidth - controlWidth) * 0.5f;
+    if (offset > 0) {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+    }
 
-        // Roll 컨트롤
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 1.0f, 0.0f, 0.0f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-        ImGui::PushFont(boldFont);
-        if (ImGui::Button("I", buttonSize))
-            values.Roll = resetValue;
-        ImGui::PopFont();
-        ImGui::PopStyleColor(3);
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, columnWidth);
+    ImGui::Text(label.c_str());
+    ImGui::NextColumn();
 
-        ImGui::SameLine();
-        ImGui::DragFloat("##X", &values.Roll, 0.1f, 0.0f, 0.0f, "%.2f");
-        ImGui::PopItemWidth();
-        ImGui::SameLine(0, 5);
+    ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 
-        // Pitch 컨트롤
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.5f, 0.0f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-        ImGui::PushFont(boldFont);
-        if (ImGui::Button("II", buttonSize))
-            values.Pitch = resetValue;
-        ImGui::PopFont();
-        ImGui::PopStyleColor(3);
+    float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+    ImVec2 buttonSize = { 5.0f, lineHeight };
 
-        ImGui::SameLine();
-        ImGui::DragFloat("##Y", &values.Pitch, 0.1f, 0.0f, 0.0f, "%.2f");
-        ImGui::PopItemWidth();
-        ImGui::SameLine(0, 5);
+    // Roll 컨트롤
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 1.0f, 0.0f, 0.0f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("I", buttonSize))
+    {
+        values.Roll = resetValue;
+        bValueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
 
-        // Yaw 컨트롤
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 1.0f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-        ImGui::PushFont(boldFont);
-        if (ImGui::Button("III", buttonSize))
-            values.Yaw = resetValue;
-        ImGui::PopFont();
-        ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##X", &values.Roll, 0.1f, 0.0f, 0.0f, "%.2f"))
+    {
+        bValueChanged = true;
+    }
+    ImGui::PopItemWidth();
+    ImGui::SameLine(0, 5);
 
-        ImGui::SameLine();
-        ImGui::DragFloat("##Z", &values.Yaw, 0.1f, 0.0f, 0.0f, "%.2f");
-        ImGui::PopItemWidth();
+    // Pitch 컨트롤
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.5f, 0.0f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("II", buttonSize))
+    {
+        values.Pitch = resetValue;
+        bValueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
 
-        ImGui::PopStyleVar(2);
-        ImGui::Columns(1);
-        ImGui::PopID();
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##Y", &values.Pitch, 0.1f, 0.0f, 0.0f, "%.2f"))
+    {
+        bValueChanged = true;
+    }
+    ImGui::PopItemWidth();
+    ImGui::SameLine(0, 5);
+
+    // Yaw 컨트롤
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 1.0f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("III", buttonSize))
+    {
+        values.Yaw = resetValue;
+        bValueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##Z", &values.Yaw, 0.1f, 0.0f, 0.0f, "%.2f"))
+    {
+        bValueChanged = true;
+    }
+    ImGui::PopItemWidth();
+
+    ImGui::PopStyleVar(2);
+    ImGui::Columns(1);
+    ImGui::PopID();
+
+    return bValueChanged;
 }
