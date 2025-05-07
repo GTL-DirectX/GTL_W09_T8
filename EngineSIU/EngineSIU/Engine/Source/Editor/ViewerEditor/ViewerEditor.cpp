@@ -19,16 +19,19 @@
 #include "Runtime/Engine/Classes/Actors/DirectionalLightActor.h"
 #include "Components/Light/DirectionalLightComponent.h"
 
+#include "ShowFlag.h"
+#include "Math/Quat.h"
 // End Test
-
-// static 멤버 변수 정의 및 초기화
-AActor* ViewerEditor::SelectedActor = nullptr;
-USkeletalMesh* ViewerEditor::SelectedSkeletalMesh = nullptr;
 
 UWorld* ViewerEditor::ViewerWorld = nullptr;
 FEditorViewportClient* ViewerEditor::ViewerViewportClient = nullptr;
 bool ViewerEditor::bIsInitialized = false;
 FString ViewerEditor::ViewportIdentifier = TEXT("SkeletalMeshViewerViewport");
+AActor* ViewerEditor::SelectedActor = nullptr;
+USkeletalMesh* ViewerEditor::SelectedSkeletalMesh = nullptr;
+bool ViewerEditor::bShowBones = false;
+int ViewerEditor::SelectedBone = -1;
+USkeletalMeshComponent* ViewerEditor::SkeletalMeshComponent = nullptr;
 
 void ViewerEditor::InitializeViewerResources()
 {
@@ -46,16 +49,13 @@ void ViewerEditor::InitializeViewerResources()
     ViewerWorld->InitializeNewWorld();
     ViewerWorld->WorldType = EWorldType::EditorPreview;
 
-    // Begin Test
     SelectedActor = ViewerWorld->SpawnActor<AActor>();
-    USkeletalMeshComponent* SkeletalMeshComp = SelectedActor->AddComponent<USkeletalMeshComponent>();
-
+    SelectedActor->AddComponent<USkeletalMeshComponent>();
+    SkeletalMeshComponent = SelectedActor->GetComponentByClass<USkeletalMeshComponent>();
     ADirectionalLight* LightActor = ViewerWorld->SpawnActor<ADirectionalLight>();
     UDirectionalLightComponent* LightComp = LightActor->GetComponentByClass<UDirectionalLightComponent>();
     LightComp->SetRelativeRotation(FRotator(0.f, 180.f,0.f));
 
-    SelectedSkeletalMesh = FFBXManager::Get().LoadFbx("Contents\\fbx\\character.fbx");
-    SkeletalMeshComp->SetSkeletalMesh(SelectedSkeletalMesh);
     if (SelectedActor)
     {
         SelectedActor->SetActorLabel(TEXT("Viewer_SkeletalMesh"));
@@ -80,7 +80,7 @@ void ViewerEditor::InitializeViewerResources()
 
     ViewerViewportClient->SetShouldDraw(false);
     FViewportCamera& vpCam = ViewerViewportClient->GetPerspectiveCamera();
-    vpCam.SetLocation(FVector(-10, 0, 5));
+    vpCam.SetLocation(FVector(-100, 0, 5));
     FVector TargetLocation = FVector(0, 0, 0);
     FVector CamLocation = vpCam.GetLocation();
     FVector Dir = (TargetLocation - CamLocation).GetSafeNormal();
@@ -121,9 +121,10 @@ void ViewerEditor::DestroyViewerResources()
     bIsInitialized = false;
 }
 
-void ViewerEditor::DrawBoneHierarchyRecursive(int BoneIndex, const TArray<FString>& BoneNames, const TArray<TArray<int>>& Children)
+
+void ViewerEditor::DrawBoneHierarchyRecursive(int BoneIndex, const TArray<FString>& BoneNames, const TArray<TArray<int>>& Children, const FSkeletalMeshRenderData* RenderData)
 {
-    if (BoneIndex < 0 || BoneIndex >= BoneNames.Num())
+    if (BoneIndex < 0 || BoneIndex >= BoneNames.Num() || !RenderData)
     {
         return;
     }
@@ -137,13 +138,26 @@ void ViewerEditor::DrawBoneHierarchyRecursive(int BoneIndex, const TArray<FStrin
         NodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     }
 
+    // 선택된 본인지 확인
+    bool bIsSelected = (SelectedBone == BoneIndex);
+    if (bIsSelected)
+    {
+        NodeFlags |= ImGuiTreeNodeFlags_Selected;
+    }
+
     bool bNodeOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>((intptr_t)BoneIndex), NodeFlags, "%s", GetData(BoneName));
+
+    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+    {
+        SelectedBone = BoneIndex;
+    }
+
 
     if (bNodeOpen && !(NodeFlags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
     {
         for (int ChildIndex : CurrentChildren)
         {
-            DrawBoneHierarchyRecursive(ChildIndex, BoneNames, Children);
+            DrawBoneHierarchyRecursive(ChildIndex, BoneNames, Children, RenderData);
         }
         ImGui::TreePop();
     }
@@ -159,7 +173,6 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
         }
         return;
     }
-
     if (!bIsInitialized)
     {
         InitializeViewerResources();
@@ -168,70 +181,166 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
             return;
         }
     }
-
-    // 이거 왜 해주지? 여기서 바로 ImGui를 그려주기 때문일거임.
     if (ImGui::Begin("SkeletalMesh Viewer", &bShowWindow))
     {
+        if (SkeletalMeshComponent)
+        {
+            SelectedSkeletalMesh = SkeletalMeshComponent->GetSkeletalMesh();
+        }
+        else
+        {
+            SelectedSkeletalMesh = nullptr;
+        }
+        ImGui::Columns(2, "ViewerColumns", true);
+
         if (ViewerViewportClient && ViewerViewportClient->GetViewportResource())
         {
-            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-            float width = FMath::Max(1.0f, contentRegion.x);
-            float height = FMath::Max(1.0f, contentRegion.y);
+            ImVec2 ContentRegion = ImGui::GetContentRegionAvail();
 
             ID3D11ShaderResourceView* SRV = ViewerViewportClient->GetViewportResource()->GetRenderTarget(EResourceType::ERT_Compositing)->SRV;
             if (SRV)
             {
-                ImGui::Image(reinterpret_cast<ImTextureID>(SRV), ImVec2(width, height));
+                D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc;
+                SRV->GetDesc(&SrvDesc);
+                D3D11_TEXTURE2D_DESC TexDesc;
+
+                ID3D11Resource* Resource;
+                SRV->GetResource(&Resource);
+                ID3D11Texture2D* Texture = static_cast<ID3D11Texture2D*>(Resource);
+                Texture->GetDesc(&TexDesc);
+                Resource->Release();
+
+                float originalWidth = static_cast<float>(TexDesc.Width);
+                float originalHeight = static_cast<float>(TexDesc.Height);
+                float OriginalAspect = originalWidth / originalHeight;
+
+                float AvailableWidth = ContentRegion.x;
+                float AvailableHeight = ContentRegion.y;
+
+                float DisplayWidth, DisplayHeight;
+
+                if (AvailableWidth / AvailableHeight > OriginalAspect)
+                {
+                    DisplayHeight = AvailableHeight;
+                    DisplayWidth = DisplayHeight * OriginalAspect;
+                }
+                else
+                {
+                    DisplayWidth = AvailableWidth;
+                    DisplayHeight = DisplayWidth / OriginalAspect;
+                }
+
+                float OffsetX = (AvailableWidth - DisplayWidth) * 0.5f;
+                float OffsetY = (AvailableHeight - DisplayHeight) * 0.5f;
+
+                ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + OffsetX, ImGui::GetCursorPosY() + OffsetY));
+                ImGui::Image(reinterpret_cast<ImTextureID>(SRV), ImVec2(DisplayWidth, DisplayHeight));
             }
         }
 
-        //여기에 skeletal mesh property가 들어갈 예정
-        // 1. 그 SkeletalMesh 고르는 것
+        ImGui::NextColumn();
 
-        // 임시로 파일 경로로 해놨음.
-        // 원래 DisplayName이 있었던 것 같은데
-        FString PreviewName = SelectedSkeletalMesh ? SelectedSkeletalMesh->GetRenderData()->FilePath : TEXT("None");
+        FString PreviewName;
 
-        if (ImGui::BeginCombo("Skeletal Mesh", GetData(PreviewName)))
+        if (SelectedSkeletalMesh)
         {
-            if (ImGui::Selectable(TEXT("None"), SelectedSkeletalMesh == nullptr))
+            PreviewName = SelectedSkeletalMesh->GetRenderData()->ObjectName;
+        }
+        else
+        {
+            PreviewName = TEXT("None");
+        }
+
+        const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
+
+        if (ImGui::BeginCombo("##SkeletalMesh", GetData(PreviewName), ImGuiComboFlags_None))
+        {
+            if (ImGui::Selectable(TEXT("None"), false))
             {
-                SelectedSkeletalMesh = nullptr;
+                SkeletalMeshComponent->SetSkeletalMesh(nullptr);
             }
 
-            // 지금 registry해놓은게 없어서 일단 테스트 코드로 수행.
-
+            for (const auto& Asset : Assets)
+            {
+                if (Asset.Value.AssetType == EAssetType::SkeletalMesh)
+                {
+                    if (ImGui::Selectable(GetData(Asset.Value.AssetName.ToString()), false))
+                    {
+                        FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
+                        USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadFbx(MeshName);
+                        if (SkeletalMesh)
+                        {
+                            SkeletalMeshComponent->SetSkeletalMesh(SkeletalMesh);
+                        }
+                    }
+                }
+            }
             ImGui::EndCombo();
         }
 
         if (SelectedSkeletalMesh)
         {
             FSkeletalMeshRenderData* RenderData = SelectedSkeletalMesh->GetRenderData();
-
             if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                int BoneCount = RenderData->BoneNames.Num();
-                TArray<TArray<int>> Children;
-                Children.SetNum(BoneCount);
-                for (int i = 0; i < BoneCount; ++i)
+                ImGui::Checkbox("Show Bones", &bShowBones);
+                if (ViewerViewportClient)
                 {
-                    int ParentIndex = RenderData->ParentBoneIndices[i];
-                    if (ParentIndex >= 0 && ParentIndex < BoneCount)
-                    {
-                        Children[ParentIndex].Add(i);
-                    }
+                    ViewerViewportClient->SetShowFlagState(EEngineShowFlags::SF_Bone, bShowBones);
                 }
 
-                for (int i = 0; i < BoneCount; ++i)
+                // 본 계층 트리 표시를 위한 Child Window (스크롤 가능하게)
+                ImGui::BeginChild("BoneTreeChildWindow", ImVec2(0, ImGui::GetContentRegionAvail().y * 0.5f), true, ImGuiWindowFlags_HorizontalScrollbar);
                 {
-                    if (RenderData->ParentBoneIndices[i] < 0)
+                    int BoneCount = RenderData->BoneNames.Num();
+                    TArray<TArray<int>> Children;
+                    Children.SetNum(BoneCount);
+                    for (int i = 0; i < BoneCount; ++i)
                     {
-                        DrawBoneHierarchyRecursive(i, RenderData->BoneNames, Children);
+                        int ParentIndex = RenderData->ParentBoneIndices[i];
+                        if (ParentIndex >= 0 && ParentIndex < BoneCount)
+                        {
+                            Children[ParentIndex].Add(i);
+                        }
                     }
+                    for (int i = 0; i < BoneCount; ++i)
+                    {
+                        if (RenderData->ParentBoneIndices[i] < 0)
+                        {
+                            DrawBoneHierarchyRecursive(i, RenderData->BoneNames, Children, RenderData);
+                        }
+                    }
+                }
+                ImGui::EndChild();
+                if (SelectedBone != -1 && SelectedBone < RenderData->BoneNames.Num())
+                {
+                    ImGui::Separator();
+                    ImGui::Text("Selected Bone Info:");
+                    ImGui::Indent();
+                    ImGui::Text("Index: %d", SelectedBone);
+
+                    // 현재 ReferencePose를 사용해서 하고 있는데 이게 맞는지 다시 한 번 물어봐야 함.
+                    const FMatrix& BoneTransform = RenderData->ReferencePose[SelectedBone];
+                    FVector Translation = BoneTransform.GetTranslationVector();
+                    FRotator Rotation = FMatrix::GetRotationMatrix(BoneTransform).ToQuat().Rotator();
+                    FVector Scale = BoneTransform.GetScaleVector();
+
+                    ImGui::Text("Position: (X: %.1f, Y: %.1f, Z: %.1f)", Translation.X, Translation.Y, Translation.Z);
+                    ImGui::Text("Rotation: (Pitch: %.1f, Yaw: %.1f, Roll: %.1f)", Rotation.Pitch, Rotation.Yaw, Rotation.Roll);
+                    int ParentIdx = RenderData->ParentBoneIndices[SelectedBone];
+                    if (ParentIdx != -1)
+                    {
+                        ImGui::Text("Parent: %s (Index: %d)", GetData(RenderData->BoneNames[ParentIdx]), ParentIdx);
+                    }
+                    else
+                    {
+                        ImGui::Text("Parent: None (Root Bone)");
+                    }
+                    ImGui::Unindent();
                 }
             }
         }
-
+        ImGui::Columns(1);
     }
     ImGui::End();
 }

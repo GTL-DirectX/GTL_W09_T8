@@ -1,6 +1,11 @@
 
 #include "ShaderRegisters.hlsl"
 
+static const float PI = 3.141592;
+static const int BONE_GIZMO_LINES_PER_CIRCLE = 12; 
+static const int BONE_GIZMO_CIRCLES_PER_SPHERE = 3;
+static const int BONE_GIZMO_TOTAL_LINES_PER_BONE = BONE_GIZMO_LINES_PER_CIRCLE * BONE_GIZMO_CIRCLES_PER_SPHERE;
+
 cbuffer GridParametersData : register(b1)
 {
     float GridSpacing;
@@ -14,9 +19,9 @@ cbuffer GridParametersData : register(b1)
 cbuffer PrimitiveCounts : register(b3)
 {
     int BoundingBoxCount; // 렌더링할 AABB의 개수
-    int pad;
     int ConeCount; // 렌더링할 cone의 개수
-    int pad1;
+    int BoneCount; // Begin Test
+    int pad;
 };
 
 struct FBoundingBoxData
@@ -38,14 +43,27 @@ struct FConeData
     int ConeSegmentCount; // 원뿔 밑면 분할 수
     float pad[3];
 };
+
 struct FOrientedBoxCornerData
 {
     float4 corners[8]; // 회전/이동 된 월드 공간상의 8꼭짓점
 };
 
+struct FBoneData
+{
+    float3 Center;
+    float PadBoneGizmo01;
+
+    //float3 Apex;
+    //float PadBoneGizmo02;
+
+    float4 Color;
+};
+    
 StructuredBuffer<FBoundingBoxData> g_BoundingBoxes : register(t2);
 StructuredBuffer<FConeData> g_ConeData : register(t3);
 StructuredBuffer<FOrientedBoxCornerData> g_OrientedBoxes : register(t4);
+StructuredBuffer<FBoneData> g_BoneData : register(t5);
 static const int BB_EdgeIndices[12][2] =
 {
     { 0, 1 },
@@ -233,6 +251,49 @@ float3 ComputeOrientedBoxPosition(uint obIndex, uint edgeIndex, uint vertexID)
 }
 
 /////////////////////////////////////////////////////////////////////////
+// Bone (Sphere + Square Pyramid)
+/////////////////////////////////////////////////////////////////////////
+float3 ComputeBonePosition(uint boneIndex, uint localInstanceID, uint vertexID)
+{
+    FBoneData bone = g_BoneData[boneIndex];
+    
+    static const float BONE_GIZMO_SPHERE_RADIUS = 5.0f; 
+    
+    uint circleId = localInstanceID / BONE_GIZMO_LINES_PER_CIRCLE; // 0 for XY, 1 for XZ, 2 for YZ
+    uint segmentInCircle = localInstanceID % BONE_GIZMO_LINES_PER_CIRCLE; // 0 to (BONE_GIZMO_LINES_PER_CIRCLE - 1)
+    
+    float angle0 = (segmentInCircle / (float) BONE_GIZMO_LINES_PER_CIRCLE) * 2.0f * PI;
+    float angle1 = ((segmentInCircle + 1.0f) / (float) BONE_GIZMO_LINES_PER_CIRCLE) * 2.0f * PI;
+    
+    float currentAngle = (vertexID == 0) ? angle0 : angle1;
+
+    float3 pointOnCircle;
+    
+    if (circleId == 0) // XY plane circle
+    {
+        pointOnCircle.x = bone.Center.x + BONE_GIZMO_SPHERE_RADIUS * cos(currentAngle);
+        pointOnCircle.y = bone.Center.y + BONE_GIZMO_SPHERE_RADIUS * sin(currentAngle);
+        pointOnCircle.z = bone.Center.z;
+    }
+    else if (circleId == 1) // XZ plane circle
+    {
+        pointOnCircle.x = bone.Center.x + BONE_GIZMO_SPHERE_RADIUS * cos(currentAngle);
+        pointOnCircle.y = bone.Center.y; // Y is constant for XZ plane
+        pointOnCircle.z = bone.Center.z + BONE_GIZMO_SPHERE_RADIUS * sin(currentAngle);
+    }
+    else if (circleId == 2) // YZ plane circle
+    {
+        pointOnCircle.x = bone.Center.x; // X is constant for YZ plane
+        pointOnCircle.y = bone.Center.y + BONE_GIZMO_SPHERE_RADIUS * cos(currentAngle);
+        pointOnCircle.z = bone.Center.z + BONE_GIZMO_SPHERE_RADIUS * sin(currentAngle);
+    }
+    else
+    {
+        pointOnCircle = bone.Center;
+    }
+    return pointOnCircle;
+}
+/////////////////////////////////////////////////////////////////////////
 // 메인 버텍스 셰이더
 /////////////////////////////////////////////////////////////////////////
 PS_INPUT mainVS(VS_INPUT input)
@@ -241,83 +302,128 @@ PS_INPUT mainVS(VS_INPUT input)
     float3 pos;
     float4 color;
     
-    // Cone 하나당 (2 * SegmentCount) 선분.
-    // ConeCount 개수만큼이므로 총 (2 * SegmentCount * ConeCount).
-    uint coneInstCnt = ConeCount * 2 * g_ConeData[0].ConeSegmentCount;
-
     // Grid / Axis / AABB 인스턴스 개수 계산
     uint gridLineCount = GridCount; // 그리드 라인
     uint axisCount = 3; // X, Y, Z 축 (월드 좌표축)
-    uint aabbInstanceCount = 12 * BoundingBoxCount; // AABB 하나당 12개 엣지
-
-    // 1) "콘 인스턴스 시작" 지점
-    uint coneInstanceStart = gridLineCount + axisCount + aabbInstanceCount;
-    // 2) 그 다음(=콘 구간의 끝)이 곧 OBB 시작 지점
-    uint obbStart = coneInstanceStart + coneInstCnt;
-
-    // 이제 instanceID를 기준으로 분기
-    if (input.instanceID < gridLineCount)
+    uint aabbInstanceCount = BoundingBoxCount * 12; // AABB 하나당 12개 엣지
+    uint coneInstanceCount = ConeCount * 2 * g_ConeData[0].ConeSegmentCount;
+    uint boneInstanceCount = BoneCount * BONE_GIZMO_TOTAL_LINES_PER_BONE; // Use the new global constant
+    //uint obbInstanceCount = OBBCount * 12; // Using the count from CBuffer
+    //uint instancesPerSphere = (NumSphereLatitudeLines * NumSphereSegmentsPerLine) + (NumSphereLongitudeLines * NumSphereSegmentsPerLine);
+    
+    // --- Calculate Start Indices ---
+    uint gridEnd = gridLineCount;
+    uint axisEnd = gridEnd + axisCount;
+    uint aabbEnd = axisEnd + aabbInstanceCount;
+    uint coneEnd = aabbEnd + coneInstanceCount;
+    uint boneEnd = coneEnd + boneInstanceCount;
+    //uint obbEnd = coneEnd + obbInstanceCount;
+    //uint sphereEnd = obbEnd + sphereInstanceCount; // End of sphere instances
+    //uint boxEnd = sphereEnd + boxInstanceCount;
+    
+    // --- Instance ID Branching ---
+    if (input.instanceID < gridEnd)
     {
-        // 0 ~ (GridCount-1): 그리드
+        // Grid
         pos = ComputeGridPosition(input.instanceID, input.vertexID);
         color = float4(0.1, 0.1, 0.1, 1.0);
     }
-    else if (input.instanceID < gridLineCount + axisCount)
+    else if (input.instanceID < axisEnd)
     {
-        // 그 다음 (axisCount)개: 축(Axis)
-        uint axisInstanceID = input.instanceID - gridLineCount;
+        // Axis
+        uint axisInstanceID = input.instanceID - gridEnd;
         pos = ComputeAxisPosition(axisInstanceID, input.vertexID);
-
-        // 축마다 색상
+        // Axis color assignment...
         if (axisInstanceID == 0)
-            color = float4(1.0, 0.0, 0.0, 1.0); // X: 빨강
+            color = float4(1.0, 0.0, 0.0, 1.0); // X
         else if (axisInstanceID == 1)
-            color = float4(0.0, 1.0, 0.0, 1.0); // Y: 초록
+            color = float4(0.0, 1.0, 0.0, 1.0); // Y
         else
-            color = float4(0.0, 0.0, 1.0, 1.0); // Z: 파랑
+            color = float4(0.0, 0.0, 1.0, 1.0); // Z
     }
-    else if (input.instanceID < gridLineCount + axisCount + aabbInstanceCount)
+    else if (input.instanceID < aabbEnd)
     {
-        // 그 다음 AABB 인스턴스 구간
-        uint index = input.instanceID - (gridLineCount + axisCount);
-        uint bbInstanceID = index / 12; // 12개가 1박스
+        // AABB
+        uint index = input.instanceID - axisEnd;
+        uint bbInstanceID = index / 12;
         uint bbEdgeIndex = index % 12;
-        
         pos = ComputeBoundingBoxPosition(bbInstanceID, bbEdgeIndex, input.vertexID);
-        color = float4(1.0, 1.0, 0.0, 1.0); // 노란색
+        color = float4(1.0, 1.0, 0.0, 1.0); // Yellow
     }
-    else if (input.instanceID < obbStart)
+    else if (input.instanceID < coneEnd)
     {
-        // 그 다음 콘(Cone) 구간
-        uint coneInstanceID = input.instanceID - coneInstanceStart;
+        // Cone
+        uint coneInstanceID = input.instanceID - aabbEnd;
         pos = ComputeConePosition(coneInstanceID, input.vertexID);
-        int N = g_ConeData[0].ConeSegmentCount;
-        uint coneIndex = coneInstanceID / (2 * N);
-        
-        color = g_ConeData[coneIndex].Color;
-   
-        
+        if (ConeCount > 0 && g_ConeData[0].ConeSegmentCount > 0)
+        {
+            int N = g_ConeData[0].ConeSegmentCount;
+            uint coneIndex = coneInstanceID / (2 * N);
+            if (coneIndex < ConeCount)
+            {
+                color = g_ConeData[coneIndex].Color;
+            }
+            else
+            {
+                color = float4(1, 0, 1, 1);
+            }
+        }
+        else
+        {
+            color = float4(1, 0, 1, 1);
+        }
     }
+    else if (input.instanceID < boneEnd)
+    {
+        uint globalBoneLineID = input.instanceID - coneEnd;
+        uint currentBoneDataIndex = globalBoneLineID / BONE_GIZMO_TOTAL_LINES_PER_BONE;
+        uint localLineIDForBone = globalBoneLineID % BONE_GIZMO_TOTAL_LINES_PER_BONE;
+        pos = ComputeBonePosition(currentBoneDataIndex, localLineIDForBone, input.vertexID);
+        
+        color = g_BoneData[currentBoneDataIndex].Color;
+        //if (currentBoneDataIndex < BoneCount)
+        //{
+        //    color = g_BoneData[currentBoneDataIndex].Color;
+        //}
+        //else
+        //{
+        //    color = float4(1.0, 0.0, 1.0, 1.0);
+        //}
+    }
+    //else if (input.instanceID < obbEnd)
+    //{
+    //    // Oriented Box (OBB)
+    //    uint obbLocalID = input.instanceID - coneEnd;
+    //    uint obbIndex = obbLocalID / 12;
+    //    uint edgeIndex = obbLocalID % 12;
+    //    // Ensure obbIndex is within bounds of g_OrientedBoxes if OrientedBoxCount > 0
+    //    if (obbIndex < obbInstanceCount)
+    //    {
+    //        pos = ComputeOrientedBoxPosition(obbIndex, edgeIndex, input.vertexID);
+    //    }
+    //    else
+    //    {
+    //        pos = float3(0, 0, 0); // Error case
+    //    }
+    //    color = float4(0.4, 1.0, 0.4, 1.0); // Light Green
+    //}
     else
     {
-        uint obbLocalID = input.instanceID - obbStart;
-        uint obbIndex = obbLocalID / 12;
-        uint edgeIndex = obbLocalID % 12;
-
-        pos = ComputeOrientedBoxPosition(obbIndex, edgeIndex, input.vertexID);
-        color = float4(0.4, 1.0, 0.4, 1.0); // 예시: 연두색
+        // Fallback / Error case
+        pos = float3(0.0, 0.0, 0.0);
+        color = float4(1.0, 0.0, 1.0, 1.0); // Magenta for errors
     }
 
-    // 출력 변환
+    // Output transformations
     output.Position = float4(pos, 1.f);
-    output.Position = mul(output.Position, WorldMatrix);
+    output.Position = mul(output.Position, WorldMatrix); // Apply World matrix if needed (usually identity for world-space primitives)
     output.WorldPosition = output.Position;
-    
+
     output.Position = mul(output.Position, ViewMatrix);
     output.Position = mul(output.Position, ProjectionMatrix);
-    
+
     output.Color = color;
-    output.instanceID = input.instanceID;
+    output.instanceID = input.instanceID; // Pass instance ID
     return output;
 }
 

@@ -25,7 +25,6 @@ public:
     void ChangeViewMode(EViewModeIndex view_mode);
     virtual void PrepareRenderState(const std::shared_ptr<FViewportClient>& Viewport);
 
-    
     void UpdateObjectConstant(const FMatrix& WorldMatrix, const FVector4& UUIDColor, bool bIsSelected) const;
     void UpdateLitUnlitConstant(int32 isLit) const;
 
@@ -34,6 +33,7 @@ public:
     
     void ReleaseShader();
     void CreateShader();
+
 public:
 #pragma region SkeletalMesh
     TArray<USkeletalMeshComponent*> SkeletalMeshComponents;

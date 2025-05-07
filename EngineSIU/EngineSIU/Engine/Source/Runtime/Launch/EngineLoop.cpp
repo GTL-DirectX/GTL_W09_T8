@@ -131,7 +131,6 @@ void FEngineLoop::Render() const
     else
     {
         Renderer.Render(ActiveViewportCache);
-        
         Renderer.RenderViewport(ActiveViewportCache);
     }
     
@@ -229,14 +228,16 @@ void FEngineLoop::Tick()
 
         UIMgr->EndFrame();
 
-        // Begin Test
         ImGuiIO& io = ImGui::GetIO();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-            ImGui::UpdatePlatformWindows();
+            ImGuiStyle& style = ImGui::GetStyle();
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg] = ImVec4(0, 0, 0, 0.9f);
+
+            ImGui::UpdatePlatformWindows(); 
             ImGui::RenderPlatformWindowsDefault();
         }
-        // End Test
         
         // Pending 처리된 오브젝트 제거
         GUObjectArray.ProcessPendingDestroyObjects();

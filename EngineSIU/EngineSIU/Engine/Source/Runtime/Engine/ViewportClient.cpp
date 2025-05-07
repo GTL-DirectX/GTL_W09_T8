@@ -5,13 +5,15 @@
 #include "Engine/EditorEngine.h"
 #include "World/World.h"
 #include "Camera/CameraComponent.h"
+#include "ShowFlag.h"
+
 
 FVector FViewportClient::OrthoPivot = FVector(0.0f, 0.0f, 0.0f);
 float FViewportClient::OrthoSize = 10.0f;
 
 FViewportClient::FViewportClient()
     : ViewportType(LVT_Perspective)
-   , ShowFlag(63)
+   , ShowFlag(1087) // FIX-ME
    , ViewMode(EViewModeIndex::VMI_Lit_BlinnPhong)
 {
 }
@@ -67,6 +69,16 @@ ELevelViewportType FViewportClient::GetViewportType() const
 void FViewportClient::SetViewportType(ELevelViewportType InViewportType)
 {
     ViewportType = InViewportType;
+}
+
+void FViewportClient::SetShowFlagState(uint64 flag, bool bEnable)
+{
+    if (bEnable) {
+        ShowFlag |= static_cast<uint64>(flag);
+    }
+    else {
+        ShowFlag &= ~static_cast<uint64>(flag);
+    }
 }
 
 bool FViewportClient::IsOrthographic() const

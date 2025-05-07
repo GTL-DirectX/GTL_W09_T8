@@ -18,6 +18,7 @@ UPrimitiveDrawBatch::~UPrimitiveDrawBatch()
     ReleaseOBBBuffers();
     ReleaseBoundingBoxBuffers();
     ReleaseConeBuffers();
+    ReleaseBoneBuffers();
 
     // Primitive 버퍼들 릴리즈
     if (GridConstantBuffer)
@@ -51,6 +52,8 @@ void UPrimitiveDrawBatch::ReleaseResources()
     ReleaseOBBBuffers();
     ReleaseBoundingBoxBuffers();
     ReleaseConeBuffers();
+    ReleaseBoneBuffers();
+
     if (GridConstantBuffer)
     {
         GridConstantBuffer->Release();
@@ -78,12 +81,14 @@ void UPrimitiveDrawBatch::PrepareBatch(FLinePrimitiveBatchArgs& OutLinePrimitive
     UpdateBoundingBoxBuffers();
     UpdateConeBuffers();
     UpdateOBBBuffers();
+    UpdateBoneBuffers();
 
     int BoundingBoxSize = BoundingBoxes.Num();
     int ConeSize = Cones.Num();
     int OBBSize = OrientedBoundingBoxes.Num();
+    int BoneSize = BoneGizmos.Num();
 
-    UpdateLinePrimitiveCountBuffer(BoundingBoxSize, ConeSize);
+    UpdateLinePrimitiveCountBuffer(BoundingBoxSize, ConeSize, BoneSize);
 
     OutLinePrimitiveBatchArgs.GridParam = GridParameters;
     OutLinePrimitiveBatchArgs.VertexBuffer = VertexBuffer;
@@ -91,6 +96,7 @@ void UPrimitiveDrawBatch::PrepareBatch(FLinePrimitiveBatchArgs& OutLinePrimitive
     OutLinePrimitiveBatchArgs.ConeCount = ConeSize;
     OutLinePrimitiveBatchArgs.ConeSegmentCount = ConeSegmentCount;
     OutLinePrimitiveBatchArgs.OBBCount = OBBSize;
+    OutLinePrimitiveBatchArgs.BoneCount = BoneSize;
 }
 
 void UPrimitiveDrawBatch::RemoveArr()
@@ -98,6 +104,7 @@ void UPrimitiveDrawBatch::RemoveArr()
     BoundingBoxes.Empty();
     Cones.Empty();
     OrientedBoundingBoxes.Empty();
+    BoneGizmos.Empty();
 }
 
 // 4. 버퍼 초기화 및 업데이트
@@ -170,13 +177,30 @@ void UPrimitiveDrawBatch::UpdateOBBBuffers()
     }
 }
 
-void UPrimitiveDrawBatch::UpdateLinePrimitiveCountBuffer(int NumBoundingBoxes, int NumCones) const
+void UPrimitiveDrawBatch::UpdateBoneBuffers()
+{
+    if (BoneGizmos.Num() > AllocatedBoneCapacity)
+    {
+        AllocatedBoneCapacity = BoneGizmos.Num();
+        ReleaseBoneBuffers();
+        BoneBuffer = CreateBoneBuffer(static_cast<UINT>(AllocatedBoneCapacity));
+        BoneSRV = CreateBoneSRV(BoneBuffer, static_cast<UINT>(AllocatedBoneCapacity));
+    }
+    if (BoneBuffer && BoneSRV)
+    {
+        int BoneCount = BoneGizmos.Num();
+        UpdateBonesBuffer(BoneBuffer, BoneGizmos, BoneCount);
+    }
+}
+
+void UPrimitiveDrawBatch::UpdateLinePrimitiveCountBuffer(int NumBoundingBoxes, int NumCones, int NumBones) const
 {
     D3D11_MAPPED_SUBRESOURCE MappedResource;
     HRESULT HR = Graphics->DeviceContext->Map(LinePrimitiveBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
     auto Data = static_cast<FPrimitiveCounts*>(MappedResource.pData);
     Data->BoundingBoxCount = NumBoundingBoxes;
     Data->ConeCount = NumCones;
+    Data->BoneCount = NumBones;
     Graphics->DeviceContext->Unmap(LinePrimitiveBuffer, 0);
 }
 
@@ -220,6 +244,20 @@ void UPrimitiveDrawBatch::ReleaseOBBBuffers()
     {
         OBBSRV->Release();
         OBBSRV = nullptr;
+    }
+}
+
+void UPrimitiveDrawBatch::ReleaseBoneBuffers()
+{
+    if (BoneBuffer)
+    {
+        BoneBuffer->Release();
+        BoneBuffer = nullptr;
+    }
+    if (BoneSRV)
+    {
+        BoneSRV->Release();
+        BoneSRV = nullptr;
     }
 }
 
@@ -292,6 +330,15 @@ void UPrimitiveDrawBatch::AddConeToBatch(const FVector& Center, float Radius, fl
     Cone.Color = Color;
     Cone.ConeSegmentCount = ConeSegmentCount;
     Cones.Add(Cone);
+}
+
+void UPrimitiveDrawBatch::AddJointSphereToBatch(const FVector& JointWorldPosition, float Radius, const FVector4& Color, const FMatrix& ModelMatrix)
+{
+    FBoneGizmo Gizmo;
+    Gizmo.Center = FMatrix::TransformVector(JointWorldPosition, ModelMatrix);
+    Gizmo.Color = Color;
+
+    BoneGizmos.Add(Gizmo);
 }
 
 // 7. 버퍼 생성 함수들
@@ -372,6 +419,21 @@ ID3D11Buffer* UPrimitiveDrawBatch::CreateConeBuffer(UINT NumCones) const
     return Buffer;
 }
 
+ID3D11Buffer* UPrimitiveDrawBatch::CreateBoneBuffer(UINT NumBones) const
+{
+    D3D11_BUFFER_DESC BufferDesc;
+    BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+    BufferDesc.ByteWidth = sizeof(FBoneGizmo) * NumBones;
+    BufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    BufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    BufferDesc.StructureByteStride = sizeof(FBoneGizmo);
+
+    ID3D11Buffer* Buffer = nullptr;
+    Graphics->Device->CreateBuffer(&BufferDesc, nullptr, &Buffer);
+    return Buffer;
+}
+
 // 8. SRV 생성 함수들
 ID3D11ShaderResourceView* UPrimitiveDrawBatch::CreateBoundingBoxSRV(ID3D11Buffer* Buffer, UINT NumBoundingBoxes)
 {
@@ -407,6 +469,18 @@ ID3D11ShaderResourceView* UPrimitiveDrawBatch::CreateConeSRV(ID3D11Buffer* Buffe
 
     Graphics->Device->CreateShaderResourceView(Buffer, &SRVDesc, &ConeSRV);
     return ConeSRV;
+}
+
+ID3D11ShaderResourceView* UPrimitiveDrawBatch::CreateBoneSRV(ID3D11Buffer* Buffer, UINT NumBones)
+{
+    D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+    SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+    SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    SRVDesc.Buffer.ElementOffset = 0;
+    SRVDesc.Buffer.NumElements = NumBones;
+
+    Graphics->Device->CreateShaderResourceView(Buffer, &SRVDesc, &BoneSRV);
+    return BoneSRV;
 }
 
 // 9. 버퍼 업데이트 (데이터 복사) 함수들
@@ -452,6 +526,20 @@ void UPrimitiveDrawBatch::UpdateConesBuffer(ID3D11Buffer* Buffer, const TArray<F
     Graphics->DeviceContext->Unmap(Buffer, 0);
 }
 
+void UPrimitiveDrawBatch::UpdateBonesBuffer(ID3D11Buffer* Buffer, const TArray<FBoneGizmo>& Bones, int NumBones) const
+{
+    if (!Buffer)
+        return;
+    D3D11_MAPPED_SUBRESOURCE MappedResource;
+    Graphics->DeviceContext->Map(Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+    auto Data = static_cast<FBoneGizmo*>(MappedResource.pData);
+    for (int i = 0; i < BoneGizmos.Num(); ++i)
+    {
+        Data[i] = BoneGizmos[i];
+    }
+    Graphics->DeviceContext->Unmap(Buffer, 0);
+}
+
 void UPrimitiveDrawBatch::PrepareLineResources() const
 {
     if (Graphics && Graphics->DeviceContext)
@@ -467,5 +555,6 @@ void UPrimitiveDrawBatch::PrepareLineResources() const
         Graphics->DeviceContext->VSSetShaderResources(2, 1, &BoundingBoxSRV);
         Graphics->DeviceContext->VSSetShaderResources(3, 1, &ConeSRV);
         Graphics->DeviceContext->VSSetShaderResources(4, 1, &OBBSRV);
+        Graphics->DeviceContext->VSSetShaderResources(5, 1, &BoneSRV); // Begin Test
     }
 }

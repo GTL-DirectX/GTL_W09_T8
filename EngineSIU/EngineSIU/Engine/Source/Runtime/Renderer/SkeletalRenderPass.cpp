@@ -11,6 +11,8 @@
 #include "Engine/EditorEngine.h"
 #include "ShowFlag.h"
 #include "Rendering/Mesh/SkeletalMeshRenderData.h"
+#include "Editor/LevelEditor/SLevelEditor.h"
+#include "Editor/UnrealEd/EditorViewportClient.h"
 
 FSkeletalRenderPass::FSkeletalRenderPass()
     : VertexShader(nullptr)
@@ -64,7 +66,6 @@ void FSkeletalRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewpor
             continue;
         }
 
-        
         FMatrix WorldMatrix = Comp->GetWorldMatrix();
         FVector4 UUIDColor = Comp->EncodeUUID() / 255.0f;
 
@@ -78,9 +79,29 @@ void FSkeletalRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FViewpor
 
         RenderPrimitive(RenderData->VertexBuffer, RenderData->Vertices.Num(), RenderData->IndexBuffer, RenderData->Indices.Num());
 
-        if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
+        //UWorld* ThisWorld = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetWorld();
+        //if (ThisWorld->WorldType != EWorldType::EditorPreview) return;
+
+        if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_Bone))
         {
-            FEngineLoop::PrimitiveDrawBatch.AddAABBToBatch(Comp->GetBoundingBox(), Comp->GetWorldLocation(), WorldMatrix);
+            const float BoneSphereRadius = 10.0f;
+            const FVector4 BoneDebugColor = FVector4(0.8f, 0.8f, 0.0f, 1.0f);
+
+            const int32 BoneCount = RenderData->BoneNames.Num();
+
+            for (int32 BoneIdx = 0; BoneIdx < BoneCount; ++BoneIdx)
+            {
+                const FMatrix& BoneMeshSpaceTransform = RenderData->ReferencePose[BoneIdx];
+                FVector BoneJointPos_LocalSpace = BoneMeshSpaceTransform.GetTranslationVector(); 
+                FVector BoneJointPos_WorldSpace = WorldMatrix.TransformPosition(BoneJointPos_LocalSpace);
+
+                FEngineLoop::PrimitiveDrawBatch.AddJointSphereToBatch(
+                    BoneJointPos_WorldSpace,
+                    BoneSphereRadius,
+                    BoneDebugColor,
+                    WorldMatrix
+                );
+            }
         }
     }
 }

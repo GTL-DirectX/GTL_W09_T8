@@ -44,6 +44,8 @@ void ControlEditorPanel::Render()
     /* Panel Flags */
     ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_None;
 
+    ImGui::SetNextWindowSizeConstraints(ImVec2(0, 72), ImVec2(FLT_MAX, FLT_MAX));
+
     /* Render Start */
     if (!ImGui::Begin("Control Panel", nullptr, PanelFlags))
     {
@@ -510,7 +512,7 @@ void ControlEditorPanel::CreateFlagButton()
         ImGui::OpenPopup("ShowFlags");
     }
 
-    const char* Items[] = { "AABB", "Primitives", "BillBoardText", "UUID", "Fog", "LightWireframe", "LightWireframeSelectedOnly", "Shadow", "Collision", "CollisionSelectedOnly" };
+    const char* Items[] = { "AABB", "Primitives", "BillBoardText", "UUID", "Fog", "LightWireframe", "LightWireframeSelectedOnly", "Shadow", "Collision", "CollisionSelectedOnly", "Bone" };
     const uint64 CurFlag = ActiveViewport->GetShowFlag();
 
     if (ImGui::BeginPopup("ShowFlags"))
@@ -527,6 +529,7 @@ void ControlEditorPanel::CreateFlagButton()
             static_cast<bool>(CurFlag & EEngineShowFlags::SF_Shadow),
             static_cast<bool>(CurFlag & EEngineShowFlags::SF_Collision),
             static_cast<bool>(CurFlag & EEngineShowFlags::SF_CollisionSelectedOnly),
+            static_cast<bool>(CurFlag & EEngineShowFlags::SF_Bone),
         }; // 각 항목의 체크 상태 저장
 
         for (int i = 0; i < IM_ARRAYSIZE(Items); i++)
@@ -726,6 +729,10 @@ uint64 ControlEditorPanel::ConvertSelectionToFlags(const bool Selected[])
     {
         Flags |= static_cast<uint64>(EEngineShowFlags::SF_Collision);
         Flags |= static_cast<uint64>(EEngineShowFlags::SF_CollisionSelectedOnly);
+    }
+    if (Selected[10])
+    {
+        Flags |= static_cast<uint64>(EEngineShowFlags::SF_Bone);
     }
 
     return Flags;

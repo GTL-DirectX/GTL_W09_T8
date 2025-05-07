@@ -274,12 +274,20 @@ struct FCone
     float pad[3];
 };
 
+struct FBoneGizmo
+{
+    FVector Center;
+    float PadBoneGizmo;
+
+    FVector4 Color;
+};
+
 struct FPrimitiveCounts
 {
     int BoundingBoxCount;
-    int pad;
     int ConeCount;
-    int pad1;
+    int BoneCount;
+    int pad;
 };
 
 #define MAX_LIGHTS 16
@@ -405,6 +413,7 @@ struct FLinePrimitiveBatchArgs
     int ConeCount;
     int ConeSegmentCount;
     int OBBCount;
+    int BoneCount;
 };
 
 struct FViewportSize
