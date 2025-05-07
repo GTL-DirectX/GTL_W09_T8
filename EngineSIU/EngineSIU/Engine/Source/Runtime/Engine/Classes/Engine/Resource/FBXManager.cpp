@@ -59,6 +59,18 @@ USkeletalMesh* FFBXManager::LoadFbx(const FString& FbxFilePath)
     return NewSkeletalMesh;
 }
 
+TArray<USkeletalMesh*> FFBXManager::LoadFbxAll(const FString& FbxFilePath)
+{
+    TArray<USkeletalMesh*> SkeletalMeshes;
+    LoadAllMeshesFromFbx(FbxFilePath, SkeletalMeshes);
+
+    for (auto& SkeletalMesh : SkeletalMeshes)
+    {
+        SkeletalMeshMap.Add(SkeletalMesh->GetRenderData()->ObjectName, SkeletalMesh);
+    }
+    return SkeletalMeshes;
+}
+
 void FFBXManager::Initialize()
 {
     SdkManager = FbxManager::Create();
@@ -778,6 +790,161 @@ bool FFBXManager::LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalM
 
     File.close();
     return true;
+}
+
+bool FFBXManager::LoadAllMeshesFromFbx(const FString& FbxFilePath, TArray<USkeletalMesh*>& OutSkeletalMeshes)
+{
+    OutSkeletalMeshes.Empty();
+
+    if (!std::filesystem::exists(FbxFilePath.ToWideString()))
+    {
+        UE_LOG(LogLevel::Error, TEXT("FFBXManager: FBX File Not Found: %s"), *FbxFilePath);
+        return false;
+    }
+
+    // FBX 파일 열기 및 씬 임포트
+    if (!Importer->Initialize(*FbxFilePath, -1, SdkManager->GetIOSettings()))
+    {
+        UE_LOG(LogLevel::Error, TEXT("FFBXManager: Cannot Initialize Importer for Fbx File Path : %s"), *FbxFilePath);
+        return false;
+    }
+
+    Scene = FbxScene::Create(SdkManager, "TempSceneForAllMeshes"); // 임시 씬 이름
+    if (!Importer->Import(Scene))
+    {
+        UE_LOG(LogLevel::Error, TEXT("FFBXManager: Cannot Import FBX Scene Info : %s"), *FbxFilePath);
+        Importer->Destroy(); // 실패 시 Importer 정리
+        Importer = FbxImporter::Create(SdkManager, ""); // 다음 사용을 위해 재생성
+        return false;
+    }
+
+    // 씬 좌표계 변환 및 삼각화
+    const FbxAxisSystem EngineAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityEven, FbxAxisSystem::eLeftHanded);
+    EngineAxisSystem.DeepConvertScene(Scene);
+
+    FbxGeometryConverter geomConverter(SdkManager);
+    if (!geomConverter.Triangulate(Scene, true))
+    {
+        UE_LOG(LogLevel::Warning, TEXT("FFBXManager: Triangulation failed for scene: %s"), *FbxFilePath);
+        // 실패해도 계속 진행할 수 있지만, 결과가 예상과 다를 수 있음
+    }
+
+    // 루트 노드부터 시작하여 모든 메시 노드를 재귀적으로 처리
+    FbxNode* RootNode = Scene->GetRootNode();
+    if (RootNode)
+    {
+        ProcessNodeRecursiveForMeshes(RootNode, FbxFilePath, OutSkeletalMeshes);
+    }
+
+    // 사용한 Scene 객체 정리
+    if (Scene)
+    {
+        Scene->Destroy();
+        Scene = nullptr;
+    }
+    // Importer는 Release()에서 정리되거나, 각 Load 호출 후 정리하는 정책에 따름
+    // 여기서는 각 호출마다 Initialize/Destroy 쌍을 사용한다고 가정하고 Importer를 정리할 수 있습니다.
+    // Importer->Destroy();
+    // Importer = FbxImporter::Create(SdkManager, "");
+
+
+    return !OutSkeletalMeshes.IsEmpty();
+}
+
+USkeletalMesh* FFBXManager::GetSkeletalMesh(const FString& FbxFilePath)
+{
+    if (SkeletalMeshMap.Contains(FbxFilePath))
+    {
+        return SkeletalMeshMap[FbxFilePath];
+    }
+    LoadFbx(FbxFilePath);
+}
+
+USkeletalMesh* FFBXManager::CreateSkeletalMeshFromNode(FbxNode* InNode, const FString& InFbxFilePath)
+{
+    if (!InNode || !InNode->GetMesh())
+    {
+        return nullptr;
+    }
+
+    // 각 메시마다 고유한 이름을 생성 (예: 파일경로_노드이름)
+    // 이는 SkeletalMeshMap 캐싱 및 바이너리 파일 이름 생성에 사용될 수 있습니다.
+    // 여기서는 단순화를 위해 캐싱 및 바이너리 로드/저장은 생략하고 항상 FBX에서 직접 로드합니다.
+    // 필요하다면, 고유 식별자를 만들어 기존 캐싱/바이너리 시스템을 활용할 수 있습니다.
+    FString MeshNodeName = FString(InNode->GetName());
+    if (MeshNodeName.IsEmpty())
+    {
+        static int unidentifiedMeshCounter = 0;
+        MeshNodeName = FString::Printf(TEXT("UnnamedMesh_%d"), unidentifiedMeshCounter++);
+    }
+
+    // 1. RenderData 생성
+    FSkeletalMeshRenderData* RenderData = new FSkeletalMeshRenderData(); // 항상 새로 생성
+    RenderData->FilePath = InFbxFilePath; // 원본 파일 경로 저장
+
+    // 2. 현재 노드로부터 SkeletalMeshData 추출
+    // ExtractSkeletalMeshData는 내부적으로 outData를 채웁니다.
+    ExtractSkeletalMeshData(InNode, *RenderData); // InNode의 데이터를 RenderData에 채움
+
+    // 추출된 데이터가 유효하지 않으면 (예: 메시 데이터가 없거나, 본 정보가 없는 스태틱 메시 등) 정리하고 nullptr 반환
+    if (RenderData->Vertices.IsEmpty() && RenderData->BoneNames.IsEmpty()) // 간단한 유효성 검사
+    {
+        delete RenderData;
+        UE_LOG(LogLevel::Warning, TEXT("FFBXManager: No valid mesh data extracted from node: %s in file: %s"), *MeshNodeName, *InFbxFilePath);
+        return nullptr;
+    }
+
+    // (선택적) 바이너리 저장 로직 (각 메시에 대해 개별 바이너리 파일 저장)
+    // FString BinaryMeshPath = UniqueMeshIdentifier; // 또는 다른 고유 경로
+    // SaveSkeletalMeshToBinary(BinaryMeshPath, *RenderData);
+
+
+    // 3. SkeletalMesh 객체 생성
+    USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(&UAssetManager::Get());
+    NewSkeletalMesh->SetRenderData(RenderData);
+    // NewSkeletalMesh->SetPathName(UniqueMeshIdentifier); // 에셋 경로 설정 (필요시)
+
+    // 4. 머티리얼 정보 설정
+    for (const auto& MaterialInfo : RenderData->Materials)
+    {
+        UMaterial* Material = UMaterial::CreateMaterial(MaterialInfo); // UMaterial::CreateMaterial이 FObjMaterialInfo를 받는다고 가정
+        NewSkeletalMesh->AddMaterial(Material);
+    }
+
+    // 5. 버퍼 생성
+    RenderData->CreateBuffers(); // GPU 버퍼 생성
+
+    // (선택적) SkeletalMeshMap에 캐싱 (고유 식별자 사용)
+
+    return NewSkeletalMesh;
+}
+
+void FFBXManager::LoadFbxScene(const FString& FbxFilePath, FBX::FImportSceneData& OutSceneData)
+{
+}
+
+void FFBXManager::ProcessNodeRecursiveForMeshes(FbxNode* InNode, const FString& InFbxFilePath, TArray<USkeletalMesh*>& OutSkeletalMeshes)
+{
+    if (!InNode)
+    {
+        return;
+    }
+
+    // 현재 노드가 메시 속성을 가지고 있는지 확인
+    if (InNode->GetMesh())
+    {
+        USkeletalMesh* NewMesh = CreateSkeletalMeshFromNode(InNode, InFbxFilePath);
+        if (NewMesh)
+        {
+            OutSkeletalMeshes.Add(NewMesh);
+        }
+    }
+
+    // 자식 노드들에 대해 재귀적으로 동일 작업 수행
+    for (int i = 0; i < InNode->GetChildCount(); ++i)
+    {
+        ProcessNodeRecursiveForMeshes(InNode->GetChild(i), InFbxFilePath, OutSkeletalMeshes);
+    }
 }
 
 

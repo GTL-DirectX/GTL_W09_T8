@@ -470,6 +470,9 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                     {
                         FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
                         USkeletalMesh* SkeletalMesh = FFBXManager::Get().LoadFbx(MeshName);
+                        // LoadAllMesh 사용시 아래 주석 해제 후 사용
+                        //FString MeshName = Asset.Value.AssetName.ToString();
+                        //USkeletalMesh* SkeletalMesh = FFBXManager::Get().GetSkeletalMesh(MeshName);
                         if (SkeletalMesh)
                         {
                             SkeletalMeshComp->SetSkeletalMesh(SkeletalMesh);

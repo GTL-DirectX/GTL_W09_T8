@@ -25,6 +25,7 @@ public:
     }
 
     USkeletalMesh* LoadFbx(const FString& FbxFilePath);
+    TArray<USkeletalMesh*> LoadFbxAll(const FString& FbxFilePath);
 
     // SDK 초기화
     void Initialize();
@@ -46,13 +47,16 @@ public:
     bool SaveSkeletalMeshToBinary(const FString& FilePath, const FSkeletalMeshRenderData& StaticMesh);
     bool LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalMeshRenderData& OutStaticMesh);
 
-
+    bool LoadAllMeshesFromFbx(const FString& FbxFilePath, TArray<USkeletalMesh*>& OutSkeletalMeshes);
+    USkeletalMesh* GetSkeletalMesh(const FString& FbxFilePath);
 
 private:
+    USkeletalMesh* CreateSkeletalMeshFromNode(FbxNode* InNode, const FString& InFbxFilePath);
 
 public:
     void LoadFbxScene(const FString& FbxFilePath, FBX::FImportSceneData& OutSceneData);
-    
+    void ProcessNodeRecursiveForMeshes(FbxNode* InNode, const FString& InFbxFilePath, TArray<USkeletalMesh*>& OutSkeletalMeshes);
+
 
 private:
     // 생성/소멸은 외부 호출을 막기 위해 private

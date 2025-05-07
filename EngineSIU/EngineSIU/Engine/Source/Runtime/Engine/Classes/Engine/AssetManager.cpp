@@ -93,6 +93,21 @@ void UAssetManager::LoadContentsFiles()
 
             FString MeshName = NewAssetInfo.PackagePath.ToString() + "/" + NewAssetInfo.AssetName.ToString();
             FFBXManager::Get().LoadFbx(MeshName);
+
+            // FBX의 모든 메시 로드
+            //FString FilePath = Entry.path().parent_path().string() + "/" + Entry.path().filename().string();
+            //TArray<USkeletalMesh*> SkeletalMeshes = FFBXManager::Get().LoadFbxAll(FilePath);
+
+            //for (USkeletalMesh* SkeletalMesh : SkeletalMeshes)
+            //{
+            //    FAssetInfo NewAssetInfo;
+            //    NewAssetInfo.PackagePath = FName(Entry.path().parent_path().string());
+            //    NewAssetInfo.AssetName = SkeletalMesh->GetRenderData()->ObjectName;
+            //    NewAssetInfo.AssetType = EAssetType::SkeletalMesh;
+            //    NewAssetInfo.Size = static_cast<uint32>(std::filesystem::file_size(Entry.path()));
+
+            //    AssetRegistry->PathNameToAssetInfo.Add(NewAssetInfo.AssetName, NewAssetInfo);
+            //}
         }
     }
 }
