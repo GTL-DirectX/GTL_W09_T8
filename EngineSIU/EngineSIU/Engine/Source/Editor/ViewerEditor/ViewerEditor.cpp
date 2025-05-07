@@ -80,7 +80,7 @@ void ViewerEditor::InitializeViewerResources()
 
     ViewerViewportClient->SetShouldDraw(false);
     FViewportCamera& vpCam = ViewerViewportClient->GetPerspectiveCamera();
-    vpCam.SetLocation(FVector(-100, 0, 5));
+    vpCam.SetLocation(FVector(-200, 0, 80));
     FVector TargetLocation = FVector(0, 0, 0);
     FVector CamLocation = vpCam.GetLocation();
     FVector Dir = (TargetLocation - CamLocation).GetSafeNormal();
@@ -280,7 +280,18 @@ void ViewerEditor::RenderViewerWindow(bool& bShowWindow)
 
         if (SelectedSkeletalMesh)
         {
+            if (ImGui::Button("Rotate Clockwise"))
+            {
+                SelectedActor->GetRootComponent()->AddRotation(FRotator(0, 90, 0));
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Rotate Counter-Clockwise"))
+            {
+                SelectedActor->GetRootComponent()->AddRotation(FRotator(0, -90, 0));
+            }
+
             FSkeletalMeshRenderData* RenderData = SelectedSkeletalMesh->GetRenderData();
+            
             if (ImGui::CollapsingHeader("Bone Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Checkbox("Show Bones", &bShowBones);
