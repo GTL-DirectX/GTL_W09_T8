@@ -2,6 +2,84 @@
 
 #include "UObject/Object.h"
 
+void FSkeletalMeshRenderData::UpdateReferencePoseFromLocal()
+{
+    const int32 BoneCount = LocalBindPose.Num();
+    ReferencePose.SetNum(BoneCount);
+    OrigineReferencePose.SetNum(BoneCount); // 원본 백업
+        
+    for (int32 i = 0; i < BoneCount; ++i)
+    {
+        int parentIndex = ParentBoneIndices[i];
+        
+        if (parentIndex >= 0)
+        {
+            // 부모의 글로벌 포즈에 현재 로컬을 곱함
+            ReferencePose[i] =  LocalBindPose[i]* ReferencePose[parentIndex] ;
+        }
+        else
+        {
+            // 루트 본은 로컬이 곧 글로벌
+            ReferencePose[i] = LocalBindPose[i];
+        }
+    }
+}
+
+void FSkeletalMeshRenderData::UpdateVerticesFromNewBindPose()
+{
+    int32 BoneCount = ReferencePose.Num();
+    int32 VCount    = Vertices.Num();
+    
+    TArray<FMatrix> Delta; Delta.SetNum(BoneCount);
+    for (int32 i = 0; i < BoneCount; ++i)
+    {
+        Delta[i] = FMatrix::Inverse(OrigineReferencePose[i]) * ReferencePose[i]  ;
+    }
+    
+    for (int32 vi = 0; vi < VCount; ++vi)
+    {
+        const auto& src = OrigineVertices[vi];
+        auto&       dst = Vertices[vi];
+        
+        // 1) 가중치 합 계산 및 정규화
+        float WeightSum = 0.0f;
+        for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+            WeightSum += src.BoneWeights[j];
+            
+        // 2) 가중치 정규화 (합이 0이 아니면)
+        float InverseSum = (WeightSum > KINDA_SMALL_NUMBER) ? (1.0f / WeightSum) : 0.0f;
+        
+        FVector P(0), N(0), T(0), B(0);
+            
+        // 3) 스키닝 적용
+        for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+        {
+            float w = src.BoneWeights[j] * InverseSum;
+            if (w <= 0.0f) continue;
+            int bi = src.BoneIndices[j];
+            const FMatrix& M = Delta[bi];
+        
+            P += M.TransformPosition(src.Position) * w;
+            N += FMatrix::TransformVector(src.Normal, M) * w;
+            T += FMatrix::TransformVector(src.Tangent,M) * w;
+            B += FMatrix::TransformVector(src.Bitangent,M) * w;
+        }
+        
+        dst.Position  = P;
+        dst.Normal    = N.GetSafeNormal();
+        dst.Tangent   = T.GetSafeNormal();
+        dst.Bitangent = B.GetSafeNormal();
+        dst.UV        = src.UV;
+            
+        // BoneIndices/Weights는 원본 그대로 유지
+        for (int j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+        {
+            dst.BoneIndices[j] = src.BoneIndices[j];
+            dst.BoneWeights[j] = src.BoneWeights[j];
+        }
+    }
+}
+
 void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector DeltaLoc, FRotator DeltaRot, FVector DeltaScale)
 {
     if(!LocalBindPose.IsValidIndex(BoneIndex))
@@ -9,21 +87,45 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
         UE_LOG(LogLevel::Error, "Not Valid Bone Index");
         return;
     }
-    // 델타 행렬 (Scale -> Rot -> Trans)
     FMatrix Mscale = FMatrix::CreateScaleMatrix(DeltaScale.X,DeltaScale.Y,DeltaScale.Z);
     FMatrix Mrot   = FMatrix::CreateRotationMatrix(DeltaRot.Roll,DeltaRot.Pitch,DeltaRot.Yaw);
     FMatrix DeltaM = FMatrix::CreateTranslationMatrix(DeltaLoc);
     DeltaM = DeltaM * Mrot * Mscale;
-    // 1) 로컬 바인드 포즈 적용
-    LocalBindPose[BoneIndex] =  DeltaM * LocalBindPose[BoneIndex]; // 위치 고려 필요
-    // 2) 글로벌 ReferencePose 재계산
+    LocalBindPose[BoneIndex] =  DeltaM * LocalBindPose[BoneIndex]; 
     UpdateReferencePoseFromLocal();
-    // 3) BoneTransforms 동기화
-    BoneTransforms = ReferencePose;
-    // 4) 버텍스 재계산
     UpdateVerticesFromNewBindPose();
-    // 5) 바운딩 & GPU 버퍼
-    ComputeBounds(Vertices, BoundingBoxMin, BoundingBoxMax);
+    ComputeBounds();
+    CreateBuffers();
+}
+
+void FSkeletalMeshRenderData::ComputeBounds()
+{
+    if (Vertices.Num() == 0) return;
+    BoundingBoxMin = Vertices[0].Position;
+    BoundingBoxMax = Vertices[0].Position;
+    for (const auto& v : Vertices)
+    {
+        BoundingBoxMin.X = FMath::Min(BoundingBoxMin.X, v.Position.X);
+        BoundingBoxMin.Y = FMath::Min(BoundingBoxMin.Y, v.Position.Y);
+        BoundingBoxMin.Z = FMath::Min(BoundingBoxMin.Z, v.Position.Z);
+        BoundingBoxMax.X = FMath::Max(BoundingBoxMax.X, v.Position.X);
+        BoundingBoxMax.Y = FMath::Max(BoundingBoxMax.Y, v.Position.Y);
+        BoundingBoxMax.Z = FMath::Max(BoundingBoxMax.Z, v.Position.Z);
+    }
+}
+
+void FSkeletalMeshRenderData::CreateBuffers()
+{
+    if (VertexBuffer)
+    {
+        VertexBuffer->Release();
+        VertexBuffer = nullptr;
+    }
+    if (IndexBuffer)
+    {
+        IndexBuffer->Release();
+        IndexBuffer = nullptr;
+    }
     TArray<FStaticMeshVertex> StaticVerts; StaticVerts.SetNum(Vertices.Num());
     for (int32 i = 0; i < Vertices.Num(); ++i)
     {
@@ -36,48 +138,15 @@ void FSkeletalMeshRenderData::ApplyBoneOffsetAndRebuild(int32 BoneIndex, FVector
         D.R = D.G = D.B = D.A = 1.0f;
         D.MaterialIndex = 0;
     }
-    VertexBuffer->Release();
-    IndexBuffer->Release();
-    VertexBuffer = nullptr;
-    IndexBuffer = nullptr;
-    CreateBuffers(
-        GEngineLoop.GraphicDevice.Device,
-        StaticVerts,
-        Indices,
-        VertexBuffer,
-        IndexBuffer
-    );
-    // OrigineReferencePose = ReferencePose;
-    // OrigineVertices = Vertices;
-}
-
-void FSkeletalMeshRenderData::ComputeBounds(const TArray<FSkeletalMeshVertex>& Verts, FVector& OutMin, FVector& OutMax)
-{
-    if (Verts.Num() == 0) return;
-    OutMin = Verts[0].Position;
-    OutMax = Verts[0].Position;
-    for (const auto& v : Verts)
-    {
-        OutMin.X = FMath::Min(OutMin.X, v.Position.X);
-        OutMin.Y = FMath::Min(OutMin.Y, v.Position.Y);
-        OutMin.Z = FMath::Min(OutMin.Z, v.Position.Z);
-        OutMax.X = FMath::Max(OutMax.X, v.Position.X);
-        OutMax.Y = FMath::Max(OutMax.Y, v.Position.Y);
-        OutMax.Z = FMath::Max(OutMax.Z, v.Position.Z);
-    }
-}
-
-void FSkeletalMeshRenderData::CreateBuffers(ID3D11Device* Device, const TArray<FStaticMeshVertex>& Verts, const TArray<UINT>& Indices,
-    ID3D11Buffer*& OutVB, ID3D11Buffer*& OutIB)
-{
+    
     // Vertex Buffer
     D3D11_BUFFER_DESC vbDesc = {};
     vbDesc.Usage = D3D11_USAGE_DEFAULT;
-    vbDesc.ByteWidth = sizeof(FStaticMeshVertex) * Verts.Num();
+    vbDesc.ByteWidth = sizeof(FStaticMeshVertex) * StaticVerts.Num();
     vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     D3D11_SUBRESOURCE_DATA vbData = {};
-    vbData.pSysMem = Verts.GetData();
-    Device->CreateBuffer(&vbDesc, &vbData, &OutVB);
+    vbData.pSysMem = StaticVerts.GetData();
+    GEngineLoop.GraphicDevice.Device->CreateBuffer(&vbDesc, &vbData, &VertexBuffer);
 
     // Index Buffer
     D3D11_BUFFER_DESC ibDesc = {};
@@ -86,5 +155,5 @@ void FSkeletalMeshRenderData::CreateBuffers(ID3D11Device* Device, const TArray<F
     ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
     D3D11_SUBRESOURCE_DATA ibData = {};
     ibData.pSysMem = Indices.GetData();
-    Device->CreateBuffer(&ibDesc, &ibData, &OutIB);
+    GEngineLoop.GraphicDevice.Device->CreateBuffer(&ibDesc, &ibData, &IndexBuffer);
 }
