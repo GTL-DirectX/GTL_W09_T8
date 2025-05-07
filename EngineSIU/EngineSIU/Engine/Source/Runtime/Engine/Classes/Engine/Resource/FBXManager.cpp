@@ -54,28 +54,7 @@ USkeletalMesh* FFBXManager::LoadFbx(const FString& FbxFilePath)
         NewSkeletalMesh->AddMaterial(Material);
     }
 
-    // 버텍스 및 인덱스 버퍼 생성
-    TArray<FStaticMeshVertex> StaticVerts;
-    StaticVerts.SetNum(RenderData->Vertices.Num());
-    for (int i = 0; i < RenderData->Vertices.Num(); ++i)
-    {
-        const auto& S = RenderData->Vertices[i];
-        auto& D = StaticVerts[i];
-        D.X = S.Position.X; D.Y = S.Position.Y; D.Z = S.Position.Z;
-        D.R = D.G = D.B = D.A = 1.0f;
-        D.NormalX = S.Normal.X;  D.NormalY = S.Normal.Y;  D.NormalZ = S.Normal.Z;
-        D.TangentX = S.Tangent.X; D.TangentY = S.Tangent.Y; D.TangentZ = S.Tangent.Z;
-        D.U = S.UV.X; D.V = S.UV.Y;
-        D.MaterialIndex = 0;
-    }
-
-    CreateBuffers(
-        GEngineLoop.GraphicDevice.Device,
-        StaticVerts,
-        RenderData->Indices,
-        RenderData->VertexBuffer,
-        RenderData->IndexBuffer
-    );
+    RenderData->CreateBuffers();
 
     return NewSkeletalMesh;
 }
@@ -104,7 +83,6 @@ void FFBXManager::LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkelet
         UE_LOG(LogLevel::Error, TEXT("FBX File Not Found"));
         return;
     }
-
     // FBX 파일 열기
     if (!Importer->Initialize(*FbxFilePath, -1, SdkManager->GetIOSettings()))
     {
@@ -119,7 +97,6 @@ void FFBXManager::LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkelet
         UE_LOG(LogLevel::Error, "Can not Create FBX Scene Info : %s", *FbxFilePath);
         return;
     }
-
     // Triangulate (모든 메시를 삼각형으로)
     FbxGeometryConverter geomConverter(SdkManager);
     if (!geomConverter.Triangulate(Scene, true))
@@ -136,13 +113,6 @@ void FFBXManager::LoadSkeletalMeshRenderData(const FString& FbxFilePath, FSkelet
             FbxNode* child =root->GetChild(i);
 
             ExtractSkeletalMeshData(child, OutRenderData);
-            std::cout << GetData(OutRenderData.FilePath) << std::endl;
-            
-            for (int i=0;i<OutRenderData.ReferencePose.Num();i++)
-            {
-                std::cout << GetData(OutRenderData.BoneNames[i]) << std::endl;
-                OutRenderData.LocalBindPose[i].PrintMatirx();
-            }
         }
     }
 }
@@ -165,14 +135,14 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     FbxMesh* mesh = node->GetMesh();
     if (!mesh)
     {
-        // for (int i = 0; i < node->GetChildCount(); i++)
-        // {
-        //     ExtractSkeletalMeshData(node->GetChild(i), outData);
-        // }
+        for (int i = 0; i < node->GetChildCount(); i++)
+        {
+            ExtractSkeletalMeshData(node->GetChild(i), outData);
+        }
         return;
     }
-
     outData.ObjectName = FString(node->GetName());
+    
     // 2) 컨트롤 포인트 버텍스 초기화
     int cpCount = mesh->GetControlPointsCount();
     outData.Vertices.SetNum(cpCount);
@@ -193,9 +163,7 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     outData.Indices.Reserve(polyCount * 3);
 
     // 4) 클러스터 정보 미리 수집 (본 노드, TransformLinkMatrix, 가중치)
-    TSet<FbxNode*>            BoneNodeSet;
-    TMap<FbxNode*, FMatrix>   ClusterBindPose;
-    TMap<FbxNode*, TArray<std::pair<int, float>>>  BoneWeightsMap; 
+
       // boneNode -> array of (controlPointIdx, weight)
 
     // UV Element 가져오기 (첫 번째 UV 세트)
@@ -326,6 +294,9 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
 
 
     // 5) 본 + 스킨 정보 수집
+    TSet<FbxNode*>            BoneNodeSet;
+    TMap<FbxNode*, FMatrix>   ClusterBindPose;
+    TMap<FbxNode*, TArray<std::pair<int, float>>>  BoneWeightsMap; 
     for (int d = 0; d < mesh->GetDeformerCount(FbxDeformer::eSkin); ++d)
     {
         auto* skin = static_cast<FbxSkin*>(mesh->GetDeformer(d, FbxDeformer::eSkin));
@@ -341,7 +312,8 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
             FbxAMatrix meshGlobal;
             cluster->GetTransformMatrix(meshGlobal);
             FMatrix invMeshGlobal = FMatrix::Inverse(ConvertToFMatrix(meshGlobal));
-
+            FbxAMatrix a;
+            a = a.Transpose();
             FbxAMatrix linkGlobal;
             cluster->GetTransformLinkMatrix(linkGlobal);
             FMatrix boneGlobal = ConvertToFMatrix(linkGlobal);
@@ -418,8 +390,51 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
             }
         }
     }
+    
+    // 9) LocalBindPose 계산
+    int32 BoneCount = outData.ReferencePose.Num();
+    outData.LocalBindPose.SetNum(BoneCount);
+    for(int32 i = 0; i < BoneCount; ++i)
+    {
+        int32 P = outData.ParentBoneIndices[i];
+        const FMatrix& Gc = outData.ReferencePose[i];      // 자식 글로벌
+        if(P >= 0)
+        {
+            const FMatrix& Gp = outData.ReferencePose[P];  // 부모 글로벌
 
-    // 9) (이전 로직) 재질 & 서브셋 처리 …
+            // 1) 부모 회전, 위치 분리
+            FQuat Rp = FQuat(Gp);                  // 부모 글로벌 회전
+            FVector Tp(Gp.M[3][0], Gp.M[3][1], Gp.M[3][2]);
+
+            // 2) 자식 회전, 위치 분리
+            FQuat Rc = FQuat(Gc);
+            FVector Tc(Gc.M[3][0], Gc.M[3][1], Gc.M[3][2]);
+
+            // 3) 로컬 회전 = 부모 회전⁻¹ * 자식 회전
+            FQuat Rlocal = Rp.Inverse() * Rc;
+            Rlocal = Rlocal.GetSafeNormal();
+            // 4) 로컬 이동 = 부모 회전⁻¹ * (자식 위치 - 부모 위치)
+            FVector Tlocal = Rp.Inverse().RotateVector(Tc - Tp);
+
+            // 5) LocalBindPose[i] 재조합
+            FMatrix RotM = Rlocal.ToMatrix();
+            RotM.M[3][0] = Tlocal.X;
+            RotM.M[3][1] = Tlocal.Y;
+            RotM.M[3][2] = Tlocal.Z;
+            RotM.M[3][3] = 1;
+            outData.LocalBindPose[i] = RotM;
+        }
+        else
+        {
+            // 루트 본은 글로벌이 그대로 로컬
+            outData.LocalBindPose[i] = outData.ReferencePose[i];
+        }
+    }
+    
+    outData.OrigineVertices          = outData.Vertices;
+    outData.OrigineReferencePose     = outData.ReferencePose;
+
+    // 10) (이전 로직) 재질 & 서브셋 처리 …
         
     // 재질 리셋
     outData.Materials.Reset();
@@ -513,69 +528,8 @@ void FFBXManager::ExtractSkeletalMeshData(FbxNode* node, FSkeletalMeshRenderData
     {
         outData.MaterialSubsets.Add(kv.Value);
     }
-    // 10) LocalBindPose 계산
-    int32 BoneCount = outData.ReferencePose.Num();
-    outData.LocalBindPose.SetNum(BoneCount);
-    for(int32 i = 0; i < BoneCount; ++i)
-    {
-        int32 P = outData.ParentBoneIndices[i];
-        const FMatrix& Gc = outData.ReferencePose[i];      // 자식 글로벌
-        if(P >= 0)
-        {
-            const FMatrix& Gp = outData.ReferencePose[P];  // 부모 글로벌
-
-            // 1) 부모 회전, 위치 분리
-            FQuat Rp = FQuat(Gp);                  // 부모 글로벌 회전
-            FVector Tp(Gp.M[3][0], Gp.M[3][1], Gp.M[3][2]);
-
-            // 2) 자식 회전, 위치 분리
-            FQuat Rc = FQuat(Gc);
-            FVector Tc(Gc.M[3][0], Gc.M[3][1], Gc.M[3][2]);
-
-            // 3) 로컬 회전 = 부모 회전⁻¹ * 자식 회전
-            FQuat Rlocal = Rp.Inverse() * Rc;
-            Rlocal = Rlocal.GetSafeNormal();
-            // 4) 로컬 이동 = 부모 회전⁻¹ * (자식 위치 - 부모 위치)
-            FVector Tlocal = Rp.Inverse().RotateVector(Tc - Tp);
-
-            // 5) LocalBindPose[i] 재조합
-            FMatrix RotM = Rlocal.ToMatrix();
-            RotM.M[3][0] = Tlocal.X;
-            RotM.M[3][1] = Tlocal.Y;
-            RotM.M[3][2] = Tlocal.Z;
-            RotM.M[3][3] = 1;
-            outData.LocalBindPose[i] = RotM;
-        }
-        else
-        {
-            // 루트 본은 글로벌이 그대로 로컬
-            outData.LocalBindPose[i] = outData.ReferencePose[i];
-        }
-    }
-    
-    // int32 BoneCount = SortedBones.Num();
-    // outData.LocalBindPose.SetNum(BoneCount);
-    // FbxTime evalTime = FBXSDK_TIME_ZERO;
-    // for (int32 i = 0; i < BoneCount; ++i)
-    // {
-    //     FbxNode* boneNode = SortedBones[i];
-    //     // 1) FBX 로컬 바인드 포즈 매트릭스 얻기
-    //     FbxAMatrix  fbxLocal = boneNode->EvaluateLocalTransform(evalTime);
-    //     // (필요시 애니메이션 레이어 인자로 넘겨줄 수도 있음)
-    //     // 2) FBX 좌표계 → 언리얼 좌표계 변환
-    //     //    (sourceAxisSystem, conversionMatrix 은 함수 상단에서 이미 구해두셨죠)
-    //     FMatrix RawMat = ConvertToFMatrix(fbxLocal);
-    //     outData.LocalBindPose[i] = RawMat;
-    // }
-    // outData.UpdateReferencePoseFromLocal();
-    
-    // 11) 원본 데이터 보관
-    outData.OrigineVertices          = outData.Vertices;
-    outData.OrigineReferencePose     = outData.ReferencePose;
-    outData.BoneTransforms           = outData.ReferencePose;
     // 7) 바운딩 박스 계산
     ComputeBounds(outData.Vertices, outData.BoundingBoxMin, outData.BoundingBoxMax);
-    
 }
 
 FMatrix FFBXManager::ConvertToFMatrix(const FbxAMatrix& in)
@@ -717,10 +671,6 @@ bool FFBXManager::SaveSkeletalMeshToBinary(const FString& FilePath, const FSkele
     File.write(reinterpret_cast<const char*>(&OrigineReferencePoseCount), sizeof(OrigineReferencePoseCount));
     File.write(reinterpret_cast<const char*>(StaticMesh.OrigineReferencePose.GetData()), OrigineReferencePoseCount * sizeof(FMatrix));
 
-    uint32 BoneTransformsCount = StaticMesh.BoneTransforms.Num();
-    File.write(reinterpret_cast<const char*>(&BoneTransformsCount), sizeof(BoneTransformsCount));
-    File.write(reinterpret_cast<const char*>(StaticMesh.BoneTransforms.GetData()), BoneTransformsCount * sizeof(FMatrix));
-
     uint32 LocalBindPoseCount = StaticMesh.LocalBindPose.Num();
     File.write(reinterpret_cast<const char*>(&LocalBindPoseCount), sizeof(LocalBindPoseCount));
     File.write(reinterpret_cast<const char*>(StaticMesh.LocalBindPose.GetData()), LocalBindPoseCount * sizeof(FMatrix));
@@ -860,12 +810,6 @@ bool FFBXManager::LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalM
     File.read(reinterpret_cast<char*>(&OrigineReferencePoseCount), sizeof(OrigineReferencePoseCount));
     OutStaticMesh.OrigineReferencePose.SetNum(OrigineReferencePoseCount);
     File.read(reinterpret_cast<char*>(OutStaticMesh.OrigineReferencePose.GetData()), OrigineReferencePoseCount * sizeof(FMatrix));
-
-    // 본 변환행렬
-    uint32 BoneTransformsCount = 0;
-    File.read(reinterpret_cast<char*>(&BoneTransformsCount), sizeof(BoneTransformsCount));
-    OutStaticMesh.BoneTransforms.SetNum(BoneTransformsCount);
-    File.read(reinterpret_cast<char*>(OutStaticMesh.BoneTransforms.GetData()), BoneTransformsCount * sizeof(FMatrix));
 
     // 로컬 바인드 포즈
     uint32 LocalBindPoseCount = 0;

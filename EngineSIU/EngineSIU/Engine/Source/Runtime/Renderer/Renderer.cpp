@@ -421,7 +421,7 @@ void FRenderer::Render(const std::shared_ptr<FViewportClient>& Viewport)
         static_cast<UINT>(EShaderSRVSlot::SRV_Debug),
         1,
         &TileLightCullingPass->GetDebugHeatmapSRV()
-    ); // TODO: 최악의 코드
+    ); // TODO: 최악의 코드  
 
     // Compositing: 위에서 렌더한 결과들을 하나로 합쳐서 뷰포트의 최종 이미지를 만드는 작업
     {
