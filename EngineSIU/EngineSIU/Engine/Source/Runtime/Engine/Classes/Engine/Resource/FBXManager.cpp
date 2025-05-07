@@ -59,6 +59,18 @@ USkeletalMesh* FFBXManager::LoadFbx(const FString& FbxFilePath)
     return NewSkeletalMesh;
 }
 
+TArray<USkeletalMesh*> FFBXManager::LoadFbxAll(const FString& FbxFilePath)
+{
+    TArray<USkeletalMesh*> SkeletalMeshes;
+    LoadAllMeshesFromFbx(FbxFilePath, SkeletalMeshes);
+
+    for (auto& SkeletalMesh : SkeletalMeshes)
+    {
+        SkeletalMeshMap.Add(SkeletalMesh->GetRenderData()->ObjectName, SkeletalMesh);
+    }
+    return SkeletalMeshes;
+}
+
 void FFBXManager::Initialize()
 {
     SdkManager = FbxManager::Create();
@@ -780,225 +792,159 @@ bool FFBXManager::LoadSkeletalMeshFromBinary(const FString& FilePath, FSkeletalM
     return true;
 }
 
-void FFBXManager::ProcessNodeRecursively(FbxNode* node, FBX::FImportSceneData& OutSceneData, int32 parentNodeIndex, const FMatrix& parentWorldTransform, const FMatrix& conversionMatrix, bool bFlipWinding)
+bool FFBXManager::LoadAllMeshesFromFbx(const FString& FbxFilePath, TArray<USkeletalMesh*>& OutSkeletalMeshes)
 {
-    if (!node)
-        return;
+    OutSkeletalMeshes.Empty();
 
-    using namespace FBX;
-    // 1. 현재 Node에 대한 Node Info를 만든다
-    FNodeInfo currentNodeInfo;
-    currentNodeInfo.Name = FString(node->GetName());
-    currentNodeInfo.ParentIndex = parentNodeIndex;
-    currentNodeInfo.TempFbxNodePtr = node;
-
-    // 엔진 Space에서의 로컬, 월드 트랜스폼을 구함
-    currentNodeInfo.LocalTransform = GetNodeLocalTransformConverted(node, conversionMatrix);
-    currentNodeInfo.WorldTransform = parentWorldTransform * currentNodeInfo.LocalTransform;
-
-    // 노드를 하이라키에 먼저 넣고, 인덱스 받아옴
-    int currentNodeIndex = OutSceneData.NodeHierarchy.Add(currentNodeInfo);
-    OutSceneData.FbxNodeToIndexMap.Add(node, currentNodeIndex);
-
-    // 2. 노드들의 Attribute 처리
-    FbxNodeAttribute* attribute = node->GetNodeAttribute();
-    int attributeDataIndex = -1;
-    FbxNodeAttribute::EType attributeType = FbxNodeAttribute::eUnknown;
-
-    if (attribute)
+    if (!std::filesystem::exists(FbxFilePath.ToWideString()))
     {
-        attributeType = attribute->GetAttributeType();
-        OutSceneData.NodeHierarchy[currentNodeIndex].AttributeType = attributeType; // Update type in stored node info
-
-        switch (attributeType)
-        {
-        case FbxNodeAttribute::eMesh:
-        {
-            FbxMesh* mesh = static_cast<FbxMesh*>(attribute);
-            FMeshData meshData;
-            ExtractMeshData(node, mesh, meshData, currentNodeInfo.WorldTransform, conversionMatrix, bFlipWinding);
-            if (!meshData.Vertices.IsEmpty()) 
-            { // Check if data was actually extracted
-                attributeDataIndex = OutSceneData.MeshDatas.Add(meshData);
-            }
-            break;
-        }
-        case FbxNodeAttribute::eSkeleton:
-        {
-            // 스켈레톤 처리는 종종 메쉬 노드에서 발견되는 Skin/Cluster 정보와 밀접하게 연결됨.
-            // 여기서는 단순히 이 노드가 스켈레톤 속성을 가졌다는 사실과 변환 정보 정도만 기록할 수 있음.
-            // 실제 본(bone) 계층 구조 구축은 나중에 FbxSkin/FbxCluster 처리 단계 또는 ExtractMeshData 내에서 수행될 수 있음.
-            // 현재로서는, 참조가 필요한 경우 별도의 본 리스트에 추가한다고 가정.
-            FbxSkeleton* skeleton = static_cast<FbxSkeleton*>(attribute);
-            // 예시: ExtractSkeletonData(node, skeleton, OutSceneData, currentNodeIndex);
-            // 이 함수는 OutSceneData.SkeletonBones에 정보를 추가하고 나중에 부모 링크 등을 업데이트 할 수 있음.
-            // 단순화를 위해, 여기서는 직접 처리를 건너뛰고 스키닝 정보에 의존할 수도 있음.
-            UE_LOG(LogLevel::Display, "노드 %s는 스켈레톤입니다", *currentNodeInfo.Name);
-            break;
-        }
-        case FbxNodeAttribute::eLight: // 라이트 속성인 경우
-        {
-            FbxLight* light = static_cast<FbxLight*>(attribute);
-            FLightData lightData;
-            ExtractLightData(node, light, lightData, currentNodeInfo.WorldTransform, conversionMatrix);
-            attributeDataIndex = OutSceneData.LightDatas.Add(lightData); // 라이트 데이터 배열에 추가하고 인덱스 저장
-            break;
-        }
-        case FbxNodeAttribute::eCamera: // 카메라 속성인 경우
-        {
-            FbxCamera* camera = static_cast<FbxCamera*>(attribute);
-            FCameraData cameraData;
-            ExtractCameraData(node, camera, cameraData, currentNodeInfo.WorldTransform, conversionMatrix);
-            attributeDataIndex = OutSceneData.CameraDatas.Add(cameraData); // 카메라 데이터 배열에 추가하고 인덱스 저장
-            break;
-        }
-        case FbxNodeAttribute::eNull: // Null 속성인 경우 (더미 노드)
-        {
-            UE_LOG(LogLevel::Warning, "노드 %s는 Null입니다", *currentNodeInfo.Name);
-            // 종종 지오메트리/스켈레톤 속성 없이 그룹 노드나 본 조인트(뼈대 마디)로 사용됨
-            break;
-        }
-        // 필요한 경우 다른 타입(eLODGroup, eMarker 등)에 대한 케이스 추가
-        default: // 처리되지 않은 다른 속성 타입
-            UE_LOG(LogLevel::Warning, "노드 %s는 처리되지 않은 속성 타입을 가집니다: %d", *currentNodeInfo.Name, attributeType);
-            break;
-        }
+        UE_LOG(LogLevel::Error, TEXT("FFBXManager: FBX File Not Found: %s"), *FbxFilePath);
+        return false;
     }
 
-    // 3. 자식 노드 재귀처리
-    for (int i = 0; i < node->GetChildCount(); ++i) 
+    // FBX 파일 열기 및 씬 임포트
+    if (!Importer->Initialize(*FbxFilePath, -1, SdkManager->GetIOSettings()))
     {
-        // 자식 노드에 대해 재귀 호출
-        ProcessNodeRecursively(
-            node->GetChild(i),          
-            OutSceneData,               
-            currentNodeIndex,           
-            currentNodeInfo.WorldTransform, 
-            conversionMatrix,           
-            bFlipWinding               
-        );
+        UE_LOG(LogLevel::Error, TEXT("FFBXManager: Cannot Initialize Importer for Fbx File Path : %s"), *FbxFilePath);
+        return false;
     }
 
-}
-
-void FFBXManager::ExtractMeshData(FbxNode* node, FbxMesh* mesh, FBX::FMeshData& outMeshData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix, bool bFlipWinding)
-{
-}
-
-void FFBXManager::ExtractSkeletonData(FbxNode* node, FbxSkeleton* skeleton, FBX::FImportSceneData& OutSceneData, int32 nodeIndex)
-{
-}
-
-void FFBXManager::ExtractLightData(FbxNode* node, FbxLight* light, FBX::FLightData& outLightData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix)
-{
-}
-
-void FFBXManager::ExtractCameraData(FbxNode* node, FbxCamera* camera, FBX::FCameraData& outCameraData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix)
-{
-}
-
-FMatrix FFBXManager::GetNodeLocalTransformConverted(FbxNode* node, const FMatrix& conversionMatrix)
-{
-    FbxAMatrix fbxLocalMatrix = node->EvaluateLocalTransform();
-    FMatrix engineLocalMatrix = ConvertFbxMatrixToEngineMatrix(fbxLocalMatrix);
-
-    // Apply coordinate system conversion: M_engine = C * M_fbx * C_inv
-    // If C is orthogonal (rotation/reflection only), C_inv = C_transpose
-    // For simplicity assuming conversionMatrix.Inverse() exists and handles it.
-    // Note: This conversion might need refinement based on how C affects transforms vs vectors.
-    // Often, just converting the Translation, Rotation, Scale components separately is more robust.
-    // T = C * T_fbx
-    // R = C * R_fbx * C_inv
-    // S = S_fbx (scaling needs careful handling with non-uniform scaling and C)
-    // For now, using the matrix multiplication approach (verify results):
-    return conversionMatrix * engineLocalMatrix * FMatrix::Inverse(conversionMatrix); // Or Transpose() if appropriate
-}
-
-FMatrix FFBXManager::ConvertFbxMatrixToEngineMatrix(const FbxAMatrix& fbxMatrix)
-{
-    FMatrix engineMatrix;
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            // Assuming Engine Matrix is Column-Major, FBX is Row-Major
-            engineMatrix.M[j][i] = static_cast<float>(fbxMatrix[i][j]);
-        }
-    }
-    return engineMatrix;
-}
-
-FMatrix FFBXManager::GetConversionMatrix(const FbxAxisSystem& sourceAxisSystem, const FbxAxisSystem& targetAxisSystem)
-{
-    FbxAMatrix sourceMatrix;
-    FbxAMatrix targetMatrix;
-
-    // FBX 좌표계 변환 행렬 생성
-    BuildBasisMatrix(sourceAxisSystem, sourceMatrix);
-    BuildBasisMatrix(targetAxisSystem, targetMatrix);
-
-    FbxAMatrix conversionMatrix = targetMatrix.Inverse() * sourceMatrix;
-    FMatrix result;
-    for (int i = 0; i < 4; i++)
+    Scene = FbxScene::Create(SdkManager, "TempSceneForAllMeshes"); // 임시 씬 이름
+    if (!Importer->Import(Scene))
     {
-        for (int j = 0; j < 4; j++)
-        {
-            result.M[i][j] = conversionMatrix.Get(j, i);// 전치
-        }
+        UE_LOG(LogLevel::Error, TEXT("FFBXManager: Cannot Import FBX Scene Info : %s"), *FbxFilePath);
+        Importer->Destroy(); // 실패 시 Importer 정리
+        Importer = FbxImporter::Create(SdkManager, ""); // 다음 사용을 위해 재생성
+        return false;
     }
-    return result;
+
+    // 씬 좌표계 변환 및 삼각화
+    const FbxAxisSystem EngineAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityEven, FbxAxisSystem::eLeftHanded);
+    EngineAxisSystem.DeepConvertScene(Scene);
+
+    FbxGeometryConverter geomConverter(SdkManager);
+    if (!geomConverter.Triangulate(Scene, true))
+    {
+        UE_LOG(LogLevel::Warning, TEXT("FFBXManager: Triangulation failed for scene: %s"), *FbxFilePath);
+        // 실패해도 계속 진행할 수 있지만, 결과가 예상과 다를 수 있음
+    }
+
+    // 루트 노드부터 시작하여 모든 메시 노드를 재귀적으로 처리
+    FbxNode* RootNode = Scene->GetRootNode();
+    if (RootNode)
+    {
+        ProcessNodeRecursiveForMeshes(RootNode, FbxFilePath, OutSkeletalMeshes);
+    }
+
+    // 사용한 Scene 객체 정리
+    if (Scene)
+    {
+        Scene->Destroy();
+        Scene = nullptr;
+    }
+    // Importer는 Release()에서 정리되거나, 각 Load 호출 후 정리하는 정책에 따름
+    // 여기서는 각 호출마다 Initialize/Destroy 쌍을 사용한다고 가정하고 Importer를 정리할 수 있습니다.
+    // Importer->Destroy();
+    // Importer = FbxImporter::Create(SdkManager, "");
+
+
+    return !OutSkeletalMeshes.IsEmpty();
 }
 
-void FFBXManager::BuildBasisMatrix(const FbxAxisSystem& system, FbxAMatrix& outMatrix)
+USkeletalMesh* FFBXManager::GetSkeletalMesh(const FString& FbxFilePath)
 {
-    outMatrix.SetIdentity();
-
-    int upAxisSign;
-    FbxAxisSystem::EUpVector upAxis = system.GetUpVector(upAxisSign);
-
-    FbxAxisSystem::ECoordSystem coordSystem = system.GetCoorSystem();
-
-    FbxVector4 axisX(1, 0, 0);
-    FbxVector4 axisY(0, 1, 0);
-    FbxVector4 axisZ(0, 0, 1);
-
-    FbxVector4 upVec;
-    FbxVector4 rightVec;
-    FbxVector4 forwardVec;
-
-    if (upAxis == FbxAxisSystem::eXAxis)      upVec = axisX * upAxisSign;
-    else if (upAxis == FbxAxisSystem::eYAxis) upVec = axisY * upAxisSign;
-    else /* e ZAxis */                        upVec = axisZ * upAxisSign;
-
-    if (upAxis == FbxAxisSystem::eYAxis) // Y-Up (Maya, OpenGL 방식 가정)
+    if (SkeletalMeshMap.Contains(FbxFilePath))
     {
-        rightVec = axisX;
-        forwardVec = axisZ;
+        return SkeletalMeshMap[FbxFilePath];
     }
-    else if (upAxis == FbxAxisSystem::eZAxis) // Z-Up (Max, Maya Z-up 방식 가정)
+    LoadFbx(FbxFilePath);
+}
+
+USkeletalMesh* FFBXManager::CreateSkeletalMeshFromNode(FbxNode* InNode, const FString& InFbxFilePath)
+{
+    if (!InNode || !InNode->GetMesh())
     {
-        forwardVec = axisX;
-        rightVec = axisY;
-    }
-    else // X-Up (덜 일반적)
-    {
-        rightVec = axisY;
-        forwardVec = axisZ;
+        return nullptr;
     }
 
-    // 3. 왼손 좌표계(Left Handed)인 경우 Right 벡터 반전
-    if (coordSystem == FbxAxisSystem::eLeftHanded)
+    // 각 메시마다 고유한 이름을 생성 (예: 파일경로_노드이름)
+    // 이는 SkeletalMeshMap 캐싱 및 바이너리 파일 이름 생성에 사용될 수 있습니다.
+    // 여기서는 단순화를 위해 캐싱 및 바이너리 로드/저장은 생략하고 항상 FBX에서 직접 로드합니다.
+    // 필요하다면, 고유 식별자를 만들어 기존 캐싱/바이너리 시스템을 활용할 수 있습니다.
+    FString MeshNodeName = FString(InNode->GetName());
+    if (MeshNodeName.IsEmpty())
     {
-        rightVec = rightVec * -1.0;
+        static int unidentifiedMeshCounter = 0;
+        MeshNodeName = FString::Printf(TEXT("UnnamedMesh_%d"), unidentifiedMeshCounter++);
     }
 
-    FbxAMatrix invBasisMatrix;
-    invBasisMatrix.SetRow(0, FbxVector4(axisX.DotProduct(rightVec), axisX.DotProduct(upVec), axisX.DotProduct(forwardVec)));
-    invBasisMatrix.SetRow(1, FbxVector4(axisY.DotProduct(rightVec), axisY.DotProduct(upVec), axisY.DotProduct(forwardVec)));
-    invBasisMatrix.SetRow(2, FbxVector4(axisZ.DotProduct(rightVec), axisZ.DotProduct(upVec), axisZ.DotProduct(forwardVec)));
-    invBasisMatrix.SetRow(3, FbxVector4(0, 0, 0, 1)); // Translation 없음
-    outMatrix = invBasisMatrix.Inverse(); // 더 안전하게 Inverse 사용
+    // 1. RenderData 생성
+    FSkeletalMeshRenderData* RenderData = new FSkeletalMeshRenderData(); // 항상 새로 생성
+    RenderData->FilePath = InFbxFilePath; // 원본 파일 경로 저장
+
+    // 2. 현재 노드로부터 SkeletalMeshData 추출
+    // ExtractSkeletalMeshData는 내부적으로 outData를 채웁니다.
+    ExtractSkeletalMeshData(InNode, *RenderData); // InNode의 데이터를 RenderData에 채움
+
+    // 추출된 데이터가 유효하지 않으면 (예: 메시 데이터가 없거나, 본 정보가 없는 스태틱 메시 등) 정리하고 nullptr 반환
+    if (RenderData->Vertices.IsEmpty() && RenderData->BoneNames.IsEmpty()) // 간단한 유효성 검사
+    {
+        delete RenderData;
+        UE_LOG(LogLevel::Warning, TEXT("FFBXManager: No valid mesh data extracted from node: %s in file: %s"), *MeshNodeName, *InFbxFilePath);
+        return nullptr;
+    }
+
+    // (선택적) 바이너리 저장 로직 (각 메시에 대해 개별 바이너리 파일 저장)
+    // FString BinaryMeshPath = UniqueMeshIdentifier; // 또는 다른 고유 경로
+    // SaveSkeletalMeshToBinary(BinaryMeshPath, *RenderData);
+
+
+    // 3. SkeletalMesh 객체 생성
+    USkeletalMesh* NewSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(&UAssetManager::Get());
+    NewSkeletalMesh->SetRenderData(RenderData);
+    // NewSkeletalMesh->SetPathName(UniqueMeshIdentifier); // 에셋 경로 설정 (필요시)
+
+    // 4. 머티리얼 정보 설정
+    for (const auto& MaterialInfo : RenderData->Materials)
+    {
+        UMaterial* Material = UMaterial::CreateMaterial(MaterialInfo); // UMaterial::CreateMaterial이 FObjMaterialInfo를 받는다고 가정
+        NewSkeletalMesh->AddMaterial(Material);
+    }
+
+    // 5. 버퍼 생성
+    RenderData->CreateBuffers(); // GPU 버퍼 생성
+
+    // (선택적) SkeletalMeshMap에 캐싱 (고유 식별자 사용)
+
+    return NewSkeletalMesh;
 }
 
 void FFBXManager::LoadFbxScene(const FString& FbxFilePath, FBX::FImportSceneData& OutSceneData)
 {
 }
+
+void FFBXManager::ProcessNodeRecursiveForMeshes(FbxNode* InNode, const FString& InFbxFilePath, TArray<USkeletalMesh*>& OutSkeletalMeshes)
+{
+    if (!InNode)
+    {
+        return;
+    }
+
+    // 현재 노드가 메시 속성을 가지고 있는지 확인
+    if (InNode->GetMesh())
+    {
+        USkeletalMesh* NewMesh = CreateSkeletalMeshFromNode(InNode, InFbxFilePath);
+        if (NewMesh)
+        {
+            OutSkeletalMeshes.Add(NewMesh);
+        }
+    }
+
+    // 자식 노드들에 대해 재귀적으로 동일 작업 수행
+    for (int i = 0; i < InNode->GetChildCount(); ++i)
+    {
+        ProcessNodeRecursiveForMeshes(InNode->GetChild(i), InFbxFilePath, OutSkeletalMeshes);
+    }
+}
+
 
