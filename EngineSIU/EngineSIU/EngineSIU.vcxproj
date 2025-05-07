@@ -145,7 +145,17 @@
     </Link>
     <PreBuildEvent>
       <Command>xcopy /Y /D $(ProjectDir)Engine\Source\ThirdParty\FMOD\bin\$(Platform)\*.dll "$(OutDir)"
-xcopy /Y /D $(ProjectDir)Engine\Source\ThirdParty\Lua\bin\*lua.dll "$(OutDir)"</Command>
+xcopy /Y /D $(ProjectDir)Engine\Source\ThirdParty\Lua\bin\*lua.dll "$(OutDir)"
+xcopy /Y /D $(ProjectDir)editor.ini "$(OutDir)"
+xcopy /Y /D $(ProjectDir)imgui.ini "$(OutDir)"
+
+xcopy /E /Y /I "$(ProjectDir)Assets" "$(OutDir)Assets"
+xcopy /E /Y /I "$(ProjectDir)Contents" "$(OutDir)Contents"
+xcopy /E /Y /I "$(ProjectDir)Font" "$(OutDir)Font"
+xcopy /E /Y /I "$(ProjectDir)Scripts" "$(OutDir)Scripts"
+xcopy /E /Y /I "$(ProjectDir)Saved" "$(OutDir)Saved"
+xcopy /E /Y /I "$(ProjectDir)Shaders" "$(OutDir)Shaders"
+</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -173,8 +183,18 @@ xcopy /Y /D $(ProjectDir)Engine\Source\ThirdParty\Lua\bin\*lua.dll "$(OutDir)"</
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
     <PreBuildEvent>
-      <Command>xcopy /Y /D $(ProjectDir)Engine\Source\ThirdParty\FMOD\bin\$(Platform)\*.dll "$(OutDir)"
-xcopy /Y /D $(ProjectDir)Engine\Source\ThirdParty\Lua\bin\*lua.dll "$(OutDir)"</Command>
+      <Command>xcopy /Y /D $(ProjectDir)Engine\Source\ThirdParty\FMOD\bin\$(Platform)\*.dll $(OutDir)
+xcopy /Y /D $(ProjectDir)Engine\Source\ThirdParty\Lua\bin\*lua.dll $(OutDir)
+xcopy /Y /D $(ProjectDir)editor.ini "$(OutDir)"
+xcopy /Y /D $(ProjectDir)imgui.ini "$(OutDir)"
+
+xcopy /E /Y /I $(ProjectDir)Assets $(OutDir)Assets
+xcopy /E /Y /I $(ProjectDir)Contents $(OutDir)Contents
+xcopy /E /Y /I $(ProjectDir)Font $(OutDir)Font
+xcopy /E /Y /I $(ProjectDir)Scripts $(OutDir)Scripts
+xcopy /E /Y /I $(ProjectDir)Saved $(OutDir)Saved
+xcopy /E /Y /I $(ProjectDir)Shaders $(OutDir)Shaders
+</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
