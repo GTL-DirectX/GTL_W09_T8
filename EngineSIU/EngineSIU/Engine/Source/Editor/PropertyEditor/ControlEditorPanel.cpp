@@ -512,7 +512,7 @@ void ControlEditorPanel::CreateFlagButton()
         ImGui::OpenPopup("ShowFlags");
     }
 
-    const char* Items[] = { "AABB", "Primitives", "BillBoardText", "UUID", "Fog", "LightWireframe", "LightWireframeSelectedOnly", "Shadow", "Collision", "CollisionSelectedOnly", "Bone" };
+    const char* Items[] = { "AABB", "Primitives", "BillBoardText", "UUID", "Fog", "LightWireframe", "LightWireframeSelectedOnly", "Shadow", "Collision", "CollisionSelectedOnly", "Bone", "SkeletalMesh"};
     const uint64 CurFlag = ActiveViewport->GetShowFlag();
 
     if (ImGui::BeginPopup("ShowFlags"))
@@ -530,6 +530,7 @@ void ControlEditorPanel::CreateFlagButton()
             static_cast<bool>(CurFlag & EEngineShowFlags::SF_Collision),
             static_cast<bool>(CurFlag & EEngineShowFlags::SF_CollisionSelectedOnly),
             static_cast<bool>(CurFlag & EEngineShowFlags::SF_Bone),
+            static_cast<bool>(CurFlag & EEngineShowFlags::SF_SkeletalMesh)
         }; // 각 항목의 체크 상태 저장
 
         for (int i = 0; i < IM_ARRAYSIZE(Items); i++)
@@ -733,6 +734,10 @@ uint64 ControlEditorPanel::ConvertSelectionToFlags(const bool Selected[])
     if (Selected[10])
     {
         Flags |= static_cast<uint64>(EEngineShowFlags::SF_Bone);
+    }
+    if (Selected[11])
+    {
+        Flags |= static_cast<uint64>(EEngineShowFlags::SF_SkeletalMesh);
     }
 
     return Flags;
