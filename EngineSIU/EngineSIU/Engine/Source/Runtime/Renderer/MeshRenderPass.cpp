@@ -41,18 +41,24 @@ void FMeshRenderPass::PrepareRenderArr(const std::shared_ptr<FViewportClient>& V
     if (Viewport == nullptr || Viewport->GetWorld() == nullptr)
         return;
 
-    for (const auto iter : TObjectRange<UStaticMeshComponent>())
+    if (Viewport->GetShowFlag() & EEngineShowFlags::SF_Primitives)
     {
-        if (!Cast<UGizmoBaseComponent>(iter) && iter->GetWorld() == Viewport->GetWorld())
+        for (const auto iter : TObjectRange<UStaticMeshComponent>())
         {
-            StaticMeshComponents.Add(iter);
+            if (!Cast<UGizmoBaseComponent>(iter) && iter->GetWorld() == Viewport->GetWorld())
+            {
+                StaticMeshComponents.Add(iter);
+            }
         }
     }
 
-    for (const auto iter : TObjectRange<USkeletalMeshComponent>())
+    if (Viewport->GetShowFlag() & EEngineShowFlags::SF_SkeletalMesh)
     {
-        if (iter->GetWorld() == Viewport->GetWorld())
-            SkeletalMeshComponents.Add(iter);
+        for (const auto iter : TObjectRange<USkeletalMeshComponent>())
+        {
+            if (iter->GetWorld() == Viewport->GetWorld())
+                SkeletalMeshComponents.Add(iter);
+        }
     }
 }
 

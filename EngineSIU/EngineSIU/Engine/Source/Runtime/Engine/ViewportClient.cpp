@@ -13,7 +13,7 @@ float FViewportClient::OrthoSize = 10.0f;
 
 FViewportClient::FViewportClient()
     : ViewportType(LVT_Perspective)
-   , ShowFlag(1087) // FIX-ME
+   , ShowFlag(EEngineShowFlags::SF_AABB | EEngineShowFlags::SF_Primitives | EEngineShowFlags::SF_BillboardText | EEngineShowFlags::SF_UUIDText | EEngineShowFlags::SF_Fog | EEngineShowFlags::SF_LightWireframe | EEngineShowFlags::SF_LightWireframeSelectedOnly | EEngineShowFlags::SF_Shadow | EEngineShowFlags::SF_Bone | EEngineShowFlags::SF_SkeletalMesh) // FIX-ME
    , ViewMode(EViewModeIndex::VMI_Lit_BlinnPhong)
 {
 }
