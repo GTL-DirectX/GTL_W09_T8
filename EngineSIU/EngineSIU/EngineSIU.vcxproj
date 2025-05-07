@@ -336,6 +336,7 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkinnedAsset.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Rendering\Texture\Texture.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\Resource\TextureManager.cpp" />
+    <ClCompile Include="Engine\Source\Editor\UnrealEd\SkeletalMeshViewportClient.cpp" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmod.dll" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmodL.dll" />
     <None Include="Engine\Source\ThirdParty\FMOD\bin\arm64\fmodstudio.dll" />
@@ -799,6 +800,7 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Mesh\SkinnedAsset.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Rendering\Texture\Texture.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Resource\TextureManager.h" />
+    <ClInclude Include="Engine\Source\Editor\UnrealEd\SkeletalMeshViewportClient.h" />
     <None Include="Shaders\EditorShaderConstants.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

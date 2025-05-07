@@ -319,7 +319,7 @@ void FEditorViewportClient::InputKey(const FKeyEvent& InKeyEvent)
 
                 ACube* CubeActor = TestWindowWorld->SpawnActor<ACube>();
                 CubeActor->SetActorLabel(TEXT("OBJ_CUBE"));
-                FEditorViewportClient* vpc = GEngineLoop.GetLevelEditor()->AddWindowViewportClient("Test", TestWindowWorld, FRect(100, 100, 800, 800));
+                FEditorViewportClient* vpc = dynamic_cast<FEditorViewportClient*>(GEngineLoop.GetLevelEditor()->AddWindowViewportClient("Test", TestWindowWorld, FRect(100, 100, 800, 800), EEditorViewportType::EditorViewport));
                 vpc->SetShouldDraw(false);
                 FViewportCamera vpCam = vpc->GetPerspectiveCamera();
                 vpCam.SetLocation(FVector(-10, 0, 5));

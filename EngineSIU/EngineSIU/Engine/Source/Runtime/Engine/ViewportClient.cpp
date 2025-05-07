@@ -35,6 +35,10 @@ void FViewportClient::Release()
     delete Viewport;
 }
 
+void FViewportClient::Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld)
+{
+}
+
 
 D3D11_VIEWPORT& FViewportClient::GetD3DViewport() const
 {

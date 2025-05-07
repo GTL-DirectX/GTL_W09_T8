@@ -1,6 +1,5 @@
 #pragma once
 #include "ViewportClient.h"
-#include "Define.h"
 #include "Container/Map.h"
 #include "Container/Set.h"
 #include "InputCore/InputCoreTypes.h"
@@ -10,14 +9,13 @@
 class ATransformGizmo;
 class USceneComponent;
 class UWorld;
-enum class EViewScreenLocation : uint8;
 
 class FEditorViewportClient : public FViewportClient
 {
 public:
     FEditorViewportClient();
     virtual void Tick(float DeltaTime) override;
-    void Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld);
+    virtual void Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect, UWorld* InWorld) override;
 
     void UpdateEditorCameraMovement(float DeltaTime);
     void InputKey(const FKeyEvent& InKeyEvent);
