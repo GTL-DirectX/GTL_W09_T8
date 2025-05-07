@@ -49,25 +49,6 @@ public:
 
 
 private:
-    void ProcessNodeRecursively(
-        FbxNode* node,
-        FBX::FImportSceneData& OutSceneData,
-        int32 parentNodeIndex, // Index of the parent in OutSceneData.NodeHierarchy
-        const FMatrix& parentWorldTransform, // Parent's world transform (Engine Space)
-        const FMatrix& conversionMatrix,
-        bool bFlipWinding
-    );
-
-    void ExtractMeshData(FbxNode* node, FbxMesh* mesh, FBX::FMeshData& outMeshData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix, bool bFlipWinding);
-    void ExtractSkeletonData(FbxNode* node, FbxSkeleton* skeleton, FBX::FImportSceneData& OutSceneData, int32 nodeIndex); // Needs access to the main data struct
-    void ExtractLightData(FbxNode* node, FbxLight* light, FBX::FLightData& outLightData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix);
-    void ExtractCameraData(FbxNode* node, FbxCamera* camera, FBX::FCameraData& outCameraData, const FMatrix& nodeWorldTransform, const FMatrix& conversionMatrix);
-    FMatrix GetNodeLocalTransformConverted(FbxNode* node, const FMatrix& conversionMatrix);
-    FMatrix ConvertFbxMatrixToEngineMatrix(const FbxAMatrix& fbxMatrix); // Handles potential transpose
-
-    FMatrix GetConversionMatrix(const FbxAxisSystem& sourceAxisSystem, const FbxAxisSystem& targetAxisSystem);
-
-    void BuildBasisMatrix(const FbxAxisSystem& system, FbxAMatrix& outMatrix);
 
 public:
     void LoadFbxScene(const FString& FbxFilePath, FBX::FImportSceneData& OutSceneData);
